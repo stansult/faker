@@ -154,6 +154,8 @@ function wireUI() {
   $("btnRoomStatus").addEventListener("click", roomStatus);
   $("btnStartGame").addEventListener("click", startGame);
   $("btnGetRole").addEventListener("click", getRole);
+  $("btnGameState").addEventListener("click", gameState);
+
 
   $("btnClearLocal").addEventListener("click", () => {
     const roomCode = getRoomCode();
@@ -170,5 +172,25 @@ function wireUI() {
 
   renderLocal(getRoomCode());
 }
+
+async function gameState() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return log({ error: "Enter room code first" }, "gameState");
+
+  const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+
+  // roomStatus already hides secretWord/faker; we just present "game" portion
+  const view = {
+    status,
+    locked: data.locked,
+    playerCount: data.playerCount,
+    missingWordsCount: data.missingWordsCount,
+    wordPoolSize: data.wordPoolSize,
+    game: data.game || null
+  };
+
+  log(view, "gameState");
+}
+
 
 wireUI();

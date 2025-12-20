@@ -42,10 +42,21 @@ export async function handler(event) {
   const players = Array.isArray(room.players) ? room.players : [];
   const missingWords = players.filter(p => !Array.isArray(p.words) || p.words.length === 0);
 
+  const game = room.game && room.game.gameId
+    ? {
+      gameId: room.game.gameId,
+      round: room.game.round,
+      startedAt: room.game.startedAt
+    }
+    : null;
+
   return json(200, {
     locked: !!room.locked,
     playerCount: players.length,
     missingWordsCount: missingWords.length,
-    missingPlayerNumbers: missingWords.map(p => p.playerNumber)
+    missingPlayerNumbers: missingWords.map(p => p.playerNumber),
+    wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
+    game
   });
+
 }
