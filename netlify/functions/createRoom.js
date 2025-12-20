@@ -1,4 +1,4 @@
-import { getStore } from "@netlify/blobs";
+import { connectLambda, getStore } from "@netlify/blobs";
 
 function json(statusCode, bodyObj) {
   return {
@@ -59,6 +59,7 @@ export async function handler(event) {
     return json(400, { error: "rounds must be an integer between 1 and 20 (or omit it)" });
   }
 
+  connectLambda(event);
   const store = getStore("faker-rooms"); // one store for all rooms :contentReference[oaicite:2]{index=2}
 
   // Try a few times to avoid rare collisions
