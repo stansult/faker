@@ -128,12 +128,18 @@
         <div class="small">submitWords will use your saved local playerId</div>
       </div>
 
+      <div style="margin-top:8px;">
+        <label>Your move (one word)</label>
+        <input id="moveWord" placeholder="e.g. rocket" />
+      </div>
+
       <div class="row">
         <button id="btnSubmitWords">Submit words</button>
         <button id="btnRoomStatus">Room status</button>
         <button id="btnStartGame">Start game</button>
         <button id="btnGetRole">Get role</button>
         <button id="btnGameState">Game state</button>
+        <button id="btnSubmitMove">Submit move</button>
       </div>
 
     </div>
@@ -141,7 +147,7 @@
 
   <div class="card">
     <div class="row" style="justify-content: space-between; align-items:center;">
-      <div><strong>Output</strong> <span class="small">(latest at bottom)</span></div>
+      <div><strong>Output</strong> <span class="small">(latest at top)</span></div>
       <button id="btnClearOutput">Clear output</button>
     </div>
     <pre id="output" class="mono"></pre>

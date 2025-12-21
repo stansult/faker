@@ -9,7 +9,12 @@ function now() {
 function log(obj, label = "") {
   const out = $("output");
   const header = `[${now()}] ${label}`.trim();
-  out.textContent += (header ? header + "\n" : "") + JSON.stringify(obj, null, 2) + "\n\n";
+  out.textContent =
+    (header ? header + "\n" : "") +
+    JSON.stringify(obj, null, 2) +
+    "\n\n" +
+    out.textContent;
+
   out.scrollTop = out.scrollHeight;
 }
 
@@ -155,7 +160,7 @@ function wireUI() {
   $("btnStartGame").addEventListener("click", startGame);
   $("btnGetRole").addEventListener("click", getRole);
   $("btnGameState").addEventListener("click", gameState);
-
+  $("btnSubmitMove").addEventListener("click", submitMove);
 
   $("btnClearLocal").addEventListener("click", () => {
     const roomCode = getRoomCode();
@@ -192,5 +197,23 @@ async function gameState() {
   log(view, "gameState");
 }
 
+async function submitMove() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return log({ error: "Enter room code first" }, "submitMove");
+
+  const saved = getSaved(roomCode);
+  if (!saved) return log({ error: "Not joined" }, "submitMove");
+
+  const word = String($("moveWord").value || "").trim();
+  if (!word) return log({ error: "Enter a word" }, "submitMove");
+
+  const { status, data } = await postJSON("/.netlify/functions/submitMove", {
+    roomCode,
+    playerId: saved.playerId,
+    word
+  });
+
+  log({ status, ...data }, "submitMove");
+}
 
 wireUI();
