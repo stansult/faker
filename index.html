@@ -1,159 +1,116 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faker – Test UI</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+      label { display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px; }
+      input, textarea, button { font: inherit; }
+      input, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
+      textarea { width: 520px; max-width: 100%; height: 90px; }
+      button { padding: 8px 12px; border: 1px solid #aaa; border-radius: 10px; background: #f6f6f6; cursor: pointer; }
+      button:hover { background: #eee; }
+      .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-top: 12px; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+      pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
+      .small { font-size: 12px; opacity: 0.75; }
+      .pill { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 999px; }
+      h3 { font-size: 16px; }
+    </style>
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Faker – Test UI</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      margin: 16px;
-    }
+  <body>
+    <h2>Faker – Test UI</h2>
 
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: end;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      opacity: 0.8;
-      margin-bottom: 4px;
-    }
-
-    input,
-    textarea,
-    button {
-      font: inherit;
-    }
-
-    input,
-    textarea {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-
-    textarea {
-      width: 520px;
-      max-width: 100%;
-      height: 90px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border: 1px solid #aaa;
-      border-radius: 10px;
-      background: #f6f6f6;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #eee;
-    }
-
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 12px;
-      margin-top: 12px;
-    }
-
-    .mono {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .small {
-      font-size: 12px;
-      opacity: 0.75;
-    }
-
-    .pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border: 1px solid #ddd;
-      border-radius: 999px;
-    }
-  </style>
-</head>
-
-<body>
-  <h2>Faker – Test UI</h2>
-
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>Room code</label>
-        <input id="roomCode" placeholder="e.g. AJ820W" />
-        <div class="small">Used for all calls below</div>
-      </div>
-
-      <div>
-        <label>Player count (for createRoom)</label>
-        <input id="playerCount" type="number" min="2" max="12" value="4" />
-      </div>
-
-      <div>
-        <label>Rounds (for createRoom)</label>
-        <input id="rounds" type="number" min="1" max="20" value="3" />
-      </div>
+    <!-- 1) ROOM -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">1) Room</h3>
 
       <div class="row">
+        <div>
+          <label>Room code</label>
+          <input id="roomCode" placeholder="e.g. AJ820W" />
+          <div class="small">Used for all calls below</div>
+        </div>
+
+        <div>
+          <label>Player count (createRoom)</label>
+          <input id="playerCount" type="number" min="2" max="12" value="4" />
+        </div>
+
+        <div>
+          <label>Rounds (createRoom)</label>
+          <input id="rounds" type="number" min="1" max="20" value="3" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
         <button id="btnCreateRoom">Create room</button>
         <button id="btnJoinRoom">Join room (save local)</button>
         <button id="btnClearLocal">Clear local identity</button>
       </div>
+
+      <div style="margin-top:10px">
+        <span class="pill">Local player:</span>
+        <span id="localPlayer" class="mono small"></span>
+      </div>
     </div>
 
-    <div style="margin-top:10px">
-      <span class="pill">Local player:</span>
-      <span id="localPlayer" class="mono small"></span>
+    <!-- 2) WORDS -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">2) Submit words</h3>
+
+      <label>Words (3–4, one per line)</label>
+      <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo"></textarea>
+      <div class="small">Uses your saved local playerId</div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnSubmitWords">Submit words</button>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="row">
-      <div style="flex:1; min-width:280px;">
-        <label>Words (3–4, one per line)</label>
-        <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo"></textarea>
-        <div class="small">submitWords will use your saved local playerId</div>
-      </div>
-
-      <div style="margin-top:8px;">
-        <label>Your move (one word)</label>
-        <input id="moveWord" placeholder="e.g. rocket" />
-      </div>
+    <!-- 3) GAME -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">3) Game</h3>
 
       <div class="row">
-        <button id="btnSubmitWords">Submit words</button>
         <button id="btnRoomStatus">Room status</button>
-        <button id="btnStartGame">Start game</button>
-        <button id="btnGetRole">Get role</button>
         <button id="btnGameState">Game state</button>
-        <button id="btnSubmitMove">Submit move</button>
+        <button id="btnStartGame">Start game</button>
+      </div>
+    </div>
+
+    <!-- 4) ROLE + MOVES -->
+    <div class="card">
+      <h3 style="margin:0 0 10px 0;">4) Role & moves</h3>
+
+      <div class="row">
+        <button id="btnGetRole">Get role</button>
       </div>
 
+      <div style="margin-top:10px;">
+        <label>Your move (one word)</label>
+        <input id="moveWord" placeholder="e.g. rocket" />
+        <div class="small">Only works on your turn</div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnSubmitMove">Submit move</button>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="row" style="justify-content: space-between; align-items:center;">
-      <div><strong>Output</strong> <span class="small">(latest at top)</span></div>
-      <button id="btnClearOutput">Clear output</button>
+    <!-- OUTPUT -->
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items:center;">
+        <div><strong>Output</strong> <span class="small">(latest at top)</span></div>
+        <button id="btnClearOutput">Clear output</button>
+      </div>
+      <pre id="output" class="mono"></pre>
     </div>
-    <pre id="output" class="mono"></pre>
-  </div>
 
-  <script src="./app.js"></script>
-</body>
-
+    <script src="./app.js"></script>
+  </body>
 </html>
