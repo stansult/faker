@@ -52,9 +52,18 @@ export async function handler(event) {
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  const room = await store.get(roomCode, { type: "json" });
-  if (!room) return json(404, { error: "Room not found" });
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
 
+  let room = null;
+  for (let attempt = 1; attempt <= 6; attempt++) {
+    room = await store.get(roomCode, { type: "json" });
+    if (room) break;
+    await sleep(80 + Math.floor(Math.random() * 120));
+  }
+
+  if (!room) return json(404, { error: "Room not found" });
   if (room.locked) return json(409, { error: "Room is locked" });
 
   room.players = Array.isArray(room.players) ? room.players : [];
