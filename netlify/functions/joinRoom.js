@@ -87,6 +87,14 @@ export async function handler(event) {
   room.updatedAt = now;
 
   await store.setJSON(roomCode, room);
+  // Verify our player is actually present (defends against stale reads / lost updates)
+  const verify = await store.get(roomCode, { type: "json" });
+  const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
+  const vMe = vPlayers.find(p => p.playerId === playerId);
 
-  return json(200, { playerId, playerNumber });
+  if (!vMe) {
+    return json(503, { error: "Join contention, please retry" });
+  }
+
+  return json(200, { playerId, playerNumber: vMe.playerNumber });
 }
