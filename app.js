@@ -103,6 +103,10 @@ async function joinRoom() {
 
   if (data.playerId && data.playerNumber) {
     setSaved(roomCode, { playerId: data.playerId, playerNumber: data.playerNumber });
+
+    // Debug/help: give storage a moment to settle, then show current room count
+    await new Promise(r => setTimeout(r, 200));
+    await roomStatus();
   }
 }
 
