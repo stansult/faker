@@ -13,7 +13,7 @@ function json(statusCode, obj) {
   };
 }
 
-function makeId(length = 12) {
+function makeId(length = 16) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -65,26 +65,30 @@ export async function handler(event) {
     if (room) break;
 
     await sleep(delay + Math.floor(Math.random() * 80));
-    delay = Math.min(600, Math.floor(delay * 1.25)); // gentle backoff
+    delay = Math.min(650, Math.floor(delay * 1.25));
   }
 
   if (!room) return json(404, { error: "Room not found" });
 
-
   room.players = Array.isArray(room.players) ? room.players : [];
   room.game = room.game || null;
 
-  // If game started (or locked), no new players
-  if (room.locked || (room.game && room.game.gameId)) {
-    return json(409, { error: "Room is locked" });
-  }
-
-  // If client provides playerId and it's already in room, return it (re-join)
+  // IMPORTANT: allow re-join even if locked / game started
   if (requestedPlayerId) {
     const existing = room.players.find(p => p.playerId === requestedPlayerId);
     if (existing) {
-      return json(200, { playerId: existing.playerId, playerNumber: existing.playerNumber });
+      return json(200, {
+        roomCode,
+        playerId: existing.playerId,
+        playerNumber: existing.playerNumber,
+        rejoined: true
+      });
     }
+  }
+
+  // New joins are blocked once locked or game started
+  if (room.locked || (room.game && room.game.gameId)) {
+    return json(409, { error: "Room is locked" });
   }
 
   if (room.players.length >= room.playerCount) {
@@ -106,10 +110,9 @@ export async function handler(event) {
 
   await store.setJSON(roomCode, room);
 
-  // Verify our player is actually present (defends against lost updates)
+  // Verify our player is actually present (defends against stale reads / lost updates)
   let vMe = null;
-
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 12; i++) {
     const verify = await store.get(roomCode, { type: "json" });
     const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
     vMe = vPlayers.find(p => p.playerId === playerId);
@@ -121,6 +124,10 @@ export async function handler(event) {
     return json(503, { error: "Join contention, please retry" });
   }
 
-  return json(200, { playerId, playerNumber: vMe.playerNumber });
-
+  return json(200, {
+    roomCode,
+    playerId,
+    playerNumber: vMe.playerNumber,
+    rejoined: false
+  });
 }

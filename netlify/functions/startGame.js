@@ -13,8 +13,12 @@ function json(statusCode, obj) {
   };
 }
 
-function makeId(length = 10) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function makeId(length = 12) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   let out = "";
@@ -22,8 +26,10 @@ function makeId(length = 10) {
   return out;
 }
 
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+function randInt(n) {
+  const bytes = new Uint8Array(1);
+  crypto.getRandomValues(bytes);
+  return bytes[0] % n;
 }
 
 export async function handler(event) {
@@ -49,47 +55,110 @@ export async function handler(event) {
   }
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
+  const playerId = String(payload.playerId || "").trim();
+
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!playerId) return json(400, { error: "playerId is required" });
 
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  const room = await store.get(roomCode, { type: "json" });
-  if (!room) return json(404, { error: "Room not found" });
+  let delay = 150;
 
-  room.players = Array.isArray(room.players) ? room.players : [];
+  for (let attempt = 1; attempt <= 12; attempt++) {
+    const room = await store.get(roomCode, { type: "json" });
+    if (!room) return json(404, { error: "Room not found" });
 
-  if (room.locked) return json(409, { error: "Room already started/locked" });
-  if (room.players.length < 3) return json(400, { error: "Need at least 3 players" });
+    room.players = Array.isArray(room.players) ? room.players : [];
+    room.wordPool = Array.isArray(room.wordPool) ? room.wordPool : [];
+    room.game = room.game || null;
 
-  const pool = Array.isArray(room.wordPool) ? room.wordPool : [];
-  if (pool.length === 0) return json(400, { error: "No words submitted yet" });
+    // If already started, just return current game summary
+    if (room.game && room.game.gameId) {
+      return json(200, {
+        ok: true,
+        alreadyStarted: true,
+        gameId: room.game.gameId
+      });
+    }
 
-  // Ensure every player has submitted words (optional but good)
-  for (const p of room.players) {
-    if (!Array.isArray(p.words) || p.words.length === 0) {
+    // Must be a player in the room to start
+    const starter = room.players.find(p => p.playerId === playerId);
+    if (!starter) return json(404, { error: "Player not found in room" });
+
+    // Preconditions
+    const maxPlayers = room.playerCount;
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 3) {
+      return json(400, { error: "Invalid room configuration" });
+    }
+
+    if (room.players.length < maxPlayers) {
+      return json(400, { error: "Need all players to join first" });
+    }
+
+    const missing = room.players.filter(p => !Array.isArray(p.words) || p.words.length === 0);
+    if (missing.length > 0) {
       return json(400, { error: "Not all players submitted words" });
     }
+
+    if (room.wordPool.length < 2) {
+      return json(400, { error: "Need at least 2 distinct words in pool" });
+    }
+
+    // Pick secret word
+    const secretWord = room.wordPool[randInt(room.wordPool.length)];
+
+    // Pick faker (impostor) player
+    const fakerPlayer = room.players[randInt(room.players.length)];
+
+    // Init game
+    const now = new Date().toISOString();
+    const rounds = Number.isInteger(room.rounds) && room.rounds > 0 ? room.rounds : 3;
+
+    room.game = {
+      gameId: makeId(12),
+      startedAt: now,
+      round: 1,
+      roundsTotal: rounds,
+
+      secretWord,
+      fakerPlayerId: fakerPlayer.playerId,
+
+      // Turn order is playerNumber ascending
+      turnIndex: 0,
+
+      // moves: [{ round, playerId, playerNumber, word, at }]
+      moves: []
+    };
+
+    // Lock the room (no new joins)
+    room.locked = true;
+    room.updatedAt = now;
+
+    await store.setJSON(roomCode, room);
+
+    // Verify we can read the started game (stale reads happen)
+    let verified = false;
+    for (let v = 0; v < 12; v++) {
+      const verify = await store.get(roomCode, { type: "json" });
+      if (verify?.game?.gameId) {
+        verified = true;
+        break;
+      }
+      await sleep(120 + Math.floor(Math.random() * 120));
+    }
+
+    if (verified) {
+      return json(200, {
+        ok: true,
+        started: true,
+        gameId: room.game.gameId
+      });
+    }
+
+    await sleep(delay + Math.floor(Math.random() * 100));
+    delay = Math.min(700, Math.floor(delay * 1.25));
   }
 
-  const secretWord = pickRandom(pool);
-  const fakerPlayer = pickRandom(room.players);
-
-  const gameId = makeId(8);
-  const now = new Date().toISOString();
-
-  room.locked = true;
-  room.game = {
-    gameId,
-    startedAt: now,
-    secretWord,
-    fakerPlayerId: fakerPlayer.playerId,
-    round: 1
-  };
-  room.updatedAt = now;
-
-  await store.setJSON(roomCode, room);
-
-  // Don't return secretWord here (server-side only)
-  return json(200, { ok: true, gameId });
+  return json(503, { error: "Game start not visible yet, please retry" });
 }

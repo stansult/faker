@@ -13,103 +13,208 @@ function json(statusCode, obj) {
   };
 }
 
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function makeId(length = 12) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < length; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
+function normalizeWord(w) {
+  return String(w || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: { "access-control-allow-origin": "*" }, body: "" };
+    return {
+      statusCode: 204,
+      headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "POST,OPTIONS",
+        "access-control-allow-headers": "content-type"
+      },
+      body: ""
+    };
   }
+
   if (event.httpMethod !== "POST") return json(405, { error: "Use POST" });
 
   let payload;
-  try { payload = JSON.parse(event.body || "{}"); }
-  catch { return json(400, { error: "Invalid JSON body" }); }
+  try {
+    payload = event.body ? JSON.parse(event.body) : {};
+  } catch {
+    return json(400, { error: "Invalid JSON body" });
+  }
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
   const playerId = String(payload.playerId || "").trim();
-  const word = String(payload.word || "").trim();
+  const word = normalizeWord(payload.word);
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!word) return json(400, { error: "word is required" });
-  if (word.length > 40) return json(400, { error: "Word too long" });
+  if (word.length > 40) return json(400, { error: "Word too long (max 40 chars)" });
 
   connectLambda(event);
   const store = getStore("faker-rooms");
-  const room = await store.get(roomCode, { type: "json" });
 
-  if (!room) return json(404, { error: "Room not found" });
-  if (!room.game) return json(409, { error: "Game not started" });
-  if (room.game.gameOver) return json(409, { error: "Game already over" });
+  const moveId = makeId(12);
 
-  const players = room.players || [];
-  const player = players.find(p => p.playerId === playerId);
-  if (!player) return json(404, { error: "Player not found" });
+  // Merge-safe update with verification (helps with eventual consistency / concurrent writes)
+  let delay = 150;
 
-  // Initialize move state if missing
-  room.game.currentTurn ??= 1;
-  room.game.round ??= 1;
-  room.game.moves ??= [];
+  for (let attempt = 1; attempt <= 12; attempt++) {
+    const room = await store.get(roomCode, { type: "json" });
+    if (!room) return json(404, { error: "Room not found" });
 
-  if (player.playerNumber !== room.game.currentTurn) {
-    return json(409, { error: "Not your turn" });
-  }
+    room.players = Array.isArray(room.players) ? room.players : [];
+    room.game = room.game || null;
 
-  // Prevent multiple moves in same round
-  if (room.game.moves.some(m =>
-    m.round === room.game.round && m.playerId === playerId
-  )) {
-    return json(409, { error: "Already moved this round" });
-  }
+    if (!room.game || !room.game.gameId) {
+      return json(409, { error: "Game has not started" });
+    }
 
-  const isFaker = room.game.fakerPlayerId === playerId;
-  const secret = room.game.secretWord;
+    const game = room.game;
 
-  if (!isFaker && word.toLowerCase() === secret.toLowerCase()) {
-    return json(409, { error: "You cannot say the secret word" });
-  }
+    if (game.endedAt) {
+      return json(409, { error: "Game already ended", endedAt: game.endedAt, winner: game.winner || null });
+    }
 
-  const now = new Date().toISOString();
+    const players = room.players.slice().sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0));
+    const me = players.find(p => p.playerId === playerId);
+    if (!me) return json(404, { error: "Player not found in room" });
 
-  // Instant win condition
-  if (isFaker && word.toLowerCase() === secret.toLowerCase()) {
-    room.game.gameOver = true;
-    room.game.winner = "FAKER";
-    room.game.winningPlayerNumber = player.playerNumber;
+    const secretWord = String(game.secretWord || "");
+    const fakerPlayerId = String(game.fakerPlayerId || "");
 
-    room.game.moves.push({
-      round: room.game.round,
-      playerNumber: player.playerNumber,
+    if (!secretWord || !fakerPlayerId) {
+      return json(500, { error: "Game state incomplete (missing secretWord/fakerPlayerId)" });
+    }
+
+    // Enforce turn order
+    const turnIndex = Number.isInteger(game.turnIndex) ? game.turnIndex : 0;
+    const current = players[turnIndex % players.length];
+
+    if (!current || current.playerId !== playerId) {
+      return json(409, {
+        error: "Not your turn",
+        currentPlayerNumber: current?.playerNumber ?? null
+      });
+    }
+
+    const isFaker = playerId === fakerPlayerId;
+
+    // Rule: non-faker cannot say the secret word
+    if (!isFaker && word === secretWord) {
+      return json(400, { error: "You cannot use the secret word" });
+    }
+
+    const now = new Date().toISOString();
+
+    game.moves = Array.isArray(game.moves) ? game.moves : [];
+
+    // Record move
+    game.moves.push({
+      moveId,
+      round: game.round,
       playerId,
+      playerNumber: me.playerNumber,
       word,
-      at: now,
-      instantWin: true
+      at: now
     });
 
+    // If faker says secret word ON THEIR TURN -> immediate win
+    if (isFaker && word === secretWord) {
+      game.endedAt = now;
+      game.winner = "faker";
+      game.endReason = "faker_said_secret_word_on_turn";
+      room.updatedAt = now;
+
+      await store.setJSON(roomCode, room);
+
+      // Verify the move made it in
+      let verified = false;
+      for (let v = 0; v < 12; v++) {
+        const verify = await store.get(roomCode, { type: "json" });
+        const vMoves = Array.isArray(verify?.game?.moves) ? verify.game.moves : [];
+        if (vMoves.some(m => m.moveId === moveId)) {
+          verified = true;
+          break;
+        }
+        await sleep(120 + Math.floor(Math.random() * 120));
+      }
+
+      if (verified) {
+        return json(200, { ok: true, ended: true, winner: "faker", endReason: game.endReason });
+      }
+
+      await sleep(delay + Math.floor(Math.random() * 120));
+      delay = Math.min(700, Math.floor(delay * 1.25));
+      continue;
+    }
+
+    // Advance turn
+    const nextTurnIndex = (turnIndex + 1) % players.length;
+
+    // If we wrapped, advance round
+    const wrapped = nextTurnIndex === 0;
+    if (wrapped) {
+      const nextRound = Number.isInteger(game.round) ? game.round + 1 : 2;
+      game.round = nextRound;
+
+      // If rounds are complete, end game (no winner, since voting not implemented yet)
+      const roundsTotal = Number.isInteger(game.roundsTotal) ? game.roundsTotal : 3;
+      if (nextRound > roundsTotal) {
+        game.endedAt = now;
+        game.winner = null;
+        game.endReason = "rounds_complete";
+      }
+    }
+
+    game.turnIndex = nextTurnIndex;
+
+    room.updatedAt = now;
     await store.setJSON(roomCode, room);
-    return json(200, { ok: true, gameOver: true, winner: "FAKER" });
+
+    // Verify the move exists in stored state (stale reads happen)
+    let verified = false;
+    let ended = false;
+    let endReason = null;
+
+    for (let v = 0; v < 12; v++) {
+      const verify = await store.get(roomCode, { type: "json" });
+      const vGame = verify?.game;
+      const vMoves = Array.isArray(vGame?.moves) ? vGame.moves : [];
+      if (vMoves.some(m => m.moveId === moveId)) {
+        verified = true;
+        ended = !!vGame?.endedAt;
+        endReason = vGame?.endReason || null;
+        break;
+      }
+      await sleep(120 + Math.floor(Math.random() * 120));
+    }
+
+    if (verified) {
+      return json(200, {
+        ok: true,
+        moveAccepted: true,
+        ended,
+        endReason
+      });
+    }
+
+    // If we couldn’t verify, retry by re-reading and applying again
+    await sleep(delay + Math.floor(Math.random() * 120));
+    delay = Math.min(700, Math.floor(delay * 1.25));
   }
 
-  // Record normal move
-  room.game.moves.push({
-    round: room.game.round,
-    playerNumber: player.playerNumber,
-    playerId,
-    word,
-    at: now
-  });
-
-  // Advance turn
-  if (room.game.currentTurn === players.length) {
-    room.game.currentTurn = 1;
-    room.game.round += 1;
-  } else {
-    room.game.currentTurn += 1;
-  }
-
-  await store.setJSON(roomCode, room);
-
-  return json(200, {
-    ok: true,
-    nextTurn: room.game.currentTurn,
-    round: room.game.round
-  });
+  return json(503, { error: "Move not visible yet, please retry" });
 }
