@@ -86,22 +86,31 @@ async function createRoom() {
   $("roomCode").value = data.roomCode;
   renderLocal(data.roomCode);
 
-  // If backend says propagation might be slow, poll roomStatus a bit
-  if (data.pending) {
-    for (let i = 0; i < 20; i++) {
-      await new Promise(r => setTimeout(r, 200));
-      const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
-      if (res.status === 200) {
-        log({ status: res.status, ...res.data }, "roomStatus (auto)");
-        break;
-      }
+  // Try to observe the room becoming readable
+  let becameVisible = false;
+
+  for (let i = 0; i < (data.pending ? 25 : 3); i++) {
+    await new Promise(r => setTimeout(r, data.pending ? 200 : 120));
+    const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
+
+    if (res.status === 200) {
+      log({ status: res.status, ...res.data }, data.pending ? "roomStatus (auto)" : "roomStatus");
+      becameVisible = true;
+      break;
     }
-  } else {
-    await new Promise(r => setTimeout(r, 200));
-    await roomStatus();
+  }
+
+  if (!becameVisible) {
+    log(
+      {
+        note:
+          "Room code was created, but roomStatus did not become readable yet. Try Join room now, or click Room status again in a moment.",
+        roomCode: data.roomCode
+      },
+      "createRoom (visibility)"
+    );
   }
 }
-
 
 async function joinRoom() {
   const roomCode = getRoomCode();
