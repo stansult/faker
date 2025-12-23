@@ -127,26 +127,62 @@ async function roomStatus(label = "roomStatus") {
   log(merged, label);
 }
 
+function makeClientId(length = 16) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < length; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
+function getOrCreateLocalIdentity(roomCode) {
+  let saved = getSaved(roomCode);
+  if (saved && saved.playerId) return saved;
+
+  // Create a stable playerId immediately, BEFORE calling the backend.
+  saved = { playerId: makeClientId(16), playerNumber: null };
+  setSaved(roomCode, saved);
+  return saved;
+}
+
+let joinInFlight = null;
+
 async function joinRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "joinRoom");
 
-  // If already joined on this browser profile, reuse
-  const existing = getSaved(roomCode);
-  if (existing) {
-    log({ roomCode, ...existing }, "joinRoom (reused local identity)");
-    return;
-  }
+  // Prevent double-click / auto-join race in the same tab
+  if (joinInFlight) return joinInFlight;
 
-  const { status, data } = await postJSON("/.netlify/functions/joinRoom", { roomCode });
-  log({ status, ...data }, "joinRoom");
+  joinInFlight = (async () => {
+    const saved = getOrCreateLocalIdentity(roomCode);
 
-  if (data.playerId && data.playerNumber) {
-    setSaved(roomCode, { playerId: data.playerId, playerNumber: data.playerNumber });
+    // If we already have a number, we consider ourselves joined (and just show status)
+    if (saved.playerNumber) {
+      log({ roomCode, ...saved }, "joinRoom (reused local identity)");
+      await roomStatus("roomStatus (already joined)");
+      return;
+    }
 
-    // Give storage a moment to settle, then show current room status
-    await new Promise(r => setTimeout(r, 250));
-    await roomStatus("roomStatus (after join)");
+    const { status, data } = await postJSON("/.netlify/functions/joinRoom", {
+      roomCode,
+      playerId: saved.playerId
+    });
+
+    log({ status, ...data }, "joinRoom");
+
+    if (data.playerId && data.playerNumber) {
+      setSaved(roomCode, { playerId: data.playerId, playerNumber: data.playerNumber });
+      await new Promise(r => setTimeout(r, 250));
+      await roomStatus("roomStatus (after join)");
+    }
+  })();
+
+  try {
+    await joinInFlight;
+  } finally {
+    joinInFlight = null;
   }
 }
 
