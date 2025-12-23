@@ -47,24 +47,28 @@ export async function handler(event) {
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
 
+  const game = room.game;
+  if (!game || !game.gameId) return json(409, { error: "Game has not started" });
+
   const players = Array.isArray(room.players) ? room.players : [];
-  const player = players.find(p => p.playerId === playerId);
-  if (!player) return json(404, { error: "Player not found in room" });
+  const me = players.find(p => p.playerId === playerId);
+  if (!me) return json(404, { error: "Player not found in room" });
 
-  if (!room.game || !room.game.gameId) {
-    return json(409, { error: "Game not started" });
+  const secretWord = String(game.secretWord || "");
+  const fakerPlayerId = String(game.fakerPlayerId || "");
+  if (!secretWord || !fakerPlayerId) {
+    return json(500, { error: "Game state incomplete" });
   }
 
-  const isFaker = room.game.fakerPlayerId === playerId;
+  const isFaker = playerId === fakerPlayerId;
 
-  if (isFaker) {
-    return json(200, { role: "FAKER", gameId: room.game.gameId, round: room.game.round });
-  }
-
+  // Only the faker needs the secret word (to possibly say it on their turn).
+  // Non-fakers should not learn the secret word from the backend response.
   return json(200, {
-    role: "PLAYER",
-    secretWord: room.game.secretWord,
-    gameId: room.game.gameId,
-    round: room.game.round
+    ok: true,
+    role: isFaker ? "faker" : "player",
+    playerNumber: me.playerNumber,
+    // reveal secret only to faker:
+    secretWord: isFaker ? secretWord : null
   });
 }
