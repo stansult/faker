@@ -205,19 +205,48 @@ async function submitWords() {
   if (!roomCode) return log({ error: "Enter room code first" }, "submitWords");
 
   const saved = getSaved(roomCode);
-  if (!saved) return log({ error: "Not joined" }, "submitWords");
+  if (!saved?.playerId) return log({ error: "Join room first (no local playerId)" }, "submitWords");
 
-  const words = wordsFromTextarea();
+  // Parse textarea lines into words
+  const raw = $("words").value || "";
+  const words = raw
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
     words
   });
+
   log({ status, ...data }, "submitWords");
 
-  // show updated status
-  await new Promise(r => setTimeout(r, 200));
-  await roomStatus("roomStatus (after submitWords)");
+  // If submitWords failed, don't poll
+  if (status !== 200) return;
+
+  // Now poll roomStatus until it "catches up" (bounded retry; avoids stale read confusion)
+  const targetPoolSize = typeof data.wordPoolSize === "number" ? data.wordPoolSize : null;
+
+  const maxTries = 6;
+  const baseDelayMs = 180;
+
+  for (let i = 0; i < maxTries; i++) {
+    await new Promise(r => setTimeout(r, baseDelayMs + i * 60));
+
+    const res = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+
+    if (res.status === 200) {
+      log({ status: res.status, ...res.data }, "roomStatus (after submitWords)");
+
+      const poolOk =
+        targetPoolSize == null ? true : (res.data?.wordPoolSize ?? -1) >= targetPoolSize;
+
+      const readyOk = (res.data?.missingWordsCount ?? 999) === 0;
+
+      if (poolOk || readyOk) break;
+    }
+  }
 }
 
 async function startGame() {
