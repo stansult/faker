@@ -5,7 +5,6 @@ function json(statusCode, bodyObj) {
     statusCode,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      // Basic CORS for local testing and mobile browsers
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "POST,OPTIONS",
       "access-control-allow-headers": "content-type"
@@ -15,14 +14,16 @@ function json(statusCode, bodyObj) {
 }
 
 function makeRoomCode(length = 6) {
-  // Crockford-ish base32 alphabet (no I/L/O/U) to avoid confusion
   const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
   let out = "";
-  // crypto is available in Node runtimes used by Netlify Functions
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   for (let i = 0; i < length; i++) out += alphabet[bytes[i] % alphabet.length];
   return out;
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 export async function handler(event) {
@@ -60,7 +61,7 @@ export async function handler(event) {
   }
 
   connectLambda(event);
-  const store = getStore("faker-rooms"); // one store for all rooms :contentReference[oaicite:2]{index=2}
+  const store = getStore("faker-rooms");
 
   // Try a few times to avoid rare collisions
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -75,17 +76,30 @@ export async function handler(event) {
       updatedAt: now,
 
       playerCount,
-      rounds,               // optional; can be null
+      rounds,      // optional; can be null
       locked: false,
 
-      // Filled later:
-      players: [],          // [{ playerId, joinedAt, words: [] }]
-      wordPool: [],         // flattened words (optional convenience)
-      secretWord: null,
-      impostorPlayerId: null
+      players: [],
+      wordPool: [],
+
+      // Game state will live under room.game later
+      game: null
     };
 
     await store.setJSON(roomCode, roomState);
+
+    // Verify the write is readable (handles eventual consistency)
+    let visible = false;
+    for (let i = 0; i < 10; i++) {
+      const probe = await store.get(roomCode, { type: "json" });
+      if (probe) { visible = true; break; }
+      await sleep(80 + Math.floor(Math.random() * 120));
+    }
+
+    if (!visible) {
+      // Don’t return a room code that can’t be joined yet
+      return json(503, { error: "Room creation not visible yet, please retry" });
+    }
 
     return json(200, { roomCode });
   }
