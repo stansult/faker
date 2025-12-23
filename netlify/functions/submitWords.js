@@ -31,6 +31,24 @@ function uniqPreserve(arr) {
   return out;
 }
 
+function makeId(length = 16) {
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < length; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
+}
+
+function pickRandom(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return null;
+  const bytes = new Uint32Array(1);
+  crypto.getRandomValues(bytes);
+  const idx = bytes[0] % arr.length;
+  return arr[idx];
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -63,7 +81,6 @@ export async function handler(event) {
 
   // normalize + drop empties + remove duplicates within this submission
   const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean));
-
   if (submitted.length === 0) return json(400, { error: "Provide at least 1 word" });
 
   connectLambda(event);
@@ -86,17 +103,57 @@ export async function handler(event) {
   // Normalize stored words too (defensive)
   me.words = uniqPreserve(me.words.map(normalizeWord).filter(Boolean));
 
-  // If already complete, just return status (idempotent)
-  if (me.words.length >= required) {
-    // rebuild pool (defensive)
+  // Helper: rebuild pool from players
+  function rebuildPool() {
     const allWords = [];
     for (const p of players) {
       const ws = Array.isArray(p.words) ? p.words : [];
       for (const w of ws) allWords.push(normalizeWord(w));
     }
+    room.players = players;
     room.wordPool = uniqPreserve(allWords.filter(Boolean));
+  }
+
+  // Helper: check if all players have submitted enough
+  function allSubmittedEnough() {
+    // must have full roster first
+    if (!Number.isInteger(room.playerCount)) return false;
+    if (players.length !== room.playerCount) return false;
+
+    for (const p of players) {
+      const ws = Array.isArray(p.words) ? p.words : [];
+      const clean = ws.map(normalizeWord).filter(Boolean);
+      if (clean.length < required) return false;
+    }
+    return true;
+  }
+
+  // If already complete, just return status (idempotent)
+  if (me.words.length >= required) {
+    rebuildPool();
     room.updatedAt = new Date().toISOString();
     await store.setJSON(roomCode, room);
+
+    // If everyone is complete, auto-start here too (in case player completed earlier)
+    let autoStarted = false;
+    if (!room.locked && !(room.game && room.game.gameId) && allSubmittedEnough()) {
+      const secretWord = pickRandom(room.wordPool);
+      const fakerPlayerId = pickRandom(players)?.playerId || null;
+
+      room.locked = true;
+      room.game = {
+        gameId: makeId(12),
+        startedAt: new Date().toISOString(),
+        round: 1,
+        turnIndex: 0,
+        secretWord,
+        fakerPlayerId,
+        moves: [] // { round, playerId, word, at }
+      };
+      room.updatedAt = new Date().toISOString();
+      await store.setJSON(roomCode, room);
+      autoStarted = true;
+    }
 
     return json(200, {
       ok: true,
@@ -105,8 +162,10 @@ export async function handler(event) {
       yourTotal: me.words.length,
       required,
       remaining: 0,
-      wordPoolSize: room.wordPool.length,
-      note: "Already complete"
+      wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
+      note: "Already complete",
+      autoStarted,
+      game: room.game || null
     });
   }
 
@@ -134,7 +193,6 @@ export async function handler(event) {
     if (remainingBefore <= 0) break;
 
     if (mySet.has(w)) {
-      // already mine; treat as duplicate/ignored
       duplicates.push({ word: w, reason: "already_yours" });
       continue;
     }
@@ -152,32 +210,45 @@ export async function handler(event) {
   }
 
   // Rebuild flattened wordPool from all players
-  const allWords = [];
-  for (const p of players) {
-    const ws = Array.isArray(p.words) ? p.words : [];
-    for (const w of ws) allWords.push(normalizeWord(w));
-  }
+  rebuildPool();
 
-  room.players = players;
-  room.wordPool = uniqPreserve(allWords.filter(Boolean));
   room.updatedAt = new Date().toISOString();
+
+  // AUTO-START if everyone is done now
+  let autoStarted = false;
+  if (!room.locked && !(room.game && room.game.gameId) && allSubmittedEnough()) {
+    const secretWord = pickRandom(room.wordPool);
+    const fakerPlayerId = pickRandom(players)?.playerId || null;
+
+    room.locked = true;
+    room.game = {
+      gameId: makeId(12),
+      startedAt: new Date().toISOString(),
+      round: 1,
+      turnIndex: 0,
+      secretWord,
+      fakerPlayerId,
+      moves: []
+    };
+    autoStarted = true;
+  }
 
   await store.setJSON(roomCode, room);
 
   const remaining = Math.max(0, required - me.words.length);
 
-  // If they submitted some duplicates and still need more, tell them exactly.
-  // This is your “one more required” message.
   return json(200, {
     ok: true,
     accepted,
-    duplicates,              // includes reason: already_in_pool / already_yours
+    duplicates,
     yourTotal: me.words.length,
     required,
     remaining,
-    wordPoolSize: room.wordPool.length,
+    wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
     message: remaining === 0
       ? "Words submitted (complete)"
-      : `Need ${remaining} more unique word${remaining === 1 ? "" : "s"}`
+      : `Need ${remaining} more unique word${remaining === 1 ? "" : "s"}`,
+    autoStarted,
+    game: room.game || null
   });
 }
