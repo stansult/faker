@@ -14,22 +14,23 @@ function log(obj, label = "") {
     JSON.stringify(obj, null, 2) +
     "\n\n" +
     out.textContent;
-
-  out.scrollTop = out.scrollHeight;
-}
-
-function roomKey(roomCode) {
-  return `faker:${roomCode}`;
 }
 
 function getRoomCode() {
   return String($("roomCode").value || "").trim().toUpperCase();
 }
 
+function roomKey(roomCode) {
+  return `faker:${roomCode}:player`;
+}
+
 function getSaved(roomCode) {
-  const raw = localStorage.getItem(roomKey(roomCode));
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  try {
+    const raw = localStorage.getItem(roomKey(roomCode));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 function setSaved(roomCode, savedObj) {
@@ -66,14 +67,6 @@ async function postJSON(path, bodyObj) {
   return { status: res.status, data };
 }
 
-function wordsFromTextarea() {
-  const lines = String($("words").value || "")
-    .split("\n")
-    .map(s => s.trim())
-    .filter(Boolean);
-  return lines;
-}
-
 async function createRoom() {
   const playerCount = Number($("playerCount").value);
   const rounds = Number($("rounds").value);
@@ -86,25 +79,29 @@ async function createRoom() {
   $("roomCode").value = data.roomCode;
   renderLocal(data.roomCode);
 
-  // Try to observe the room becoming readable
+  // Wait until the room becomes readable (eventual consistency).
+  // IMPORTANT: we don't treat "200 but stale snapshot" as authoritative; we only use this
+  // to know the key exists, then we join and re-check.
   let becameVisible = false;
 
-  for (let i = 0; i < (data.pending ? 25 : 3); i++) {
+  const tries = data.pending ? 30 : 5;
+  for (let i = 0; i < tries; i++) {
     await new Promise(r => setTimeout(r, data.pending ? 200 : 120));
     const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
 
     if (res.status === 200) {
-      log({ status: res.status, ...res.data }, "roomStatus (auto)");
+      becameVisible = true;
 
-      // Auto-join the creator once the room is visible
+      // Auto-join the creator once the room key exists
       if (!getSaved(data.roomCode)) {
         await joinRoom();
+      } else {
+        // Already joined in this browser; still show a fresh status
+        await roomStatus("roomStatus (after create)");
       }
 
-      becameVisible = true;
       break;
     }
-
   }
 
   if (!becameVisible) {
@@ -119,6 +116,17 @@ async function createRoom() {
   }
 }
 
+async function roomStatus(label = "roomStatus") {
+  const roomCode = getRoomCode();
+  if (!roomCode) return log({ error: "Enter room code first" }, label);
+
+  const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+
+  // Convenience: if server provides max/current, keep them visible in logs
+  const merged = { status, ...data };
+  log(merged, label);
+}
+
 async function joinRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "joinRoom");
@@ -126,7 +134,7 @@ async function joinRoom() {
   // If already joined on this browser profile, reuse
   const existing = getSaved(roomCode);
   if (existing) {
-    log(existing, "joinRoom (reused local identity)");
+    log({ roomCode, ...existing }, "joinRoom (reused local identity)");
     return;
   }
 
@@ -136,10 +144,19 @@ async function joinRoom() {
   if (data.playerId && data.playerNumber) {
     setSaved(roomCode, { playerId: data.playerId, playerNumber: data.playerNumber });
 
-    // Debug/help: give storage a moment to settle, then show current room count
-    await new Promise(r => setTimeout(r, 200));
-    await roomStatus();
+    // Give storage a moment to settle, then show current room status
+    await new Promise(r => setTimeout(r, 250));
+    await roomStatus("roomStatus (after join)");
   }
+}
+
+function wordsFromTextarea() {
+  const raw = String($("words").value || "");
+  // split by newlines or commas
+  return raw
+    .split(/[\n,]/g)
+    .map(s => s.trim())
+    .filter(Boolean);
 }
 
 async function submitWords() {
@@ -147,7 +164,7 @@ async function submitWords() {
   if (!roomCode) return log({ error: "Enter room code first" }, "submitWords");
 
   const saved = getSaved(roomCode);
-  if (!saved) return log({ error: "Not joined on this browser yet" }, "submitWords");
+  if (!saved) return log({ error: "Not joined" }, "submitWords");
 
   const words = wordsFromTextarea();
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
@@ -156,22 +173,27 @@ async function submitWords() {
     words
   });
   log({ status, ...data }, "submitWords");
-}
 
-async function roomStatus() {
-  const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "roomStatus");
-
-  const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
-  log({ status, ...data }, "roomStatus");
+  // show updated status
+  await new Promise(r => setTimeout(r, 200));
+  await roomStatus("roomStatus (after submitWords)");
 }
 
 async function startGame() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "startGame");
 
-  const { status, data } = await postJSON("/.netlify/functions/startGame", { roomCode });
+  const saved = getSaved(roomCode);
+  if (!saved) return log({ error: "Not joined" }, "startGame");
+
+  const { status, data } = await postJSON("/.netlify/functions/startGame", {
+    roomCode,
+    playerId: saved.playerId
+  });
   log({ status, ...data }, "startGame");
+
+  await new Promise(r => setTimeout(r, 200));
+  await roomStatus("roomStatus (after startGame)");
 }
 
 async function getRole() {
@@ -179,58 +201,13 @@ async function getRole() {
   if (!roomCode) return log({ error: "Enter room code first" }, "getRole");
 
   const saved = getSaved(roomCode);
-  if (!saved) return log({ error: "Not joined on this browser yet" }, "getRole");
+  if (!saved) return log({ error: "Not joined" }, "getRole");
 
   const { status, data } = await postJSON("/.netlify/functions/getRole", {
     roomCode,
     playerId: saved.playerId
   });
   log({ status, ...data }, "getRole");
-}
-
-function wireUI() {
-  $("btnCreateRoom").addEventListener("click", createRoom);
-  $("btnJoinRoom").addEventListener("click", joinRoom);
-  $("btnSubmitWords").addEventListener("click", submitWords);
-  $("btnRoomStatus").addEventListener("click", roomStatus);
-  $("btnStartGame").addEventListener("click", startGame);
-  $("btnGetRole").addEventListener("click", getRole);
-  $("btnGameState").addEventListener("click", gameState);
-  $("btnSubmitMove").addEventListener("click", submitMove);
-
-  $("btnClearLocal").addEventListener("click", () => {
-    const roomCode = getRoomCode();
-    if (!roomCode) return log({ error: "Enter room code first" }, "clearLocal");
-    clearSaved(roomCode);
-    log({ ok: true }, "clearLocal");
-  });
-
-  $("btnClearOutput").addEventListener("click", () => {
-    $("output").textContent = "";
-  });
-
-  $("roomCode").addEventListener("input", () => renderLocal(getRoomCode()));
-
-  renderLocal(getRoomCode());
-}
-
-async function gameState() {
-  const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "gameState");
-
-  const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
-
-  // roomStatus already hides secretWord/faker; we just present "game" portion
-  const view = {
-    status,
-    locked: data.locked,
-    playerCount: data.playerCount,
-    missingWordsCount: data.missingWordsCount,
-    wordPoolSize: data.wordPoolSize,
-    game: data.game || null
-  };
-
-  log(view, "gameState");
 }
 
 async function submitMove() {
@@ -248,8 +225,25 @@ async function submitMove() {
     playerId: saved.playerId,
     word
   });
-
   log({ status, ...data }, "submitMove");
+}
+
+function wireUI() {
+  $("btnCreateRoom").addEventListener("click", createRoom);
+  $("btnJoinRoom").addEventListener("click", joinRoom);
+  $("btnClearLocal").addEventListener("click", () => clearSaved(getRoomCode()));
+  $("btnSubmitWords").addEventListener("click", submitWords);
+  $("btnStartGame").addEventListener("click", startGame);
+  $("btnGetRole").addEventListener("click", getRole);
+  $("btnSubmitMove").addEventListener("click", submitMove);
+  $("btnRoomStatus").addEventListener("click", roomStatus);
+
+  $("btnClearOutput").addEventListener("click", () => {
+    $("output").textContent = "";
+  });
+
+  // initial
+  renderLocal(getRoomCode());
 }
 
 wireUI();
