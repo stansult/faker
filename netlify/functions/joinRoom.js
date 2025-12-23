@@ -58,13 +58,18 @@ export async function handler(event) {
 
   // Read with retry (eventual consistency)
   let room = null;
-  for (let attempt = 1; attempt <= 8; attempt++) {
+  let delay = 120;
+
+  for (let attempt = 1; attempt <= 30; attempt++) {
     room = await store.get(roomCode, { type: "json" });
     if (room) break;
-    await sleep(80 + Math.floor(Math.random() * 120));
+
+    await sleep(delay + Math.floor(Math.random() * 80));
+    delay = Math.min(600, Math.floor(delay * 1.25)); // gentle backoff
   }
 
   if (!room) return json(404, { error: "Room not found" });
+
 
   room.players = Array.isArray(room.players) ? room.players : [];
   room.game = room.game || null;

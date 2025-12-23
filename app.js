@@ -94,10 +94,15 @@ async function createRoom() {
     const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
 
     if (res.status === 200) {
-      log({ status: res.status, ...res.data }, data.pending ? "roomStatus (auto)" : "roomStatus");
+      log({ status: res.status, ...res.data }, "roomStatus (auto)");
+
+      // Auto-join the creator once the room is visible
+      await joinRoom();
+
       becameVisible = true;
       break;
     }
+
   }
 
   if (!becameVisible) {
