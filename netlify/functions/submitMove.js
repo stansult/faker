@@ -85,7 +85,12 @@ export async function handler(event) {
     const game = room.game;
 
     if (game.endedAt) {
-      return json(409, { error: "Game already ended", endedAt: game.endedAt, winner: game.winner || null });
+      return json(409, {
+        error: "Game already ended",
+        endedAt: game.endedAt,
+        winner: game.winner || null,
+        endReason: game.endReason || null
+      });
     }
 
     const players = room.players.slice().sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0));
@@ -94,7 +99,6 @@ export async function handler(event) {
 
     const secretWord = String(game.secretWord || "");
     const fakerPlayerId = String(game.fakerPlayerId || "");
-
     if (!secretWord || !fakerPlayerId) {
       return json(500, { error: "Game state incomplete (missing secretWord/fakerPlayerId)" });
     }
@@ -120,6 +124,12 @@ export async function handler(event) {
     const now = new Date().toISOString();
 
     game.moves = Array.isArray(game.moves) ? game.moves : [];
+
+    // Prevent accidental double-submit on same turn (same player twice in a row)
+    const lastMove = game.moves.length ? game.moves[game.moves.length - 1] : null;
+    if (lastMove && lastMove.playerId === playerId) {
+      return json(409, { error: "You already submitted a move for your current turn" });
+    }
 
     // Record move
     game.moves.push({
@@ -153,7 +163,13 @@ export async function handler(event) {
       }
 
       if (verified) {
-        return json(200, { ok: true, ended: true, winner: "faker", endReason: game.endReason });
+        return json(200, {
+          ok: true,
+          moveAccepted: true,
+          ended: true,
+          winner: "faker",
+          endReason: game.endReason
+        });
       }
 
       await sleep(delay + Math.floor(Math.random() * 120));
@@ -163,14 +179,12 @@ export async function handler(event) {
 
     // Advance turn
     const nextTurnIndex = (turnIndex + 1) % players.length;
-
-    // If we wrapped, advance round
     const wrapped = nextTurnIndex === 0;
+
     if (wrapped) {
       const nextRound = Number.isInteger(game.round) ? game.round + 1 : 2;
       game.round = nextRound;
 
-      // If rounds are complete, end game (no winner, since voting not implemented yet)
       const roundsTotal = Number.isInteger(game.roundsTotal) ? game.roundsTotal : 3;
       if (nextRound > roundsTotal) {
         game.endedAt = now;
@@ -188,6 +202,8 @@ export async function handler(event) {
     let verified = false;
     let ended = false;
     let endReason = null;
+    let nextPlayerNumber = players[nextTurnIndex]?.playerNumber ?? null;
+    let round = game.round;
 
     for (let v = 0; v < 12; v++) {
       const verify = await store.get(roomCode, { type: "json" });
@@ -197,6 +213,13 @@ export async function handler(event) {
         verified = true;
         ended = !!vGame?.endedAt;
         endReason = vGame?.endReason || null;
+        round = vGame?.round ?? round;
+
+        // recompute next player number from stored turnIndex if present
+        const vTurn = Number.isInteger(vGame?.turnIndex) ? vGame.turnIndex : nextTurnIndex;
+        const vPlayers = Array.isArray(verify?.players) ? verify.players.slice().sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0)) : players;
+        nextPlayerNumber = vPlayers[vTurn % vPlayers.length]?.playerNumber ?? nextPlayerNumber;
+
         break;
       }
       await sleep(120 + Math.floor(Math.random() * 120));
@@ -207,11 +230,12 @@ export async function handler(event) {
         ok: true,
         moveAccepted: true,
         ended,
-        endReason
+        endReason,
+        round,
+        nextPlayerNumber
       });
     }
 
-    // If we couldn’t verify, retry by re-reading and applying again
     await sleep(delay + Math.floor(Math.random() * 120));
     delay = Math.min(700, Math.floor(delay * 1.25));
   }
