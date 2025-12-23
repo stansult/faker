@@ -25,38 +25,57 @@ export async function handler(event) {
       body: ""
     };
   }
+
   if (event.httpMethod !== "POST") return json(405, { error: "Use POST" });
 
   let payload;
-  try { payload = JSON.parse(event.body || "{}"); }
-  catch { return json(400, { error: "Invalid JSON body" }); }
+  try {
+    payload = JSON.parse(event.body || "{}");
+  } catch {
+    return json(400, { error: "Invalid JSON body" });
+  }
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
   if (!roomCode) return json(400, { error: "roomCode is required" });
 
   connectLambda(event);
   const store = getStore("faker-rooms");
+
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
 
   const players = Array.isArray(room.players) ? room.players : [];
-  const missingWords = players.filter(p => !Array.isArray(p.words) || p.words.length === 0);
+  const missingWordsPlayers = players.filter(
+    p => !Array.isArray(p.words) || p.words.length === 0
+  );
 
-  const game = room.game && room.game.gameId
-    ? {
-      gameId: room.game.gameId,
-      round: room.game.round,
-      startedAt: room.game.startedAt
-    }
-    : null;
+  const game =
+    room.game && room.game.gameId
+      ? {
+        gameId: room.game.gameId,
+        round: room.game.round,
+        startedAt: room.game.startedAt
+      }
+      : null;
+
+  const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : null;
+  const currentPlayers = players.length;
 
   return json(200, {
+    roomCode,
     locked: !!room.locked,
-    playerCount: players.length,
-    missingWordsCount: missingWords.length,
-    missingPlayerNumbers: missingWords.map(p => p.playerNumber),
+
+    // Clear, non-confusing names:
+    maxPlayers,
+    currentPlayers,
+
+    // Back-compat (your UI currently reads playerCount):
+    playerCount: currentPlayers,
+
+    missingWordsCount: missingWordsPlayers.length,
+    missingPlayerNumbers: missingWordsPlayers.map(p => p.playerNumber),
+
     wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
     game
   });
-
 }
