@@ -26,10 +26,26 @@ function makeId(length = 12) {
   return out;
 }
 
-function randInt(n) {
-  const bytes = new Uint8Array(1);
-  crypto.getRandomValues(bytes);
-  return bytes[0] % n;
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function normalizeWord(w) {
+  return String(w || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function uniqPreserve(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const x of arr) {
+    if (seen.has(x)) continue;
+    seen.add(x);
+    out.push(x);
+  }
+  return out;
 }
 
 export async function handler(event) {
@@ -63,6 +79,8 @@ export async function handler(event) {
   connectLambda(event);
   const store = getStore("faker-rooms");
 
+  // Only this endpoint starts the game.
+  // Small retry loop because room visibility can lag (eventual consistency).
   let delay = 150;
 
   for (let attempt = 1; attempt <= 12; attempt++) {
@@ -73,71 +91,82 @@ export async function handler(event) {
     room.wordPool = Array.isArray(room.wordPool) ? room.wordPool : [];
     room.game = room.game || null;
 
-    // If already started, just return current game summary
+    // Idempotent: if already started, just return
     if (room.game && room.game.gameId) {
-      return json(200, {
-        ok: true,
-        alreadyStarted: true,
-        gameId: room.game.gameId
-      });
+      return json(200, { ok: true, alreadyStarted: true, gameId: room.game.gameId });
     }
 
-    // Must be a player in the room to start
     const starter = room.players.find(p => p.playerId === playerId);
     if (!starter) return json(404, { error: "Player not found in room" });
 
-    // Preconditions
-    const maxPlayers = room.playerCount;
-    if (!Number.isInteger(maxPlayers) || maxPlayers < 3) {
-      return json(400, { error: "Invalid room configuration" });
+    // Host-only start: player #1
+    if (starter.playerNumber !== 1) {
+      return json(403, { error: "Only host (player 1) can start" });
     }
+
+    // Require all players joined
+    const maxPlayers = Number.isInteger(room.maxPlayers)
+      ? room.maxPlayers
+      : (Number.isInteger(room.playerCount) ? room.playerCount : null);
+
+    if (!maxPlayers) return json(500, { error: "Room is missing player count" });
 
     if (room.players.length < maxPlayers) {
-      return json(400, { error: "Need all players to join first" });
+      return json(409, { error: `Need ${maxPlayers} players to start` });
     }
 
-    const missing = room.players.filter(p => !Array.isArray(p.words) || p.words.length === 0);
-    if (missing.length > 0) {
-      return json(400, { error: "Not all players submitted words" });
+    // Require all players have submitted required words
+    const required = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
+
+    const missing = [];
+    for (const p of room.players) {
+      const ws = Array.isArray(p.words) ? p.words : [];
+      const normalized = ws.map(normalizeWord).filter(Boolean);
+      const unique = uniqPreserve(normalized);
+      if (unique.length < required) missing.push(p.playerNumber);
     }
+
+    if (missing.length) {
+      return json(409, {
+        error: "Not all players submitted words",
+        missingPlayerNumbers: missing,
+        required
+      });
+    }
+
+    // Build authoritative pool from players (unique)
+    const allWords = [];
+    for (const p of room.players) {
+      const ws = Array.isArray(p.words) ? p.words : [];
+      for (const w of ws) allWords.push(normalizeWord(w));
+    }
+    room.wordPool = uniqPreserve(allWords.filter(Boolean));
 
     if (room.wordPool.length < 2) {
-      return json(400, { error: "Need at least 2 distinct words in pool" });
+      return json(409, { error: "Word pool too small to start" });
     }
 
-    // Pick secret word
-    const secretWord = room.wordPool[randInt(room.wordPool.length)];
+    // Pick secret + faker
+    const secretWord = pick(room.wordPool);
+    const faker = pick(room.players).playerId;
 
-    // Pick faker (impostor) player
-    const fakerPlayer = room.players[randInt(room.players.length)];
-
-    // Init game
     const now = new Date().toISOString();
-    const rounds = Number.isInteger(room.rounds) && room.rounds > 0 ? room.rounds : 3;
-
     room.game = {
-      gameId: makeId(12),
+      gameId: makeId(16),
       startedAt: now,
       round: 1,
-      roundsTotal: rounds,
-
       secretWord,
-      fakerPlayerId: fakerPlayer.playerId,
-
-      // Turn order is playerNumber ascending
+      fakerPlayerId: faker,
       turnIndex: 0,
-
-      // moves: [{ round, playerId, playerNumber, word, at }]
       moves: []
     };
 
-    // Lock the room (no new joins)
     room.locked = true;
     room.updatedAt = now;
 
     await store.setJSON(roomCode, room);
 
-    // Verify we can read the started game (stale reads happen)
+    // Verify visibility (eventual consistency)
     let verified = false;
     for (let v = 0; v < 12; v++) {
       const verify = await store.get(roomCode, { type: "json" });
@@ -149,11 +178,7 @@ export async function handler(event) {
     }
 
     if (verified) {
-      return json(200, {
-        ok: true,
-        started: true,
-        gameId: room.game.gameId
-      });
+      return json(200, { ok: true, started: true, gameId: room.game.gameId });
     }
 
     await sleep(delay + Math.floor(Math.random() * 100));
