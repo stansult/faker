@@ -70,8 +70,13 @@ async function postJSON(path, bodyObj) {
 async function createRoom() {
   const playerCount = Number($("playerCount").value);
   const rounds = Number($("rounds").value);
+  const wordsPerPlayer = Number($("wordsPerPlayer").value);
 
-  const { status, data } = await postJSON("/.netlify/functions/createRoom", { playerCount, rounds });
+  const { status, data } = await postJSON("/.netlify/functions/createRoom", {
+    playerCount,
+    rounds,
+    wordsPerPlayer
+  });
   log({ status, ...data }, "createRoom");
 
   if (!data.roomCode) return;
