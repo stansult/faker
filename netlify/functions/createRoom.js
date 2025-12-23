@@ -53,6 +53,13 @@ export async function handler(event) {
   const playerCount = Number(payload.playerCount);
   const rounds = payload.rounds == null ? null : Number(payload.rounds);
 
+  // NEW:
+  const wordsPerPlayerRaw = payload.wordsPerPlayer;
+  const wordsPerPlayer =
+    wordsPerPlayerRaw == null || wordsPerPlayerRaw === ""
+      ? 4 // default if omitted
+      : Number(wordsPerPlayerRaw);
+
   if (!Number.isInteger(playerCount) || playerCount < 3 || playerCount > 20) {
     return json(400, { error: "playerCount must be an integer between 3 and 20" });
   }
@@ -60,14 +67,17 @@ export async function handler(event) {
     return json(400, { error: "rounds must be an integer between 1 and 20 (or omit it)" });
   }
 
+  // NEW validation:
+  if (!Number.isInteger(wordsPerPlayer) || wordsPerPlayer < 1 || wordsPerPlayer > 20) {
+    return json(400, { error: "wordsPerPlayer must be an integer between 1 and 20" });
+  }
+
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  // Try a few times to avoid rare room-code collisions
   for (let attempt = 0; attempt < 5; attempt++) {
     const roomCode = makeRoomCode(6);
-
-    const existing = await store.get(roomCode, { type: "json" });
+    const existing = await store.get(roomCode);
     if (existing) continue;
 
     const now = new Date().toISOString();
@@ -78,25 +88,28 @@ export async function handler(event) {
 
       playerCount,
       rounds,
+      wordsPerPlayer, // NEW
       locked: false,
 
       players: [],
       wordPool: [],
+
       game: null
     };
 
     await store.setJSON(roomCode, roomState);
 
-    // Best-effort verify visibility (eventual consistency)
     let visible = false;
     for (let i = 0; i < 20; i++) {
       const probe = await store.get(roomCode, { type: "json" });
-      if (probe) { visible = true; break; }
+      if (probe) {
+        visible = true;
+        break;
+      }
       await sleep(150 + Math.floor(Math.random() * 150));
     }
 
-    // If not visible yet, still return the code, but mark it pending.
-    return json(200, { roomCode, pending: !visible });
+    return json(200, { roomCode, pending: !visible, wordsPerPlayer });
   }
 
   return json(500, { error: "Failed to create unique room code. Try again." });
