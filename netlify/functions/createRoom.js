@@ -63,10 +63,11 @@ export async function handler(event) {
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  // Try a few times to avoid rare collisions
+  // Try a few times to avoid rare room-code collisions
   for (let attempt = 0; attempt < 5; attempt++) {
     const roomCode = makeRoomCode(6);
-    const existing = await store.get(roomCode);
+
+    const existing = await store.get(roomCode, { type: "json" });
     if (existing) continue;
 
     const now = new Date().toISOString();
@@ -76,32 +77,26 @@ export async function handler(event) {
       updatedAt: now,
 
       playerCount,
-      rounds,      // optional; can be null
+      rounds,
       locked: false,
 
       players: [],
       wordPool: [],
-
-      // Game state will live under room.game later
       game: null
     };
 
     await store.setJSON(roomCode, roomState);
 
-    // Verify the write is readable (handles eventual consistency)
+    // Best-effort verify visibility (eventual consistency)
     let visible = false;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       const probe = await store.get(roomCode, { type: "json" });
       if (probe) { visible = true; break; }
-      await sleep(80 + Math.floor(Math.random() * 120));
+      await sleep(150 + Math.floor(Math.random() * 150));
     }
 
-    if (!visible) {
-      // Don’t return a room code that can’t be joined yet
-      return json(503, { error: "Room creation not visible yet, please retry" });
-    }
-
-    return json(200, { roomCode });
+    // If not visible yet, still return the code, but mark it pending.
+    return json(200, { roomCode, pending: !visible });
   }
 
   return json(500, { error: "Failed to create unique room code. Try again." });

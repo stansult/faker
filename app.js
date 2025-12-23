@@ -81,11 +81,27 @@ async function createRoom() {
   const { status, data } = await postJSON("/.netlify/functions/createRoom", { playerCount, rounds });
   log({ status, ...data }, "createRoom");
 
-  if (data.roomCode) {
-    $("roomCode").value = data.roomCode;
-    renderLocal(data.roomCode);
+  if (!data.roomCode) return;
+
+  $("roomCode").value = data.roomCode;
+  renderLocal(data.roomCode);
+
+  // If backend says propagation might be slow, poll roomStatus a bit
+  if (data.pending) {
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 200));
+      const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
+      if (res.status === 200) {
+        log({ status: res.status, ...res.data }, "roomStatus (auto)");
+        break;
+      }
+    }
+  } else {
+    await new Promise(r => setTimeout(r, 200));
+    await roomStatus();
   }
 }
+
 
 async function joinRoom() {
   const roomCode = getRoomCode();
