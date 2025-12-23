@@ -97,7 +97,9 @@ async function createRoom() {
       log({ status: res.status, ...res.data }, "roomStatus (auto)");
 
       // Auto-join the creator once the room is visible
-      await joinRoom();
+      if (!getSaved(data.roomCode)) {
+        await joinRoom();
+      }
 
       becameVisible = true;
       break;

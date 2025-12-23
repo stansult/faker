@@ -107,13 +107,20 @@ export async function handler(event) {
   await store.setJSON(roomCode, room);
 
   // Verify our player is actually present (defends against lost updates)
-  const verify = await store.get(roomCode, { type: "json" });
-  const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
-  const vMe = vPlayers.find(p => p.playerId === playerId);
+  let vMe = null;
+
+  for (let i = 0; i < 10; i++) {
+    const verify = await store.get(roomCode, { type: "json" });
+    const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
+    vMe = vPlayers.find(p => p.playerId === playerId);
+    if (vMe) break;
+    await sleep(120 + Math.floor(Math.random() * 120));
+  }
 
   if (!vMe) {
     return json(503, { error: "Join contention, please retry" });
   }
 
   return json(200, { playerId, playerNumber: vMe.playerNumber });
+
 }
