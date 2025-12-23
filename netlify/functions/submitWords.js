@@ -14,21 +14,21 @@ function json(statusCode, obj) {
 }
 
 function normalizeWord(w) {
-  // Keep it simple: trim, collapse spaces
   return String(w || "")
     .trim()
     .replace(/\s+/g, " ");
 }
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
-
-function sameStringArray(a, b) {
-  if (!Array.isArray(a) || !Array.isArray(b)) return false;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (String(a[i]) !== String(b[i])) return false;
-  return true;
+function uniqPreserve(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const x of arr) {
+    if (!seen.has(x)) {
+      seen.add(x);
+      out.push(x);
+    }
+  }
+  return out;
 }
 
 export async function handler(event) {
@@ -55,93 +55,129 @@ export async function handler(event) {
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
   const playerId = String(payload.playerId || "").trim();
-  const wordsIn = payload.words;
+  const wordsRaw = Array.isArray(payload.words) ? payload.words : null;
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!playerId) return json(400, { error: "playerId is required" });
-  if (!Array.isArray(wordsIn)) return json(400, { error: "words must be an array" });
+  if (!wordsRaw) return json(400, { error: "words must be an array" });
 
-  // You said 3–4 per player; enforce that strictly:
-  if (wordsIn.length < 3 || wordsIn.length > 4) {
-    return json(400, { error: "Submit 3–4 words" });
-  }
+  // normalize + drop empties + remove duplicates within this submission
+  const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean));
 
-  // Normalize + validate words
-  const words = wordsIn.map(normalizeWord).filter(Boolean);
-
-  if (words.length !== wordsIn.length) {
-    return json(400, { error: "Words cannot be empty" });
-  }
-
-  // Avoid absurdly long entries
-  for (const w of words) {
-    if (w.length > 40) return json(400, { error: "Word too long (max 40 chars)" });
-  }
+  if (submitted.length === 0) return json(400, { error: "Provide at least 1 word" });
 
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  // Merge-safe write with verification (helps with eventual consistency + concurrent writes)
-  // We retry by re-reading the latest room, applying the same change, and verifying it sticks.
-  let delay = 120;
+  const room = await store.get(roomCode, { type: "json" });
+  if (!room) return json(404, { error: "Room not found" });
 
-  for (let attempt = 1; attempt <= 12; attempt++) {
-    const room = await store.get(roomCode, { type: "json" });
-    if (!room) return json(404, { error: "Room not found" });
-
-    room.players = Array.isArray(room.players) ? room.players : [];
-    room.wordPool = Array.isArray(room.wordPool) ? room.wordPool : [];
-    room.game = room.game || null;
-
-    if (room.locked || (room.game && room.game.gameId)) {
-      return json(409, { error: "Room is locked" });
-    }
-
-    const player = room.players.find(p => p.playerId === playerId);
-    if (!player) return json(404, { error: "Player not found in room" });
-
-    // Apply change
-    player.words = words;
-
-    // Rebuild wordPool from all players
-    const poolSet = new Set();
-    for (const p of room.players) {
-      if (Array.isArray(p.words)) {
-        for (const w of p.words) poolSet.add(normalizeWord(w));
-      }
-    }
-    room.wordPool = Array.from(poolSet);
-
-    room.updatedAt = new Date().toISOString();
-
-    // Write
-    await store.setJSON(roomCode, room);
-
-    // Verify with a few reads (stale reads happen)
-    let verified = false;
-    for (let v = 0; v < 10; v++) {
-      const verify = await store.get(roomCode, { type: "json" });
-      const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
-      const vMe = vPlayers.find(p => p.playerId === playerId);
-
-      if (vMe && sameStringArray(vMe.words, words)) {
-        verified = true;
-        break;
-      }
-      await sleep(120 + Math.floor(Math.random() * 120));
-    }
-
-    if (verified) {
-      return json(200, {
-        ok: true,
-        wordPoolSize: room.wordPool.length
-      });
-    }
-
-    // Backoff then try again (re-read and re-apply)
-    await sleep(delay + Math.floor(Math.random() * 80));
-    delay = Math.min(600, Math.floor(delay * 1.25));
+  if (room.locked || (room.game && room.game.gameId)) {
+    return json(409, { error: "Room is locked" });
   }
 
-  return json(503, { error: "Submit words not visible yet, please retry" });
+  const players = Array.isArray(room.players) ? room.players : [];
+  const me = players.find(p => p.playerId === playerId);
+  if (!me) return json(404, { error: "Player not found in room" });
+
+  const required = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
+
+  me.words = Array.isArray(me.words) ? me.words : [];
+  // Normalize stored words too (defensive)
+  me.words = uniqPreserve(me.words.map(normalizeWord).filter(Boolean));
+
+  // If already complete, just return status (idempotent)
+  if (me.words.length >= required) {
+    // rebuild pool (defensive)
+    const allWords = [];
+    for (const p of players) {
+      const ws = Array.isArray(p.words) ? p.words : [];
+      for (const w of ws) allWords.push(normalizeWord(w));
+    }
+    room.wordPool = uniqPreserve(allWords.filter(Boolean));
+    room.updatedAt = new Date().toISOString();
+    await store.setJSON(roomCode, room);
+
+    return json(200, {
+      ok: true,
+      accepted: [],
+      duplicates: [],
+      yourTotal: me.words.length,
+      required,
+      remaining: 0,
+      wordPoolSize: room.wordPool.length,
+      note: "Already complete"
+    });
+  }
+
+  // Build global set of words already in pool, EXCLUDING this player's current words.
+  // This makes it legal for them to resubmit their own existing words (we just ignore).
+  const global = new Set();
+  for (const p of players) {
+    const ws = Array.isArray(p.words) ? p.words : [];
+    for (const w of ws) {
+      const nw = normalizeWord(w);
+      if (!nw) continue;
+      if (p.playerId === playerId) continue; // exclude mine
+      global.add(nw);
+    }
+  }
+
+  const mySet = new Set(me.words);
+
+  const accepted = [];
+  const duplicates = [];
+
+  let remainingBefore = required - me.words.length;
+
+  for (const w of submitted) {
+    if (remainingBefore <= 0) break;
+
+    if (mySet.has(w)) {
+      // already mine; treat as duplicate/ignored
+      duplicates.push({ word: w, reason: "already_yours" });
+      continue;
+    }
+
+    if (global.has(w)) {
+      duplicates.push({ word: w, reason: "already_in_pool" });
+      continue;
+    }
+
+    // accept
+    me.words.push(w);
+    mySet.add(w);
+    accepted.push(w);
+    remainingBefore--;
+  }
+
+  // Rebuild flattened wordPool from all players
+  const allWords = [];
+  for (const p of players) {
+    const ws = Array.isArray(p.words) ? p.words : [];
+    for (const w of ws) allWords.push(normalizeWord(w));
+  }
+
+  room.players = players;
+  room.wordPool = uniqPreserve(allWords.filter(Boolean));
+  room.updatedAt = new Date().toISOString();
+
+  await store.setJSON(roomCode, room);
+
+  const remaining = Math.max(0, required - me.words.length);
+
+  // If they submitted some duplicates and still need more, tell them exactly.
+  // This is your “one more required” message.
+  return json(200, {
+    ok: true,
+    accepted,
+    duplicates,              // includes reason: already_in_pool / already_yours
+    yourTotal: me.words.length,
+    required,
+    remaining,
+    wordPoolSize: room.wordPool.length,
+    message: remaining === 0
+      ? "Words submitted (complete)"
+      : `Need ${remaining} more unique word${remaining === 1 ? "" : "s"}`
+  });
 }
