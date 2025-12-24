@@ -318,6 +318,15 @@ async function joinRoom() {
 }
 
 async function createRoom() {
+  const name = String($("playerName")?.value || "").trim();
+  if (!name) {
+    nameTouched = true;
+    updateNameError();
+    $("playerName")?.focus();
+    log({ error: "Name is required" }, "createRoom");
+    return;
+  }
+
   const playerCount = Number($("playerCount")?.value);
   const rounds = Number($("rounds")?.value);
   const wordsPerPlayer = Number($("wordsPerPlayer")?.value);
