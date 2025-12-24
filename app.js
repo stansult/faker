@@ -24,8 +24,8 @@ async function postJSON(path, bodyObj) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(bodyObj || {})
     });
-  } catch (e) {
-    return { status: 0, data: { error: String(e) } };
+  } catch (err) {
+    return { status: 0, data: { error: String(err) } };
   }
 
   let data = null;
@@ -34,22 +34,31 @@ async function postJSON(path, bodyObj) {
   } catch {
     data = { error: "Non-JSON response" };
   }
+
   return { status: res.status, data };
 }
 
-function roomKey(roomCode) {
-  return `faker:${roomCode}`;
+function getRoomCode() {
+  return String($("roomCode")?.value || "")
+    .trim()
+    .toUpperCase();
 }
 
-function getRoomCode() {
-  return String($("roomCode")?.value || "").trim().toUpperCase();
+function setRoomCode(code) {
+  $("roomCode").value = String(code || "").trim().toUpperCase();
+}
+
+function roomKey(roomCode) {
+  return `faker:${String(roomCode || "").toUpperCase()}`;
 }
 
 function getSaved(roomCode) {
   if (!roomCode) return null;
+  const raw = localStorage.getItem(roomKey(roomCode));
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(roomKey(roomCode));
-    return raw ? JSON.parse(raw) : null;
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" ? obj : null;
   } catch {
     return null;
   }
@@ -103,33 +112,30 @@ function applyRoomStatus(status) {
   const isHost = !!saved && saved.playerNumber === 1;
 
   const maxPlayers = status?.maxPlayers ?? status?.playerCount ?? null;
-  const currentPlayers = status?.currentPlayers ?? status?.playerCount ?? null;
-  const missingWordsCount = status?.missingWordsCount ?? null;
+  const currentPlayers = status?.currentPlayers ?? (Array.isArray(status?.players) ? status.players.length : null);
 
-  const gameStarted = !!status?.game?.gameId;
-  const locked = !!status?.locked;
+  const allJoined = !!status?.allJoined;
+  const allReady = !!status?.allReady;
 
-  const allJoined =
-    typeof maxPlayers === "number" &&
-    typeof currentPlayers === "number" &&
-    currentPlayers >= maxPlayers;
-
-  const allWordsIn = typeof missingWordsCount === "number" ? missingWordsCount === 0 : false;
-
-  const canStart = isHost && !gameStarted && !locked && allJoined && allWordsIn;
+  // Start game only if:
+  // - room is join-complete
+  // - everyone has submitted enough words
+  // - and you're host (for now)
+  const canStart = allJoined && allReady && isHost;
 
   btnStart.disabled = !canStart;
   btnStart.title = canStart
-    ? "Ready to start"
-    : (!isHost ? "Only host (player 1) can start" :
-       gameStarted ? "Game already started" :
-       !allJoined ? "Waiting for all players to join" :
-       !allWordsIn ? "Waiting for all players to submit words" :
-       "Not ready");
+    ? "Start game"
+    : !isHost
+      ? "Only player #1 can start (for now)"
+      : !allJoined
+        ? `Waiting for players (${currentPlayers ?? "?"}/${maxPlayers ?? "?"})`
+        : "Waiting for words from players";
 }
 
 function makeClientId(length = 16) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   let out = "";
@@ -137,7 +143,7 @@ function makeClientId(length = 16) {
   return out;
 }
 
-function getOrCreateLocalIdentity(roomCode) {
+function ensureLocalIdentity(roomCode) {
   let saved = getSaved(roomCode);
   if (!saved) saved = {};
 
@@ -154,12 +160,16 @@ async function joinRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "joinRoom");
 
-  if (joinInFlight) return joinInFlight;
+  if (joinInFlight) {
+    log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
+    return;
+  }
 
   joinInFlight = (async () => {
-    const saved = getOrCreateLocalIdentity(roomCode);
+    const saved = ensureLocalIdentity(roomCode);
 
-    if (saved.playerNumber) {
+    // If already joined on this browser profile, reuse
+    if (saved.playerId && saved.playerNumber) {
       log({ roomCode, ...saved }, "joinRoom (reused local identity)");
       await roomStatus("roomStatus (already joined)");
       joinInFlight = null;
@@ -175,31 +185,37 @@ async function joinRoom() {
 
     if (status === 200 && data.playerId && data.playerNumber) {
       setSaved(roomCode, {
-        clientId: saved.clientId,
+        ...saved,
         playerId: data.playerId,
         playerNumber: data.playerNumber
       });
+
       await roomStatus("roomStatus (after join)");
     }
 
     joinInFlight = null;
   })();
-
-  return joinInFlight;
 }
 
 async function createRoom() {
   const playerCount = Number($("playerCount").value);
   const rounds = Number($("rounds").value);
+  const wordsPerPlayer = Number($("wordsPerPlayer")?.value);
 
-  const { status, data } = await postJSON("/.netlify/functions/createRoom", { playerCount, rounds });
+  const payload = { playerCount, rounds };
+  if (Number.isInteger(wordsPerPlayer) && wordsPerPlayer >= 1 && wordsPerPlayer <= 10) {
+    payload.wordsPerPlayer = wordsPerPlayer;
+  }
+
+  const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
   log({ status, ...data }, "createRoom");
 
   if (!data.roomCode) return;
 
-  $("roomCode").value = data.roomCode;
+  setRoomCode(data.roomCode);
   renderLocal(data.roomCode);
 
+  // Wait until the room becomes readable (eventual consistency).
   let becameVisible = false;
 
   const tries = data.pending ? 30 : 5;
@@ -210,7 +226,8 @@ async function createRoom() {
     if (res.status === 200) {
       becameVisible = true;
 
-      if (!getSaved(data.roomCode)) {
+      // Auto-join the creator once the room key exists
+      if (!getSaved(data.roomCode)?.playerId) {
         await joinRoom();
       } else {
         await roomStatus("roomStatus (after create)");
@@ -230,6 +247,13 @@ async function createRoom() {
       "createRoom (visibility)"
     );
   }
+}
+
+function wordsFromTextarea() {
+  const raw = String($("words")?.value || "");
+  // allow multi-line
+  const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return lines;
 }
 
 async function submitWords() {
@@ -258,7 +282,8 @@ async function startGame() {
   const { status, data } = await postJSON("/.netlify/functions/startGame", { roomCode });
   log({ status, ...data }, "startGame");
 
-  if (status === 200) await roomStatus("roomStatus (after startGame)");
+  await new Promise(r => setTimeout(r, 200));
+  await roomStatus("roomStatus (after startGame)");
 }
 
 async function getRole() {
@@ -305,7 +330,9 @@ function wireUI() {
   $("btnStartGame").addEventListener("click", startGame);
   $("btnGetRole").addEventListener("click", getRole);
   $("btnSubmitMove").addEventListener("click", submitMove);
-  $("btnRoomStatus").addEventListener("click", roomStatus);
+
+  // IMPORTANT: don’t pass the click event into roomStatus(label)
+  $("btnRoomStatus").addEventListener("click", () => roomStatus());
 
   $("btnClearOutput").addEventListener("click", () => {
     $("output").textContent = "";
@@ -351,16 +378,23 @@ function renderRoomStatus(rs) {
       </tr>
     </thead>
     <tbody>
-      ${players.map(p => `
+      ${players
+        .map(
+          p => `
         <tr>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
           <td class="mono">${p.wordsSubmitted}/${p.wordsRequired}</td>
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
-      `).join("")}
+      `
+        )
+        .join("")}
     </tbody>
   </table>`;
 
   el.innerHTML = html;
+
+  // also update start button enablement
+  applyRoomStatus(rs);
 }
