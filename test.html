@@ -4,26 +4,114 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Faker – Test UI</title>
-    <style>
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
-      label { display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px; }
-      input, textarea, button { font: inherit; }
-      input, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
-      textarea { width: 520px; max-width: 100%; height: 110px; }
-      button { padding: 8px 12px; border: 1px solid #aaa; border-radius: 10px; background: #f6f6f6; cursor: pointer; }
-      button:hover { background: #eee; }
-      button:disabled { opacity: 0.5; cursor: not-allowed; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-top: 12px; }
-      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
-      pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
-      .small { font-size: 12px; opacity: 0.75; }
-      .pill { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 999px; }
-      h3 { font-size: 16px; }
 
-      .ptable { border-collapse: collapse; width: 100%; max-width: 720px; }
-      .ptable th, .ptable td { border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; }
-      .ptable th { background: #fafafa; text-align: left; }
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 16px;
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+
+      input,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      textarea {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+
+      textarea {
+        width: 520px;
+        max-width: 100%;
+        height: 110px;
+      }
+
+      button {
+        padding: 8px 12px;
+        border: 1px solid #aaa;
+        border-radius: 10px;
+        background: #f6f6f6;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #eee;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+      }
+
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      .small {
+        font-size: 12px;
+        opacity: 0.75;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border: 1px solid #ddd;
+        border-radius: 999px;
+      }
+
+      h3 {
+        font-size: 16px;
+      }
+
+      .ptable {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 720px;
+      }
+
+      .ptable th,
+      .ptable td {
+        border: 1px solid #ddd;
+        padding: 6px 8px;
+        font-size: 13px;
+      }
+
+      .ptable th {
+        background: #fafafa;
+        text-align: left;
+      }
     </style>
   </head>
 
@@ -32,13 +120,18 @@
 
     <!-- 1) ROOM -->
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">1) Room</h3>
-      
+      <h3>1) Room</h3>
+
       <div class="row">
         <div>
           <label>Room code</label>
           <input id="roomCode" placeholder="e.g. AJ820W" />
           <div class="small">Used for all calls below</div>
+        </div>
+
+        <div>
+          <label>Your name</label>
+          <input id="playerName" placeholder="Alex" />
         </div>
 
         <div>
@@ -52,78 +145,93 @@
         </div>
 
         <div>
-          <label>Words per player (createRoom)</label>
-          <input id="wordsPerPlayer" type="number" min="1" max="10" value="4" />
+          <label>Words per player</label>
+          <input
+            id="wordsPerPlayer"
+            type="number"
+            min="1"
+            max="10"
+            value="4"
+          />
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px;">
+      <div class="row" style="margin-top: 10px">
         <button id="btnCreateRoom">Create room</button>
-        <button id="btnJoinRoom">Join room (save local)</button>
+        <button id="btnJoinRoom">Join room</button>
         <button id="btnClearLocal">Clear local identity</button>
         <button id="btnRoomStatus">Room status</button>
       </div>
 
-      <div style="margin-top:10px">
+      <div style="margin-top: 10px">
         <span class="pill">Local player:</span>
         <span id="localPlayer" class="mono small"></span>
       </div>
 
-      <div class="card" style="margin-top:12px;">
-        <h3 style="margin:0 0 10px 0;">Lobby</h3>
-        <div id="playersList" class="small">(click “Room status” to refresh)</div>
+      <div class="card" style="margin-top: 12px">
+        <h3>Lobby</h3>
+        <div id="playersList" class="small">
+          (click “Room status” to refresh)
+        </div>
       </div>
     </div>
 
     <!-- 2) WORDS -->
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">2) Submit words</h3>
+      <h3>2) Submit words</h3>
 
       <label>Words (one per line)</label>
-      <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo&#10;Banana"></textarea>
-      <div class="small">Uses your saved local playerId</div>
+      <textarea
+        id="words"
+        placeholder="Carrot&#10;Spaceship&#10;Igloo&#10;Banana"
+      ></textarea>
 
-      <div class="row" style="margin-top:10px;">
+      <div class="row" style="margin-top: 10px">
         <button id="btnSubmitWords">Submit words</button>
       </div>
     </div>
 
     <!-- 3) GAME -->
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">3) Game</h3>
+      <h3>3) Game</h3>
 
       <div class="row">
         <button id="btnStartGame">Start game</button>
       </div>
 
-      <div class="small" style="margin-top:8px;">
-        Start is enabled only when all players are ready (and currently only player #1 can start).
+      <div class="small" style="margin-top: 8px">
+        Start is enabled only when all players are ready.
       </div>
     </div>
 
     <!-- 4) ROLE + MOVES -->
     <div class="card">
-      <h3 style="margin:0 0 10px 0;">4) Role & moves</h3>
+      <h3>4) Role & moves</h3>
 
       <div class="row">
         <button id="btnGetRole">Get role</button>
       </div>
 
-      <div style="margin-top:10px;">
+      <div style="margin-top: 10px">
         <label>Your move (one word)</label>
-        <input id="moveWord" placeholder="e.g. rocket" />
-        <div class="small">Only works on your turn</div>
+        <input id="moveWord" placeholder="rocket" />
       </div>
 
-      <div class="row" style="margin-top:10px;">
+      <div class="row" style="margin-top: 10px">
         <button id="btnSubmitMove">Submit move</button>
       </div>
     </div>
 
     <!-- OUTPUT -->
     <div class="card">
-      <div class="row" style="justify-content: space-between; align-items:center;">
-        <div><strong>Output</strong> <span class="small">(latest at top)</span></div>
+      <div
+        class="row"
+        style="justify-content: space-between; align-items: center"
+      >
+        <div>
+          <strong>Output</strong>
+          <span class="small">(latest at top)</span>
+        </div>
         <button id="btnClearOutput">Clear output</button>
       </div>
       <pre id="output" class="mono"></pre>

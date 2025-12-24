@@ -26,6 +26,13 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+function normalizeName(x) {
+  const s = String(x ?? "").trim().replace(/\s+/g, " ");
+  if (!s) return null;
+  // optional safety: cap length
+  return s.slice(0, 40);
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -50,8 +57,10 @@ export async function handler(event) {
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
   const requestedPlayerId = payload.playerId ? String(payload.playerId).trim() : null;
+  const requestedName = normalizeName(payload.name);
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!requestedPlayerId) return json(400, { error: "playerId is required" });
 
   connectLambda(event);
   const store = getStore("faker-rooms");
@@ -73,17 +82,23 @@ export async function handler(event) {
   room.players = Array.isArray(room.players) ? room.players : [];
   room.game = room.game || null;
 
-  // IMPORTANT: allow re-join even if locked / game started
-  if (requestedPlayerId) {
-    const existing = room.players.find(p => p.playerId === requestedPlayerId);
-    if (existing) {
-      return json(200, {
-        roomCode,
-        playerId: existing.playerId,
-        playerNumber: existing.playerNumber,
-        rejoined: true
-      });
+  // If this playerId already exists, treat as re-join (even if locked/game started).
+  const existing = room.players.find(p => p.playerId === requestedPlayerId);
+  if (existing) {
+    // Allow updating name on rejoin if provided (useful when name was null earlier)
+    if (requestedName && existing.name !== requestedName) {
+      existing.name = requestedName;
+      room.updatedAt = new Date().toISOString();
+      await store.setJSON(roomCode, room);
     }
+
+    return json(200, {
+      roomCode,
+      playerId: existing.playerId,
+      playerNumber: existing.playerNumber,
+      name: existing.name ?? null,
+      rejoined: true
+    });
   }
 
   // New joins are blocked once locked or game started
@@ -102,6 +117,7 @@ export async function handler(event) {
   room.players.push({
     playerId,
     playerNumber,
+    name: requestedName, // <-- name stored here
     joinedAt: now,
     words: []
   });
@@ -128,6 +144,7 @@ export async function handler(event) {
     roomCode,
     playerId,
     playerNumber: vMe.playerNumber,
+    name: vMe.name ?? null,
     rejoined: false
   });
 }
