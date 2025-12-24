@@ -89,6 +89,12 @@ function renderLocal(roomCode) {
 
   const saved = getSaved(roomCode);
   el.textContent = saved ? JSON.stringify(saved) : "(none)";
+
+  const nameInput = $("playerName");
+  if (nameInput) {
+    const locked = !!(saved && saved.playerId && saved.playerNumber);
+    nameInput.disabled = locked;
+  }
 }
 
 function makeClientId(length = 16) {
@@ -248,25 +254,22 @@ async function joinRoom() {
   joinInFlight = (async () => {
     const saved = ensureLocalIdentity(roomCode);
 
-    // If already joined on this browser profile, reuse
+    // If already joined on this browser profile, reuse (do not update name)
     if (saved.playerId && saved.playerNumber) {
-      // If user typed a name now and we didn't have it saved yet, save it locally
-      if (name && saved.name !== name) {
-        setSaved(roomCode, { ...saved, name });
-      }
-
       log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
       await roomStatus("roomStatus (already joined)");
       joinInFlight = null;
       return;
     }
 
-    const { status, data } = await postJSON("/.netlify/functions/joinRoom", {
+    const payload = {
       roomCode,
       // stable id per room/browser (backend will treat it as requestedPlayerId)
-      playerId: saved.playerId || saved.clientId,
-      name
-    });
+      playerId: saved.playerId || saved.clientId
+    };
+    if (name) payload.name = name;
+
+    const { status, data } = await postJSON("/.netlify/functions/joinRoom", payload);
 
     log({ status, ...data }, "joinRoom");
 
@@ -275,7 +278,7 @@ async function joinRoom() {
         ...saved,
         playerId: data.playerId,
         playerNumber: data.playerNumber,
-        name: name || saved.name || null
+        name: data.name || name || saved.name || null
       });
 
       await roomStatus("roomStatus (after join)");
