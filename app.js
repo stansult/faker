@@ -84,10 +84,9 @@ async function roomStatus(label = "roomStatus") {
   if (!roomCode) return log({ error: "Enter room code first" }, label);
 
   const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+  log({ status, ...data }, label);
 
-  const merged = { status, ...data };
-  log(merged, label);
-  applyRoomStatus(data);
+  if (status === 200) renderRoomStatus(data);
 }
 
 let lastRoomStatus = null;
@@ -238,42 +237,28 @@ async function submitWords() {
   if (!roomCode) return log({ error: "Enter room code first" }, "submitWords");
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "submitWords");
+  if (!saved) return log({ error: "Not joined on this browser yet" }, "submitWords");
 
-  const raw = String($("words").value || "");
-  const words = raw
-    .split("\n")
-    .map(s => s.trim())
-    .filter(Boolean);
-
+  const words = wordsFromTextarea();
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
     words
   });
-
   log({ status, ...data }, "submitWords");
 
-  await new Promise(r => setTimeout(r, 150));
-  await roomStatus("roomStatus (after submitWords)");
+  // Refresh status so everyone sees up-to-date readiness
+  if (status === 200) await roomStatus("roomStatus (after submitWords)");
 }
 
 async function startGame() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "startGame");
 
-  const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "startGame");
-
-  const { status, data } = await postJSON("/.netlify/functions/startGame", {
-    roomCode,
-    playerId: saved.playerId
-  });
-
+  const { status, data } = await postJSON("/.netlify/functions/startGame", { roomCode });
   log({ status, ...data }, "startGame");
 
-  await new Promise(r => setTimeout(r, 200));
-  await roomStatus("roomStatus (after startGame)");
+  if (status === 200) await roomStatus("roomStatus (after startGame)");
 }
 
 async function getRole() {
@@ -331,3 +316,51 @@ function wireUI() {
 }
 
 wireUI();
+
+/* === lobby rendering helpers === */
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function renderRoomStatus(rs) {
+  const el = $("playersList");
+  if (!el) return;
+
+  const players = Array.isArray(rs.players) ? rs.players : [];
+  const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
+  const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
+
+  let html = "";
+
+  html += `<div class="small">Room: <span class="mono">${esc(rs.roomCode || "")}</span></div>`;
+  html += `<div class="small">Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}${wordsRequired ? " • Words each: " + wordsRequired : ""}</div>`;
+  html += `<div class="small">Ready: ${players.filter(p => p.ready).length} / ${players.length}</div>`;
+
+  html += `<table class="ptable" style="margin-top:8px;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Words</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${players.map(p => `
+        <tr>
+          <td class="mono">${p.playerNumber}</td>
+          <td>${esc(p.name || "")}</td>
+          <td class="mono">${p.wordsSubmitted}/${p.wordsRequired}</td>
+          <td>${p.ready ? "Ready" : "Not ready"}</td>
+        </tr>
+      `).join("")}
+    </tbody>
+  </table>`;
+
+  el.innerHTML = html;
+}
