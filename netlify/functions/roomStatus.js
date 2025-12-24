@@ -51,6 +51,7 @@ export async function handler(event) {
   if (!room) return json(404, { error: "Room not found" });
 
   const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : 0;
+  const rounds = Number.isInteger(room.rounds) ? room.rounds : 3;
   const wordsRequired = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
 
   const players = Array.isArray(room.players) ? room.players : [];
@@ -115,6 +116,7 @@ export async function handler(event) {
     locked: !!room.locked,
     maxPlayers,
     currentPlayers,
+    rounds,
     wordsRequired,
     wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
 

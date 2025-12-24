@@ -94,7 +94,13 @@ function renderLocal(roomCode) {
   if (nameInput) {
     const locked = !!(saved && saved.playerId && saved.playerNumber);
     nameInput.disabled = locked;
+    if (locked) {
+      nameTouched = false;
+      setNameError(false);
+    }
   }
+
+  updateNameError();
 }
 
 function makeClientId(length = 16) {
@@ -141,20 +147,17 @@ function applyRoomStatus(status) {
   const roomCode = getRoomCode();
   const saved = roomCode ? getSaved(roomCode) : null;
 
-  const isHost = !!saved && saved.playerNumber === 1;
-
   const allJoined = !!status?.allJoined;
   const allReady = !!status?.allReady;
 
   const gameStarted = !!status?.game?.gameId;
   const locked = !!status?.locked;
 
-  // current rule: only host can start
-  const canStart = !gameStarted && !locked && allJoined && allReady && isHost;
+  const canStart = !gameStarted && !locked && allJoined && allReady;
 
   btnStart.disabled = !canStart;
 
-  // Title: only mention host restriction when *that’s the only thing* blocking.
+  // Title: explain the most relevant blocking reason.
   if (canStart) {
     btnStart.title = "Start game";
     return;
@@ -180,8 +183,7 @@ function applyRoomStatus(status) {
     return;
   }
 
-  // Only now: allJoined && allReady are true, so host gating matters.
-  btnStart.title = isHost ? "Start game" : "Waiting for player #1 to start";
+  btnStart.title = "Start is available when all players are ready";
 }
 
 function esc(s) {
@@ -199,11 +201,12 @@ function renderRoomStatus(rs) {
   const players = Array.isArray(rs.players) ? rs.players : [];
   const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
   const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
+  const rounds = Number.isInteger(rs.rounds) ? rs.rounds : null;
 
   let html = "";
 
   html += `<div class="small">Room: <span class="mono">${esc(rs.roomCode || "")}</span></div>`;
-  html += `<div class="small">Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}${wordsRequired ? " • Words each: " + wordsRequired : ""}</div>`;
+  html += `<div class="small">Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}${wordsRequired ? " • Words each: " + wordsRequired : ""}${rounds ? " • Rounds: " + rounds : ""}</div>`;
   html += `<div class="small">Ready: ${players.filter(p => p.ready).length} / ${players.length}</div>`;
 
   html += `<table class="ptable" style="margin-top:8px;">
@@ -239,6 +242,21 @@ function renderRoomStatus(rs) {
 /* ===== actions ===== */
 
 let joinInFlight = null;
+let nameTouched = false;
+
+function setNameError(show) {
+  const el = $("nameError");
+  if (!el) return;
+  el.style.display = show ? "block" : "none";
+}
+
+function updateNameError() {
+  const input = $("playerName");
+  if (!input) return;
+  if (!nameTouched) return setNameError(false);
+  const value = String(input.value || "").trim();
+  setNameError(!value);
+}
 
 async function joinRoom() {
   const roomCode = getRoomCode();
@@ -261,6 +279,17 @@ async function joinRoom() {
       joinInFlight = null;
       return;
     }
+
+    if (!name) {
+      nameTouched = true;
+      updateNameError();
+      $("playerName")?.focus();
+      log({ error: "Name is required" }, "joinRoom");
+      joinInFlight = null;
+      return;
+    }
+
+    updateNameError();
 
     const payload = {
       roomCode,
@@ -425,6 +454,10 @@ function wireUI() {
   $("btnStartGame")?.addEventListener("click", startGame);
   $("btnGetRole")?.addEventListener("click", getRole);
   $("btnSubmitMove")?.addEventListener("click", submitMove);
+  $("playerName")?.addEventListener("input", () => {
+    nameTouched = true;
+    updateNameError();
+  });
 
   // IMPORTANT: don’t pass the click event into roomStatus(label)
   $("btnRoomStatus")?.addEventListener("click", () => roomStatus());

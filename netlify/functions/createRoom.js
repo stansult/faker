@@ -51,7 +51,11 @@ export async function handler(event) {
   }
 
   const playerCount = Number(payload.playerCount);
-  const rounds = payload.rounds == null ? null : Number(payload.rounds);
+  const roundsRaw = payload.rounds;
+  const rounds =
+    roundsRaw == null || roundsRaw === ""
+      ? 3
+      : Number(roundsRaw);
 
   // NEW:
   const wordsPerPlayerRaw = payload.wordsPerPlayer;
@@ -63,8 +67,8 @@ export async function handler(event) {
   if (!Number.isInteger(playerCount) || playerCount < 3 || playerCount > 20) {
     return json(400, { error: "playerCount must be an integer between 3 and 20" });
   }
-  if (rounds != null && (!Number.isInteger(rounds) || rounds < 1 || rounds > 20)) {
-    return json(400, { error: "rounds must be an integer between 1 and 20 (or omit it)" });
+  if (!Number.isInteger(rounds) || rounds < 1 || rounds > 20) {
+    return json(400, { error: "rounds must be an integer between 1 and 20" });
   }
 
   // NEW validation:

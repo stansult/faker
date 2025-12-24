@@ -99,11 +99,6 @@ export async function handler(event) {
     const starter = room.players.find(p => p.playerId === playerId);
     if (!starter) return json(404, { error: "Player not found in room" });
 
-    // Host-only start: player #1
-    if (starter.playerNumber !== 1) {
-      return json(403, { error: "Only host (player 1) can start" });
-    }
-
     // Require all players joined
     const maxPlayers = Number.isInteger(room.maxPlayers)
       ? room.maxPlayers
@@ -151,10 +146,13 @@ export async function handler(event) {
     const faker = pick(room.players).playerId;
 
     const now = new Date().toISOString();
+    const roundsTotal = Number.isInteger(room.rounds) ? room.rounds : 3;
+
     room.game = {
       gameId: makeId(16),
       startedAt: now,
       round: 1,
+      roundsTotal,
       secretWord,
       fakerPlayerId: faker,
       turnIndex: 0,

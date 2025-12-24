@@ -85,6 +85,9 @@ export async function handler(event) {
   // If this playerId already exists, treat as re-join (even if locked/game started).
   const existing = room.players.find(p => p.playerId === requestedPlayerId);
   if (existing) {
+    if (!existing.name && !requestedName) {
+      return json(400, { error: "name is required" });
+    }
     // Allow updating name on rejoin if provided (useful when name was null earlier)
     if (requestedName && existing.name !== requestedName) {
       existing.name = requestedName;
@@ -109,6 +112,8 @@ export async function handler(event) {
   if (room.players.length >= room.playerCount) {
     return json(409, { error: "Room is full" });
   }
+
+  if (!requestedName) return json(400, { error: "name is required" });
 
   const playerId = requestedPlayerId || makeId(16);
   const playerNumber = room.players.length + 1;
