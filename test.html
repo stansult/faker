@@ -10,9 +10,10 @@
       label { display: block; font-size: 12px; opacity: 0.8; margin-bottom: 4px; }
       input, textarea, button { font: inherit; }
       input, textarea { padding: 8px; border: 1px solid #ccc; border-radius: 8px; }
-      textarea { width: 520px; max-width: 100%; height: 90px; }
+      textarea { width: 520px; max-width: 100%; height: 110px; }
       button { padding: 8px 12px; border: 1px solid #aaa; border-radius: 10px; background: #f6f6f6; cursor: pointer; }
       button:hover { background: #eee; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
       .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-top: 12px; }
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
       pre { white-space: pre-wrap; word-break: break-word; margin: 0; }
@@ -20,9 +21,9 @@
       .pill { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 999px; }
       h3 { font-size: 16px; }
 
-      .ptable { border-collapse: collapse; width: 100%; }
-      .ptable th, .ptable td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; }
-      .ptable th { font-size: 12px; opacity: 0.75; }
+      .ptable { border-collapse: collapse; width: 100%; max-width: 720px; }
+      .ptable th, .ptable td { border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; }
+      .ptable th { background: #fafafa; text-align: left; }
     </style>
   </head>
 
@@ -42,12 +43,17 @@
 
         <div>
           <label>Player count (createRoom)</label>
-          <input id="playerCount" type="number" min="2" max="12" value="4" />
+          <input id="playerCount" type="number" min="3" max="20" value="4" />
         </div>
 
         <div>
           <label>Rounds (createRoom)</label>
           <input id="rounds" type="number" min="1" max="20" value="3" />
+        </div>
+
+        <div>
+          <label>Words per player (createRoom)</label>
+          <input id="wordsPerPlayer" type="number" min="1" max="10" value="4" />
         </div>
       </div>
 
@@ -55,6 +61,7 @@
         <button id="btnCreateRoom">Create room</button>
         <button id="btnJoinRoom">Join room (save local)</button>
         <button id="btnClearLocal">Clear local identity</button>
+        <button id="btnRoomStatus">Room status</button>
       </div>
 
       <div style="margin-top:10px">
@@ -62,9 +69,9 @@
         <span id="localPlayer" class="mono small"></span>
       </div>
 
-      <div style="margin-top:10px;">
-        <span class="pill">Players:</span>
-        <div id="playersList" style="margin-top:6px;"></div>
+      <div class="card" style="margin-top:12px;">
+        <h3 style="margin:0 0 10px 0;">Lobby</h3>
+        <div id="playersList" class="small">(click “Room status” to refresh)</div>
       </div>
     </div>
 
@@ -73,7 +80,7 @@
       <h3 style="margin:0 0 10px 0;">2) Submit words</h3>
 
       <label>Words (one per line)</label>
-      <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo"></textarea>
+      <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo&#10;Banana"></textarea>
       <div class="small">Uses your saved local playerId</div>
 
       <div class="row" style="margin-top:10px;">
@@ -86,9 +93,11 @@
       <h3 style="margin:0 0 10px 0;">3) Game</h3>
 
       <div class="row">
-        <button id="btnRoomStatus">Room status</button>
-        <button id="btnGameState">Game state</button>
         <button id="btnStartGame">Start game</button>
+      </div>
+
+      <div class="small" style="margin-top:8px;">
+        Start is enabled only when all players are ready (and currently only player #1 can start).
       </div>
     </div>
 
