@@ -11,10 +11,26 @@ function nowStamp() {
 function log(obj, label = "log") {
   const out = $("output");
   if (!out) return;
-  const block =
-    `[${nowStamp()}] ${label}\n` + JSON.stringify(obj, null, 2) + "\n\n";
+  const time = nowStamp();
+  const details = document.createElement("details");
+  details.open = false;
+
+  const summary = document.createElement("summary");
+  summary.textContent = `[${time}] ${label}`;
+
+  const pre = document.createElement("pre");
+  pre.className = "mono";
+  pre.textContent = JSON.stringify(obj, null, 2);
+
+  details.appendChild(summary);
+  details.appendChild(pre);
+
   // latest at top
-  out.value = block + (out.value || "");
+  if (out.firstChild) {
+    out.insertBefore(details, out.firstChild);
+  } else {
+    out.appendChild(details);
+  }
 }
 
 async function postJSON(path, bodyObj) {
@@ -493,7 +509,7 @@ function wireUI() {
 
   $("btnClearOutput")?.addEventListener("click", () => {
     const out = $("output");
-    if (out) out.value = "";
+    if (out) out.textContent = "";
   });
 
   $("roomCode")?.addEventListener("click", async e => {
