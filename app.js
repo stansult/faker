@@ -270,50 +270,52 @@ async function joinRoom() {
   }
 
   joinInFlight = (async () => {
-    const saved = ensureLocalIdentity(roomCode);
+    try {
+      const saved = ensureLocalIdentity(roomCode);
 
-    // If already joined on this browser profile, reuse (do not update name)
-    if (saved.playerId && saved.playerNumber) {
-      log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
-      await roomStatus("roomStatus (already joined)");
-      joinInFlight = null;
-      return;
-    }
+      // If already joined on this browser profile, reuse (do not update name)
+      if (saved.playerId && saved.playerNumber) {
+        log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
+        await roomStatus("roomStatus (already joined)");
+        return;
+      }
 
-    if (!name) {
-      nameTouched = true;
+      if (!name) {
+        nameTouched = true;
+        updateNameError();
+        $("playerName")?.focus();
+        log({ error: "Name is required" }, "joinRoom");
+        return;
+      }
+
       updateNameError();
-      $("playerName")?.focus();
-      log({ error: "Name is required" }, "joinRoom");
+
+      const payload = {
+        roomCode,
+        // stable id per room/browser (backend will treat it as requestedPlayerId)
+        playerId: saved.playerId || saved.clientId
+      };
+      if (name) payload.name = name;
+
+      const { status, data } = await postJSON("/.netlify/functions/joinRoom", payload);
+
+      log({ status, ...data }, "joinRoom");
+
+      if (status === 200 && data.playerId && data.playerNumber) {
+        setSaved(roomCode, {
+          ...saved,
+          playerId: data.playerId,
+          playerNumber: data.playerNumber,
+          name: data.name || name || saved.name || null
+        });
+
+        await roomStatus("roomStatus (after join)");
+      }
+    } catch (err) {
+      log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
+    } finally {
       joinInFlight = null;
-      return;
     }
-
-    updateNameError();
-
-    const payload = {
-      roomCode,
-      // stable id per room/browser (backend will treat it as requestedPlayerId)
-      playerId: saved.playerId || saved.clientId
-    };
-    if (name) payload.name = name;
-
-    const { status, data } = await postJSON("/.netlify/functions/joinRoom", payload);
-
-    log({ status, ...data }, "joinRoom");
-
-    if (status === 200 && data.playerId && data.playerNumber) {
-      setSaved(roomCode, {
-        ...saved,
-        playerId: data.playerId,
-        playerNumber: data.playerNumber,
-        name: data.name || name || saved.name || null
-      });
-
-      await roomStatus("roomStatus (after join)");
-    }
-
-    joinInFlight = null;
   })();
 }
 
