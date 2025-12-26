@@ -16,6 +16,7 @@ function json(statusCode, obj) {
 function normalizeWord(w) {
   return String(w || "")
     .trim()
+    .toLowerCase()
     .replace(/\s+/g, " ");
 }
 
