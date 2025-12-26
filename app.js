@@ -23,7 +23,9 @@ function log(obj, label = "log") {
   pre.textContent = JSON.stringify(obj, null, 2);
   pre.addEventListener("click", async () => {
     try {
-      await navigator.clipboard.writeText(pre.textContent || "");
+      const header = summary.textContent || "";
+      const body = pre.textContent || "";
+      await navigator.clipboard.writeText(`${header}\n${body}`);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
