@@ -21,6 +21,13 @@ function log(obj, label = "log") {
   const pre = document.createElement("pre");
   pre.className = "mono";
   pre.textContent = JSON.stringify(obj, null, 2);
+  pre.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(pre.textContent || "");
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
+  });
 
   details.appendChild(summary);
   details.appendChild(pre);
