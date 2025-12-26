@@ -289,7 +289,7 @@ async function joinRoom() {
 
   joinInFlight = (async () => {
     try {
-      log({ note: "joinRoom started" }, "joinRoom");
+      // log({ note: "joinRoom started" }, "joinRoom");
       const saved = ensureLocalIdentity(roomCode);
 
       // If already joined on this browser profile, reuse (do not update name)
@@ -325,7 +325,7 @@ async function joinRoom() {
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
     } finally {
-      log({ note: "joinRoom finished" }, "joinRoom");
+      // log({ note: "joinRoom finished" }, "joinRoom");
       joinInFlight = null;
     }
   })();
