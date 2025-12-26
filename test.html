@@ -79,6 +79,16 @@
         margin: 0;
       }
 
+      #output {
+        width: 100%;
+        max-width: 100%;
+        min-height: 200px;
+        height: 240px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        resize: vertical;
+      }
+
       .small {
         font-size: 12px;
         opacity: 0.75;
@@ -237,7 +247,7 @@
         </div>
         <button id="btnClearOutput">Clear output</button>
       </div>
-      <pre id="output" class="mono"></pre>
+      <textarea id="output" class="mono" readonly></textarea>
     </div>
 
     <script src="./app.js"></script>

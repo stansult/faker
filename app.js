@@ -14,7 +14,7 @@ function log(obj, label = "log") {
   const block =
     `[${nowStamp()}] ${label}\n` + JSON.stringify(obj, null, 2) + "\n\n";
   // latest at top
-  out.textContent = block + out.textContent;
+  out.value = block + (out.value || "");
 }
 
 async function postJSON(path, bodyObj) {
@@ -487,7 +487,20 @@ function wireUI() {
 
   $("btnClearOutput")?.addEventListener("click", () => {
     const out = $("output");
-    if (out) out.textContent = "";
+    if (out) out.value = "";
+  });
+
+  $("roomCode")?.addEventListener("click", async e => {
+    const input = e.currentTarget;
+    if (!input) return;
+    input.select();
+    const value = String(input.value || "").trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
   });
 
   renderLocal(getRoomCode());
