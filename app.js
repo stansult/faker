@@ -19,15 +19,25 @@ function log(obj, label = "log") {
 
 async function postJSON(path, bodyObj) {
   let res;
+  const controller = new AbortController();
+  const timeoutMs = 8000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     res = await fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(bodyObj || {})
+      body: JSON.stringify(bodyObj || {}),
+      signal: controller.signal
     });
   } catch (err) {
+    clearTimeout(timeoutId);
+    const isAbort = err && (err.name === "AbortError" || err.code === 20);
+    if (isAbort) {
+      return { status: 0, data: { error: `Request timed out (${timeoutMs}ms)` } };
+    }
     return { status: 0, data: { error: String(err) } };
   }
+  clearTimeout(timeoutId);
 
   let data = null;
   try {
@@ -269,22 +279,23 @@ async function joinRoom() {
     return;
   }
 
+  if (!name) {
+    nameTouched = true;
+    updateNameError();
+    $("playerName")?.focus();
+    log({ error: "Name is required" }, "joinRoom");
+    return;
+  }
+
   joinInFlight = (async () => {
     try {
+      log({ note: "joinRoom started" }, "joinRoom");
       const saved = ensureLocalIdentity(roomCode);
 
       // If already joined on this browser profile, reuse (do not update name)
       if (saved.playerId && saved.playerNumber) {
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
-        return;
-      }
-
-      if (!name) {
-        nameTouched = true;
-        updateNameError();
-        $("playerName")?.focus();
-        log({ error: "Name is required" }, "joinRoom");
         return;
       }
 
@@ -314,6 +325,7 @@ async function joinRoom() {
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
     } finally {
+      log({ note: "joinRoom finished" }, "joinRoom");
       joinInFlight = null;
     }
   })();
