@@ -100,6 +100,12 @@ function renderLocal(roomCode) {
   const saved = getSaved(roomCode);
   el.textContent = saved ? JSON.stringify(saved) : "(none)";
 
+  const roomInput = $("roomCode");
+  if (roomInput) {
+    const locked = !!(saved && saved.playerId && saved.playerNumber);
+    roomInput.readOnly = locked;
+  }
+
   const nameInput = $("playerName");
   if (nameInput) {
     const locked = !!(saved && saved.playerId && saved.playerNumber);
