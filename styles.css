@@ -277,22 +277,32 @@ button:disabled {
         display: none;
       }
 
-      #output pre {
-        cursor: copy;
-        margin: 8px 0 0 0;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
+#output pre {
+  cursor: copy;
+  margin: 8px 0 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
-      #nameError {
-        display: none;
-        color: #b00020;
-        font-size: 12px;
-      }
+#nameError {
+  display: none;
+  color: #b00020;
+  font-size: 12px;
+}
 
-      .hidden {
-        display: none;
-      }
+.hidden {
+  display: none;
+}
+
+.build {
+  position: fixed;
+  left: 12px;
+  bottom: 10px;
+  font-size: 11px;
+  color: #8a7a67;
+  opacity: 0.7;
+  pointer-events: none;
+}
 
       @keyframes lift {
         from {

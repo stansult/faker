@@ -975,6 +975,12 @@ function wireUI() {
   setView("viewLanding");
   updateLandingMode(null);
   updateNameError();
+
+  const build = $("buildVersion");
+  if (build) {
+    const stamp = new Date().toLocaleString();
+    build.textContent = `build ${stamp}`;
+  }
 }
 
 wireUI();
