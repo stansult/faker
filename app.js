@@ -564,6 +564,11 @@ async function submitMove() {
 /* ===== wire UI ===== */
 
 function wireUI() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("debug") === "1") {
+    document.body.classList.add("debug");
+  }
+
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnClearLocal")?.addEventListener("click", () => clearSaved(getRoomCode()));
