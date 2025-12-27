@@ -704,7 +704,6 @@ async function joinRoom(options = {}) {
         const savedName = normalizeName(saved.name || "");
         if (!allowNameMismatch && savedName && name && savedName !== name) {
           setNameError(true, "Name does not match saved player for this room.");
-          setActionError(true, "Name does not match saved player for this room.");
           $("playerName")?.focus();
           log({ error: "Name does not match saved player for this room" }, "joinRoom");
           return;
