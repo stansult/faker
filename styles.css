@@ -217,6 +217,56 @@ button:disabled {
   color: #6a5b49;
 }
 
+button.pill {
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid #e2d6c3;
+  background: #f1efe9;
+  padding: 4px 10px;
+  line-height: 1;
+}
+
+button.pill:focus-visible {
+  outline: 2px solid #c6b49f;
+  outline-offset: 2px;
+}
+
+.pill > button.mono {
+  cursor: pointer;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.pill > button.mono:focus-visible {
+  outline: 2px solid #c6b49f;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.room-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.room-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.copied-note {
+  color: #2f8f5b;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.copied-note.show {
+  opacity: 1;
+}
+
 .pill.timer {
   background: #f7efe3;
   border-color: #e1d3bf;

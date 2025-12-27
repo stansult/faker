@@ -106,6 +106,18 @@ function normalizeName(raw) {
     .replace(/\s+/g, " ");
 }
 
+const copiedTimers = {};
+
+function flashCopied(id, durationMs = 2500) {
+  const el = $(id);
+  if (!el) return;
+  el.classList.add("show");
+  if (copiedTimers[id]) clearTimeout(copiedTimers[id]);
+  copiedTimers[id] = setTimeout(() => {
+    el.classList.remove("show");
+  }, durationMs);
+}
+
 const VOTE_TOTAL_SECONDS = 30;
 const VOTE_FINAL_SECONDS = 5;
 
@@ -1679,21 +1691,23 @@ function wireUI() {
     if (input.value !== cleaned) input.value = cleaned;
   });
 
-  $("btnCopyRoomCode")?.addEventListener("click", async () => {
+  $("roomCodePill")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
+      flashCopied("roomCodeCopied");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
   });
 
-  $("btnCopyRoomCodeGame")?.addEventListener("click", async () => {
+  $("roomCodePillGame")?.addEventListener("click", async () => {
     const value = String($("roomCodeGame")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
+      flashCopied("roomCodeCopiedGame");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
