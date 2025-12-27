@@ -270,6 +270,14 @@ button.pill:focus-visible {
   flex-wrap: wrap;
 }
 
+.landing-actions {
+  align-items: center;
+}
+
+.landing-actions #btnRejoinRoom {
+  margin-left: auto;
+}
+
 .copied-note {
   color: #2f8f5b;
   opacity: 0;
