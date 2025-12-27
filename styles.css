@@ -258,6 +258,11 @@ button.pill:focus-visible {
   opacity: 0.7;
 }
 
+.ok-check {
+  color: #2f8f5b;
+  font-weight: 700;
+}
+
 .room-header {
   justify-content: space-between;
   align-items: center;

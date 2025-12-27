@@ -371,8 +371,16 @@ function applyRoomStatus(status) {
 
   const isHost = !!saved && saved.playerNumber === 1;
   const canStart = !gameStarted && !locked && allJoined && allReady;
+  const currentPlayers =
+    status?.currentPlayers ??
+    (Array.isArray(status?.players) ? status.players.length : 0);
   const canStartShort =
-    !gameStarted && !locked && !allJoined && allJoinedReady && isHost;
+    !gameStarted &&
+    !locked &&
+    !allJoined &&
+    allJoinedReady &&
+    isHost &&
+    currentPlayers >= 3;
 
   btnStart.disabled = !canStart;
 
@@ -468,7 +476,13 @@ function renderRoomStatus(rs) {
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
           <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
-          <td class="mono">${p.wordsSubmitted}/${p.wordsRequired}</td>
+          <td class="mono">${
+            Number.isInteger(p.wordsRequired) &&
+            Number.isInteger(p.wordsSubmitted) &&
+            p.wordsSubmitted >= p.wordsRequired
+              ? `<span class="ok-check">&#10003;</span>`
+              : `${p.wordsSubmitted}/${p.wordsRequired}`
+          }</td>
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
       `;
@@ -533,6 +547,9 @@ function updateWordsProgress(rs) {
   const btn = $("btnSubmitWords");
   if (input) input.disabled = remaining === 0;
   if (btn) btn.disabled = remaining === 0;
+
+  const panel = $("submitWordsPanel");
+  if (panel) panel.classList.toggle("hidden", remaining === 0);
 }
 
 function updateViewState(rs) {
