@@ -1,3 +1,4 @@
 #!/bin/sh
 set -e
 sh ./scripts/update_build.sh
+git add build.txt
