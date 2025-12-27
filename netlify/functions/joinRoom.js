@@ -140,7 +140,7 @@ export async function handler(event) {
     if (vMe) break;
     await sleep(120 + Math.floor(Math.random() * 120));
   }
-
+  
   if (!vMe) {
     return json(503, { error: "Join contention, please retry" });
   }
