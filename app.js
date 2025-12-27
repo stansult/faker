@@ -421,6 +421,22 @@ function renderRoomStatus(rs) {
   const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
   const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
   const rounds = Number.isInteger(rs.rounds) ? rs.rounds : null;
+  const totalSlots =
+    maxPlayers ??
+    (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
+    players.length;
+
+  const saved = getSaved(rs.roomCode || getRoomCode());
+  if (saved?.playerId) {
+    const me = players.find(p => p.playerId === saved.playerId);
+    if (me && me.playerNumber && me.playerNumber !== saved.playerNumber) {
+      setSaved(rs.roomCode || getRoomCode(), {
+        ...saved,
+        playerNumber: me.playerNumber,
+        name: me.name || saved.name
+      });
+    }
+  }
 
   const metaParts = [];
   metaParts.push(`Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}`);
@@ -430,11 +446,24 @@ function renderRoomStatus(rs) {
 
   const el = $("playersList");
   if (el) {
-    const rows = players
-      .slice()
-      .sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0))
-      .map(
-        p => `
+    const byNumber = new Map(
+      players.map(p => [p.playerNumber, p])
+    );
+    const rows = Array.from({ length: totalSlots }, (_, i) => i + 1)
+      .map(n => {
+        const p = byNumber.get(n);
+        if (!p) {
+          return `
+        <tr class="row-muted">
+          <td class="mono">${n}</td>
+          <td></td>
+          <td class="mono">-</td>
+          <td class="mono">-</td>
+          <td class="mini">Not joined</td>
+        </tr>
+      `;
+        }
+        return `
         <tr>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
@@ -442,8 +471,8 @@ function renderRoomStatus(rs) {
           <td class="mono">${p.wordsSubmitted}/${p.wordsRequired}</td>
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
-      `
-      )
+      `;
+      })
       .join("");
 
     el.innerHTML = `

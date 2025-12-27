@@ -245,6 +245,11 @@ button.pill:focus-visible {
   border-radius: 6px;
 }
 
+.row-muted {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
 .room-header {
   justify-content: space-between;
   align-items: center;

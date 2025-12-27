@@ -75,10 +75,14 @@ export async function handler(event) {
   if (idx === -1) return json(404, { error: "Player not found in room" });
 
   players.splice(idx, 1);
+  const renumbered = players
+    .slice()
+    .sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0))
+    .map((p, i) => ({ ...p, playerNumber: i + 1 }));
 
   // Rebuild word pool from remaining players.
   const allWords = [];
-  for (const p of players) {
+  for (const p of renumbered) {
     const ws = Array.isArray(p.words) ? p.words : [];
     for (const w of ws) {
       const nw = normalizeWord(w);
@@ -86,7 +90,7 @@ export async function handler(event) {
     }
   }
 
-  room.players = players;
+  room.players = renumbered;
   room.wordPool = uniqPreserve(allWords);
   room.updatedAt = new Date().toISOString();
   if (!Number.isInteger(room.playerCount)) {
