@@ -137,6 +137,15 @@ export async function handler(event) {
     const now = new Date().toISOString();
 
     game.moves = Array.isArray(game.moves) ? game.moves : [];
+    const prev = game.moves.find(m => normalizeWord(m.word) === word);
+    if (prev) {
+      const samePlayer = String(prev.playerId) === playerId;
+      return json(409, {
+        error: samePlayer
+          ? "You already used that word"
+          : "Another player already used that word"
+      });
+    }
 
     // Prevent accidental double-submit on same turn (same player twice in a row)
     const lastMove = game.moves.length ? game.moves[game.moves.length - 1] : null;

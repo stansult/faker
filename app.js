@@ -271,6 +271,13 @@ function setSubmitWordsError(message = "") {
   el.style.display = message ? "block" : "none";
 }
 
+function setMoveError(message = "") {
+  const el = $("moveError");
+  if (!el) return;
+  el.textContent = message || "";
+  el.style.display = message ? "block" : "none";
+}
+
 function renderAcceptedWords(roomCode) {
   const el = $("submittedWordsLine");
   if (!el) return;
@@ -1613,12 +1620,15 @@ async function submitMove() {
   const word = normalizeWord(raw);
   if (!word) return log({ error: "Enter a word" }, "submitMove");
   if (!isAllowedWord(word)) {
+    setMoveError("One word only - letters, hyphens, apostrophes.");
     return log({ error: "One word only - letters, hyphens, apostrophes." }, "submitMove");
   }
+  setMoveError("");
 
   if (roleState.role === "player" && roleState.secretWord) {
     const secret = normalizeWord(roleState.secretWord);
     if (word === secret) {
+      setMoveError("You cannot use the secret word.");
       return log({ error: "You cannot use the secret word" }, "submitMove");
     }
   }
@@ -1630,6 +1640,12 @@ async function submitMove() {
   });
 
   log({ status, ...data }, "submitMove");
+
+  if (status !== 200 && data?.error) {
+    setMoveError(String(data.error));
+  } else if (status === 200) {
+    setMoveError("");
+  }
 
   await new Promise(r => setTimeout(r, 200));
   await roomStatus("roomStatus (after submitMove)");
