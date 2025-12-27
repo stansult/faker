@@ -126,6 +126,7 @@ function setRoomCode(code) {
   const el = $("roomCode");
   if (el) el.value = value;
   setText("roomCodeDisplay", value);
+  setText("roomCodeGame", value);
 }
 
 /* ===== localStorage identity ===== */
@@ -1032,6 +1033,16 @@ function wireUI() {
 
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
+  });
+
+  $("btnCopyRoomCodeGame")?.addEventListener("click", async () => {
+    const value = String($("roomCodeGame")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
