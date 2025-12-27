@@ -95,6 +95,12 @@ function normalizeWord(raw) {
     .replace(/\s+/g, " ");
 }
 
+function normalizeName(raw) {
+  return String(raw || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 /* ===== view helpers ===== */
 
 const views = ["viewLanding", "viewLobby", "viewGame"];
@@ -580,9 +586,10 @@ function updateGameUI() {
 
 /* ===== actions ===== */
 
-function setNameError(show) {
+function setNameError(show, message = "Name is required to join.") {
   const el = $("nameError");
   if (!el) return;
+  el.textContent = message;
   el.style.display = show ? "block" : "none";
 }
 
@@ -590,7 +597,7 @@ function updateNameError() {
   const input = $("playerName");
   if (!input) return;
   const value = String(input.value || "").trim();
-  if (nameTouched) setNameError(!value);
+  if (nameTouched) setNameError(!value, "Name is required to join.");
   else setNameError(false);
 
   const canUse = !!value;
@@ -635,8 +642,9 @@ function updateLandingMode(nextMode = null) {
 
 async function joinRoom(options = {}) {
   const roomCode = getRoomCode();
-  const name = String($("playerName")?.value || "").trim();
+  const name = normalizeName($("playerName")?.value || "");
   const skipLandingGate = !!options.skipLandingGate;
+  const allowNameMismatch = !!options.allowNameMismatch;
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
@@ -673,6 +681,13 @@ async function joinRoom(options = {}) {
 
       // If already joined on this browser profile, reuse (do not update name)
       if (saved.playerId && saved.playerNumber) {
+        const savedName = normalizeName(saved.name || "");
+        if (!allowNameMismatch && savedName && name && savedName !== name) {
+          setNameError(true, "Name does not match saved player for this room.");
+          $("playerName")?.focus();
+          log({ error: "Name does not match saved player for this room" }, "joinRoom");
+          return;
+        }
         setLastRoomCode(roomCode);
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
@@ -1007,7 +1022,7 @@ function wireUI() {
     setRoomCode(lastRoom);
     const nameInput = $("playerName");
     if (nameInput && saved.name) nameInput.value = saved.name;
-    await joinRoom({ skipLandingGate: true });
+    await joinRoom({ skipLandingGate: true, allowNameMismatch: true });
   });
   $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
