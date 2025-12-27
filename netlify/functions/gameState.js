@@ -104,7 +104,7 @@ export async function handler(event) {
     };
   }
 
-  // Private info: only for faker
+  // Private info: only for the requester
   // (We do NOT reveal faker identity to others.)
   let yourRole = null;
   let secretWord = null;
@@ -115,7 +115,7 @@ export async function handler(event) {
     const isFaker = fakerPlayerId && me.playerId === fakerPlayerId;
 
     yourRole = isFaker ? "faker" : "player";
-    secretWord = isFaker ? secret : null;
+    secretWord = isFaker ? null : secret;
   }
 
   return json(200, {

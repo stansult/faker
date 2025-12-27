@@ -62,13 +62,11 @@ export async function handler(event) {
 
   const isFaker = playerId === fakerPlayerId;
 
-  // Only the faker needs the secret word (to possibly say it on their turn).
-  // Non-fakers should not learn the secret word from the backend response.
   return json(200, {
     ok: true,
     role: isFaker ? "faker" : "player",
     playerNumber: me.playerNumber,
-    // reveal secret only to faker:
-    secretWord: isFaker ? secretWord : null
+    // reveal secret only to non-faker:
+    secretWord: isFaker ? null : secretWord
   });
 }

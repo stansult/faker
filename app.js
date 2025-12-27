@@ -470,12 +470,18 @@ function renderGameState(gs) {
     if (!moves.length) {
       list.textContent = "No moves yet.";
     } else {
+      const nameByNumber = new Map();
+      const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
+      for (const p of players) {
+        if (p.playerNumber != null) nameByNumber.set(p.playerNumber, p.name || "");
+      }
       list.innerHTML = `
         <table class="status-table">
           <thead>
             <tr>
               <th>Round</th>
               <th>#</th>
+              <th>Name</th>
               <th>Word</th>
             </tr>
           </thead>
@@ -486,6 +492,7 @@ function renderGameState(gs) {
               <tr>
                 <td>${m.round}</td>
                 <td class="mono">${m.playerNumber}</td>
+                <td>${esc(nameByNumber.get(m.playerNumber) || "")}</td>
                 <td>${esc(m.word || "")}</td>
               </tr>
             `
@@ -502,6 +509,7 @@ function renderGameState(gs) {
 
 function updateGameUI() {
   const roleEl = $("roleLabel");
+  const playerLabel = $("playerLabel");
   const secretEl = $("secretWord");
   const turnEl = $("turnStatus");
   const moveHint = $("moveHint");
@@ -514,6 +522,12 @@ function updateGameUI() {
   const role = roleState.role;
   const secret = roleState.secretWord;
 
+  if (playerLabel) {
+    const name = saved?.name || "Unknown";
+    const num = playerNumber != null ? `#${playerNumber}` : "?";
+    playerLabel.textContent = `Player ${num}: ${name}`;
+  }
+
   if (roleEl) {
     if (!role) roleEl.textContent = "Waiting for role...";
     else if (role === "faker") roleEl.textContent = "You are the faker";
@@ -523,7 +537,7 @@ function updateGameUI() {
   if (secretEl) {
     if (!role) secretEl.textContent = "";
     else if (role === "faker") secretEl.textContent = "You do not know the word.";
-    else secretEl.textContent = secret || "";
+    else secretEl.textContent = secret || "(waiting for secret word)";
   }
 
   const game = lastGameState?.game || lastRoomStatus?.game || null;
@@ -637,6 +651,13 @@ async function joinRoom(options = {}) {
 
   if (!roomCode) {
     $("roomCode")?.focus();
+    return;
+  }
+
+  if (!skipLandingGate && !name) {
+    nameTouched = true;
+    updateNameError();
+    $("playerName")?.focus();
     return;
   }
 
