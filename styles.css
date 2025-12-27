@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500&display=swap");
 
 :root {
         color-scheme: light;
@@ -29,7 +29,7 @@
       h1,
       h2,
       h3 {
-        font-family: "Bebas Neue", "Alegreya Sans", sans-serif;
+        font-family: "Bricolage Grotesque", "Alegreya Sans", sans-serif;
         margin: 0 0 12px 0;
         letter-spacing: 0.3px;
       }
