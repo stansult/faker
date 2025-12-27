@@ -377,6 +377,7 @@ let createAbort = false;
 let overlayMode = "progress";
 let overlayDismiss = null;
 let lastGameOverKey = null;
+let startInFlight = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -470,58 +471,31 @@ function applyRoomStatus(status) {
   const allReady = !!status?.allReady;
   const allJoinedReady = !!status?.allJoinedReady;
 
+  const gameEnded = !!status?.game?.endedAt;
   const gameStarted = !!status?.game?.gameId;
-  const locked = !!status?.locked;
+  const gameActive = gameStarted && !gameEnded;
+  const locked = !!status?.locked && !gameEnded;
 
   const isHost = !!saved && saved.playerNumber === 1;
-  const canStart = !gameStarted && !locked && allJoined && allReady;
+  const canStart =
+    !gameActive && !locked && allJoined && allReady;
   const currentPlayers =
     status?.currentPlayers ??
     (Array.isArray(status?.players) ? status.players.length : 0);
   const canStartShort =
-    !gameStarted &&
+    !gameActive &&
     !locked &&
     !allJoined &&
     allJoinedReady &&
     isHost &&
-    currentPlayers >= 3;
+    currentPlayers > 3;
 
-  btnStart.disabled = !canStart;
+  btnStart.disabled = startInFlight || !canStart;
 
   if (btnStartShort) {
-    btnStartShort.disabled = !canStartShort;
-    btnStartShort.classList.toggle("hidden", !isHost || allJoined);
+    btnStartShort.disabled = startInFlight || !canStartShort;
+    btnStartShort.classList.toggle("hidden", !isHost || allJoined || currentPlayers <= 3);
   }
-
-  const statusEl = $("lobbyStatus");
-  if (!statusEl) return;
-
-  if (gameStarted) {
-    statusEl.textContent = "Game already started.";
-    return;
-  }
-  if (locked) {
-    statusEl.textContent = "Room is locked.";
-    return;
-  }
-  if (!allJoined) {
-    const maxPlayers = status?.maxPlayers ?? status?.playerCount ?? "?";
-    const currentPlayers =
-      status?.currentPlayers ??
-      (Array.isArray(status?.players) ? status.players.length : "?");
-    if (allJoinedReady) {
-      statusEl.textContent = `All joined players are ready. Waiting for more (${currentPlayers}/${maxPlayers}).`;
-    } else {
-      statusEl.textContent = `Waiting for players (${currentPlayers}/${maxPlayers}).`;
-    }
-    return;
-  }
-  if (!allReady) {
-    statusEl.textContent = "Waiting for words from players.";
-    return;
-  }
-
-  statusEl.textContent = "Everyone is ready. Start the game.";
 }
 
 function renderRoomStatus(rs) {
@@ -1065,7 +1039,13 @@ function setLandingDisabled(disabled) {
   if (roomInput) roomInput.disabled = disabled;
 }
 
-function showOverlay(message, actionLabel = "", actionFn = null) {
+function showOverlay(
+  message,
+  actionLabel = "",
+  actionFn = null,
+  cancelFn = cancelCreate,
+  showCancel = true
+) {
   const overlay = $("overlay");
   const msg = $("overlayMessage");
   const btn = $("overlayAction");
@@ -1086,7 +1066,15 @@ function showOverlay(message, actionLabel = "", actionFn = null) {
     btn.classList.add("hidden");
     btn.onclick = null;
   }
-  if (cancel) cancel.onclick = () => cancelCreate();
+  if (cancel) {
+    if (showCancel) {
+      cancel.classList.remove("hidden");
+      cancel.onclick = () => cancelFn && cancelFn();
+    } else {
+      cancel.classList.add("hidden");
+      cancel.onclick = null;
+    }
+  }
 }
 
 function showOverlayChoice(
@@ -1612,11 +1600,31 @@ async function startGame() {
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined" }, "startGame");
 
+  if (startInFlight) return;
+  startInFlight = true;
+  showOverlay("Starting game...", "", null, null, false);
+
   const { status, data } = await postJSON("/.netlify/functions/startGame", {
     roomCode,
     playerId: saved.playerId
   });
   log({ status, ...data }, "startGame");
+
+  hideOverlay();
+  startInFlight = false;
+  applyRoomStatus(lastRoomStatus);
+
+  if (status !== 200 && data?.error) {
+    showOverlayChoice(
+      String(data.error),
+      "OK",
+      () => hideOverlay(),
+      "Close",
+      () => hideOverlay(),
+      () => hideOverlay()
+    );
+    return;
+  }
 
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after startGame)");
@@ -1654,12 +1662,32 @@ async function startShortGame() {
   hideOverlay();
   if (!ok) return;
 
+  if (startInFlight) return;
+  startInFlight = true;
+  showOverlay("Starting game...", "", null, null, false);
+
   const { status, data } = await postJSON("/.netlify/functions/startGame", {
     roomCode,
     playerId: saved.playerId,
     startShort: true
   });
   log({ status, ...data }, "startShortGame");
+
+  hideOverlay();
+  startInFlight = false;
+  applyRoomStatus(lastRoomStatus);
+
+  if (status !== 200 && data?.error) {
+    showOverlayChoice(
+      String(data.error),
+      "OK",
+      () => hideOverlay(),
+      "Close",
+      () => hideOverlay(),
+      () => hideOverlay()
+    );
+    return;
+  }
 
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after startShortGame)");
