@@ -1578,9 +1578,17 @@ async function startShortGame() {
     counts = ` (${left}/${right})`;
   }
 
-  const ok = confirm(
-    `Start with current players${counts}? Late players will be locked out.`
-  );
+  const ok = await new Promise(resolve => {
+    showOverlayChoice(
+      `Start with current players${counts}? Late players will be locked out.`,
+      "Start now",
+      () => resolve(true),
+      "Cancel",
+      () => resolve(false),
+      () => resolve(false)
+    );
+  });
+  hideOverlay();
   if (!ok) return;
 
   const { status, data } = await postJSON("/.netlify/functions/startGame", {
