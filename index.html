@@ -183,10 +183,16 @@
   </div>
   <div id="buildVersion" class="build"></div>
     <div id="overlay" class="overlay hidden">
-      <div class="overlay-card">
+      <div id="overlayCard" class="overlay-card">
         <div id="overlayMessage">Creating room...</div>
-        <button id="overlayAction" class="secondary hidden">Try again</button>
-        <button id="overlayCancel" class="ghost">Cancel</button>
+        <div id="overlayButtons">
+          <button id="overlayAction" class="secondary hidden">Try again</button>
+          <button id="overlayCancel" class="ghost">Cancel</button>
+        </div>
+        <div id="overlayChoice" class="hidden" style="margin-top: 12px">
+          <button id="overlayPrimary" class="secondary"></button>
+          <button id="overlaySecondary" class="ghost"></button>
+        </div>
       </div>
     </div>
 

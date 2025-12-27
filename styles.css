@@ -350,6 +350,12 @@ button:disabled {
   margin-top: 10px;
 }
 
+#overlayChoice button {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+
 .build {
   position: fixed;
   left: 12px;

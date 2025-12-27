@@ -260,6 +260,7 @@ let voteTimerInterval = null;
 let createInFlight = false;
 let createState = { roomCode: null, retries: 0 };
 let createAbort = false;
+let overlayMode = "progress";
 
 const CREATE_TIMEOUT_MS = 12000;
 
@@ -899,9 +900,14 @@ function showOverlay(message, actionLabel = "", actionFn = null) {
   const msg = $("overlayMessage");
   const btn = $("overlayAction");
   const cancel = $("overlayCancel");
+  const choice = $("overlayChoice");
+  const buttons = $("overlayButtons");
   if (!overlay || !msg || !btn) return;
   msg.textContent = message || "";
   overlay.classList.remove("hidden");
+  overlayMode = "progress";
+  if (choice) choice.classList.add("hidden");
+  if (buttons) buttons.classList.remove("hidden");
   if (actionLabel && actionFn) {
     btn.textContent = actionLabel;
     btn.classList.remove("hidden");
@@ -913,6 +919,25 @@ function showOverlay(message, actionLabel = "", actionFn = null) {
   if (cancel) cancel.onclick = () => cancelCreate();
 }
 
+function showOverlayChoice(message, primaryLabel, primaryFn, secondaryLabel, secondaryFn) {
+  const overlay = $("overlay");
+  const msg = $("overlayMessage");
+  const primary = $("overlayPrimary");
+  const secondary = $("overlaySecondary");
+  const choice = $("overlayChoice");
+  const buttons = $("overlayButtons");
+  if (!overlay || !msg || !primary || !secondary) return;
+  msg.textContent = message || "";
+  overlay.classList.remove("hidden");
+  overlayMode = "choice";
+  if (buttons) buttons.classList.add("hidden");
+  if (choice) choice.classList.remove("hidden");
+  primary.textContent = primaryLabel || "OK";
+  secondary.textContent = secondaryLabel || "Cancel";
+  primary.onclick = () => primaryFn && primaryFn();
+  secondary.onclick = () => secondaryFn && secondaryFn();
+}
+
 function hideOverlay() {
   const overlay = $("overlay");
   if (overlay) overlay.classList.add("hidden");
@@ -920,6 +945,29 @@ function hideOverlay() {
   if (btn) btn.onclick = null;
   const cancel = $("overlayCancel");
   if (cancel) cancel.onclick = null;
+  const primary = $("overlayPrimary");
+  const secondary = $("overlaySecondary");
+  if (primary) primary.onclick = null;
+  if (secondary) secondary.onclick = null;
+  overlayMode = "progress";
+}
+
+function initOverlayDismissal() {
+  const overlay = $("overlay");
+  const card = $("overlayCard");
+  if (!overlay || !card) return;
+
+  overlay.addEventListener("click", e => {
+    if (overlayMode !== "choice") return;
+    if (e.target === overlay) {
+      hideOverlay();
+    }
+  });
+
+  document.addEventListener("keydown", e => {
+    if (overlayMode !== "choice") return;
+    if (e.key === "Escape") hideOverlay();
+  });
 }
 
 function cancelCreate() {
@@ -966,10 +1014,17 @@ async function joinRoom(options = {}) {
     const lastRoom = getLastRoomCode();
     const savedLast = lastRoom ? getSaved(lastRoom) : null;
     if (lastRoom && lastRoom !== roomCode && savedLast?.playerId) {
-      const ok = confirm(
-        `You're already in room ${lastRoom}. Leave it and join ${roomCode}?`
-      );
-      if (ok) {
+      const choice = await new Promise(resolve => {
+        showOverlayChoice(
+          `You're already in room ${lastRoom}.`,
+          `Join new room (${roomCode})`,
+          () => resolve("new"),
+          `Re-join old room (${lastRoom})`,
+          () => resolve("old")
+        );
+      });
+      hideOverlay();
+      if (choice === "new") {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
       } else {
         setRoomCode(lastRoom);
@@ -1106,10 +1161,17 @@ async function createRoom(options = {}) {
     const lastRoom = getLastRoomCode();
     const savedLast = lastRoom ? getSaved(lastRoom) : null;
     if (lastRoom && savedLast?.playerId) {
-      const ok = confirm(
-        `You're already in room ${lastRoom}. Leave it and create a new room?`
-      );
-      if (ok) {
+      const choice = await new Promise(resolve => {
+        showOverlayChoice(
+          `You're already in room ${lastRoom}.`,
+          "Create new room",
+          () => resolve("new"),
+          `Re-join old room (${lastRoom})`,
+          () => resolve("old")
+        );
+      });
+      hideOverlay();
+      if (choice === "new") {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
       } else {
         setRoomCode(lastRoom);
@@ -1613,6 +1675,7 @@ function wireUI() {
   updateLandingMode(null);
   updateNameError();
   updateRejoinButton();
+  initOverlayDismissal();
   if (document.body.classList.contains("debug")) {
     renderLogBuffer();
   }
