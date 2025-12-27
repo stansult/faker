@@ -593,6 +593,13 @@ function setNameError(show, message = "Name is required to join.") {
   el.style.display = show ? "block" : "none";
 }
 
+function setActionError(show, message = "") {
+  const el = $("actionError");
+  if (!el) return;
+  el.textContent = message;
+  el.style.display = show ? "block" : "none";
+}
+
 function updateNameError() {
   const input = $("playerName");
   if (!input) return;
@@ -638,6 +645,7 @@ function updateLandingMode(nextMode = null) {
   if (createPanel) createPanel.classList.toggle("hidden", !isCreate);
   if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
   updateRejoinButton();
+  setActionError(false);
 }
 
 async function joinRoom(options = {}) {
@@ -658,6 +666,7 @@ async function joinRoom(options = {}) {
   }
 
   if (!roomCode) {
+    setActionError(true, "Enter a room code to join.");
     $("roomCode")?.focus();
     return;
   }
@@ -665,15 +674,18 @@ async function joinRoom(options = {}) {
   if (!skipLandingGate && !name) {
     nameTouched = true;
     updateNameError();
+    setActionError(true, "Enter your name to join.");
     $("playerName")?.focus();
     return;
   }
 
   const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
   if (precheck.status === 404) {
+    setActionError(true, "Room not found.");
     log({ status: precheck.status, ...precheck.data }, "joinRoom");
     return;
   }
+  setActionError(false);
 
   joinInFlight = (async () => {
     try {
@@ -684,6 +696,7 @@ async function joinRoom(options = {}) {
         const savedName = normalizeName(saved.name || "");
         if (!allowNameMismatch && savedName && name && savedName !== name) {
           setNameError(true, "Name does not match saved player for this room.");
+          setActionError(true, "Name does not match saved player for this room.");
           $("playerName")?.focus();
           log({ error: "Name does not match saved player for this room" }, "joinRoom");
           return;

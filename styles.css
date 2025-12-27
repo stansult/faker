@@ -290,6 +290,10 @@ button:disabled {
   font-size: 12px;
 }
 
+#actionError {
+  font-size: 12px;
+}
+
 .hidden {
   display: none;
 }
