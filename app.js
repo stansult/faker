@@ -190,13 +190,22 @@ function applyRoomStatus(status) {
 
   const allJoined = !!status?.allJoined;
   const allReady = !!status?.allReady;
+  const allJoinedReady = !!status?.allJoinedReady;
 
   const gameStarted = !!status?.game?.gameId;
   const locked = !!status?.locked;
 
+  const isHost = !!saved && saved.playerNumber === 1;
   const canStart = !gameStarted && !locked && allJoined && allReady;
+  const canStartShort =
+    !gameStarted && !locked && !allJoined && allJoinedReady && isHost;
 
   btnStart.disabled = !canStart;
+
+  const btnStartShort = $("btnStartShortGame");
+  if (btnStartShort) {
+    btnStartShort.disabled = !canStartShort;
+  }
 
   // Title: explain the most relevant blocking reason.
   if (canStart) {
@@ -217,14 +226,33 @@ function applyRoomStatus(status) {
       status?.currentPlayers ??
       (Array.isArray(status?.players) ? status.players.length : "?");
     btnStart.title = `Waiting for players (${currentPlayers}/${maxPlayers})`;
+    if (btnStartShort) {
+      if (!isHost) {
+        btnStartShort.title = "Only host can start short";
+      } else if (!allJoinedReady) {
+        btnStartShort.title = "Waiting for joined players to submit words";
+      } else {
+        btnStartShort.title = "Start with current players";
+      }
+    }
     return;
   }
   if (!allReady) {
     btnStart.title = "Waiting for words from players";
+    if (btnStartShort) {
+      if (!isHost) {
+        btnStartShort.title = "Only host can start short";
+      } else if (!allJoinedReady) {
+        btnStartShort.title = "Waiting for joined players to submit words";
+      } else {
+        btnStartShort.title = "Start with current players";
+      }
+    }
     return;
   }
 
   btnStart.title = "Start is available when all players are ready";
+  if (btnStartShort) btnStartShort.title = "Start with current players";
 }
 
 function esc(s) {
@@ -462,6 +490,41 @@ async function startGame() {
   await roomStatus("roomStatus (after startGame)");
 }
 
+async function startShortGame() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return log({ error: "Enter room code first" }, "startShortGame");
+
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return log({ error: "Not joined" }, "startShortGame");
+
+  const currentPlayers =
+    lastRoomStatus?.currentPlayers ??
+    (Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players.length : null);
+  const maxPlayers = lastRoomStatus?.maxPlayers ?? null;
+
+  let counts = "";
+  if (currentPlayers != null || maxPlayers != null) {
+    const left = currentPlayers != null ? String(currentPlayers) : "?";
+    const right = maxPlayers != null ? String(maxPlayers) : "?";
+    counts = ` (${left}/${right})`;
+  }
+
+  const ok = confirm(
+    `Start with current players${counts}? Late players will be locked out.`
+  );
+  if (!ok) return;
+
+  const { status, data } = await postJSON("/.netlify/functions/startGame", {
+    roomCode,
+    playerId: saved.playerId,
+    startShort: true
+  });
+  log({ status, ...data }, "startShortGame");
+
+  await new Promise(r => setTimeout(r, 200));
+  await roomStatus("roomStatus (after startShortGame)");
+}
+
 async function getRole() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "getRole");
@@ -506,6 +569,7 @@ function wireUI() {
   $("btnClearLocal")?.addEventListener("click", () => clearSaved(getRoomCode()));
   $("btnSubmitWords")?.addEventListener("click", submitWords);
   $("btnStartGame")?.addEventListener("click", startGame);
+  $("btnStartShortGame")?.addEventListener("click", startShortGame);
   $("btnGetRole")?.addEventListener("click", getRole);
   $("btnSubmitMove")?.addEventListener("click", submitMove);
   $("playerName")?.addEventListener("input", () => {

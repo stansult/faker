@@ -72,6 +72,7 @@ export async function handler(event) {
 
   const roomCode = String(payload.roomCode || "").trim().toUpperCase();
   const playerId = String(payload.playerId || "").trim();
+  const startShort = !!payload.startShort;
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!playerId) return json(400, { error: "playerId is required" });
@@ -99,7 +100,7 @@ export async function handler(event) {
     const starter = room.players.find(p => p.playerId === playerId);
     if (!starter) return json(404, { error: "Player not found in room" });
 
-    // Require all players joined
+    // Require all players joined (unless startShort)
     const maxPlayers = Number.isInteger(room.maxPlayers)
       ? room.maxPlayers
       : (Number.isInteger(room.playerCount) ? room.playerCount : null);
@@ -107,7 +108,16 @@ export async function handler(event) {
     if (!maxPlayers) return json(500, { error: "Room is missing player count" });
 
     if (room.players.length < maxPlayers) {
-      return json(409, { error: `Need ${maxPlayers} players to start` });
+      if (!startShort) {
+        return json(409, { error: `Need ${maxPlayers} players to start` });
+      }
+
+      // Short start: host-only, lock roster to current players
+      if (starter.playerNumber !== 1) {
+        return json(403, { error: "Only host (player 1) can start short" });
+      }
+
+      room.playerCount = room.players.length;
     }
 
     // Require all players have submitted required words

@@ -100,6 +100,7 @@ export async function handler(event) {
 
   const allJoined = maxPlayers > 0 && currentPlayers === maxPlayers;
   const allReady = allJoined && missingWordsPlayers.length === 0;
+  const allJoinedReady = currentPlayers > 0 && missingWordsPlayers.length === 0;
 
   const game =
     room.game && room.game.gameId
@@ -127,6 +128,7 @@ export async function handler(event) {
     missingWordsPlayers,
     allJoined,
     allReady,
+    allJoinedReady,
     canStart: !room.locked && !game && allReady,
 
     game
