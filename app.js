@@ -1580,7 +1580,7 @@ async function startShortGame() {
 
   const ok = await new Promise(resolve => {
     showOverlayChoice(
-      `Start with current players${counts}? Late players will be locked out.`,
+      `Start with current players${counts}?\nLate players will be locked out.`,
       "Start now",
       () => resolve(true),
       "Cancel",
