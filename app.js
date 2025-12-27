@@ -609,6 +609,15 @@ function setActionError(show, message = "") {
   el.style.display = show ? "block" : "none";
 }
 
+function friendlyJoinError(data, status) {
+  const raw = String(data?.error || "");
+  if (raw === "Room is full") return "This room is full.";
+  if (raw === "Room is locked") return "This room is locked and can’t accept new players.";
+  if (raw === "Room not found" || status === 404) return "Room not found.";
+  if (raw) return raw;
+  return `Join failed (${status})`;
+}
+
 function updateNameError() {
   const input = $("playerName");
   if (!input) return;
@@ -733,22 +742,25 @@ async function joinRoom(options = {}) {
       };
       if (name) payload.name = name;
 
-      const { status, data } = await postJSON("/.netlify/functions/joinRoom", payload);
+  const { status, data } = await postJSON("/.netlify/functions/joinRoom", payload);
 
-      log({ status, ...data }, "joinRoom");
+  log({ status, ...data }, "joinRoom");
 
-      if (status === 200 && data.playerId && data.playerNumber) {
-        setSaved(roomCode, {
-          ...saved,
-          playerId: data.playerId,
-          playerNumber: data.playerNumber,
-          name: data.name || name || saved.name || null
-        });
-        setLastRoomCode(roomCode);
+  if (status === 200 && data.playerId && data.playerNumber) {
+    setActionError(false);
+    setSaved(roomCode, {
+      ...saved,
+      playerId: data.playerId,
+      playerNumber: data.playerNumber,
+      name: data.name || name || saved.name || null
+    });
+    setLastRoomCode(roomCode);
 
-        await roomStatus("roomStatus (after join)");
-        startPolling();
-      }
+    await roomStatus("roomStatus (after join)");
+    startPolling();
+  } else if (status !== 200) {
+    setActionError(true, friendlyJoinError(data, status));
+  }
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
     } finally {
