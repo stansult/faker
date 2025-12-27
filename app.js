@@ -257,6 +257,11 @@ let joinInFlight = null;
 let landingMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
+let createInFlight = false;
+let createState = { roomCode: null, retries: 0 };
+let createAbort = false;
+
+const CREATE_TIMEOUT_MS = 12000;
 
 function persistLogs() {
   try {
@@ -839,8 +844,8 @@ function updateNameError() {
   const canUse = !!value;
   const btnCreate = $("btnCreateRoom");
   const btnJoin = $("btnJoinRoom");
-  if (btnCreate) btnCreate.disabled = !canUse;
-  if (btnJoin) btnJoin.disabled = !canUse;
+  if (btnCreate && !createInFlight) btnCreate.disabled = !canUse;
+  if (btnJoin && !createInFlight) btnJoin.disabled = !canUse;
 }
 
 function updateRejoinButton() {
@@ -875,6 +880,54 @@ function updateLandingMode(nextMode = null) {
   if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
   updateRejoinButton();
   setActionError(false);
+}
+
+function setLandingDisabled(disabled) {
+  const ids = ["btnCreateRoom", "btnJoinRoom", "btnBackLanding", "btnRejoinRoom"];
+  for (const id of ids) {
+    const el = $(id);
+    if (el) el.disabled = disabled;
+  }
+  const nameInput = $("playerName");
+  if (nameInput) nameInput.disabled = disabled;
+  const roomInput = $("roomCode");
+  if (roomInput) roomInput.disabled = disabled;
+}
+
+function showOverlay(message, actionLabel = "", actionFn = null) {
+  const overlay = $("overlay");
+  const msg = $("overlayMessage");
+  const btn = $("overlayAction");
+  const cancel = $("overlayCancel");
+  if (!overlay || !msg || !btn) return;
+  msg.textContent = message || "";
+  overlay.classList.remove("hidden");
+  if (actionLabel && actionFn) {
+    btn.textContent = actionLabel;
+    btn.classList.remove("hidden");
+    btn.onclick = () => actionFn();
+  } else {
+    btn.classList.add("hidden");
+    btn.onclick = null;
+  }
+  if (cancel) cancel.onclick = () => cancelCreate();
+}
+
+function hideOverlay() {
+  const overlay = $("overlay");
+  if (overlay) overlay.classList.add("hidden");
+  const btn = $("overlayAction");
+  if (btn) btn.onclick = null;
+  const cancel = $("overlayCancel");
+  if (cancel) cancel.onclick = null;
+}
+
+function cancelCreate() {
+  createAbort = true;
+  createInFlight = false;
+  setLandingDisabled(false);
+  hideOverlay();
+  createState = { roomCode: null, retries: 0 };
 }
 
 async function joinRoom(options = {}) {
@@ -995,55 +1048,87 @@ async function createRoom() {
     return;
   }
 
-  const playerCount = Number($("playerCount")?.value);
-  const rounds = Number($("rounds")?.value);
-  const wordsPerPlayer = Number($("wordsPerPlayer")?.value);
+  if (createInFlight) return;
+  createInFlight = true;
+  createAbort = false;
+  setLandingDisabled(true);
+  showOverlay("Creating room...");
 
-  const payload = { playerCount, rounds };
-  if (Number.isInteger(wordsPerPlayer) && wordsPerPlayer >= 1 && wordsPerPlayer <= 10) {
-    payload.wordsPerPlayer = wordsPerPlayer;
-  }
+  const waitForRoom = async roomCode => {
+    const deadline = Date.now() + CREATE_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      if (createAbort) return false;
+      const res = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+      if (res.status === 200) return true;
+      await new Promise(r => setTimeout(r, 200));
+    }
+    return false;
+  };
 
-  const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
-  log({ status, ...data }, "createRoom");
+  const createAndWait = async reuseExisting => {
+    if (createAbort) return false;
+    if (!reuseExisting || !createState.roomCode) {
+      const playerCount = Number($("playerCount")?.value);
+      const rounds = Number($("rounds")?.value);
+      const wordsPerPlayer = Number($("wordsPerPlayer")?.value);
 
-  if (!data.roomCode) return;
+      const payload = { playerCount, rounds };
+      if (Number.isInteger(wordsPerPlayer) && wordsPerPlayer >= 1 && wordsPerPlayer <= 10) {
+        payload.wordsPerPlayer = wordsPerPlayer;
+      }
 
-  setRoomCode(data.roomCode);
-  renderLocal(data.roomCode);
+      const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
+      log({ status, ...data }, "createRoom");
 
-  // Wait until the room becomes readable (eventual consistency).
-  let becameVisible = false;
+      if (!data.roomCode) {
+        hideOverlay();
+        setLandingDisabled(false);
+        createInFlight = false;
+        return false;
+      }
 
-  const tries = data.pending ? 30 : 5;
-  for (let i = 0; i < tries; i++) {
-    await new Promise(r => setTimeout(r, data.pending ? 200 : 120));
-    const res = await postJSON("/.netlify/functions/roomStatus", { roomCode: data.roomCode });
+      createState.roomCode = data.roomCode;
+      setRoomCode(data.roomCode);
+      renderLocal(data.roomCode);
+    }
 
-    if (res.status === 200) {
-      becameVisible = true;
-
-      // Auto-join the creator once the room key exists
-      if (!getSaved(data.roomCode)?.playerId) {
+    const visible = await waitForRoom(createState.roomCode);
+    if (visible) {
+      if (createAbort) return false;
+      if (!getSaved(createState.roomCode)?.playerId) {
         await joinRoom({ skipLandingGate: true });
       } else {
         await roomStatus("roomStatus (after create)");
         startPolling();
       }
-      break;
-    }
-  }
 
-  if (!becameVisible) {
-    log(
-      {
-        note:
-          "Room code was created, but roomStatus did not become readable yet. Try Join room now, or refresh status shortly.",
-        roomCode: data.roomCode
-      },
-      "createRoom (visibility)"
-    );
-  }
+      hideOverlay();
+      setLandingDisabled(false);
+      createInFlight = false;
+      createState = { roomCode: null, retries: 0 };
+      return true;
+    }
+
+    if (createAbort) return false;
+    createState.retries += 1;
+    if (createState.retries === 1) {
+      showOverlay("Still creating room...", "Try again", async () => {
+        showOverlay("Creating room...");
+        await createAndWait(true);
+      });
+    } else {
+      showOverlay("Still having trouble.", "Create new room", async () => {
+        createState = { roomCode: null, retries: 0 };
+        showOverlay("Creating room...");
+        await createAndWait(false);
+      });
+    }
+    return false;
+  };
+
+  await createAndWait(false);
+  return;
+
 }
 
 function getSingleWordSubmission() {
