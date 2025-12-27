@@ -1073,14 +1073,37 @@ function wireUI() {
     logBuffer = [];
   });
 
-  $("debugToggle")?.addEventListener("dblclick", e => {
-    if (e && e.metaKey && e.altKey) {
+  const debugToggle = $("debugToggle");
+  if (debugToggle) {
+    let tapCount = 0;
+    let tapTimer = null;
+
+    const toggleDebug = () => {
       document.body.classList.toggle("debug");
       if (document.body.classList.contains("debug")) {
         renderLogBuffer();
       }
-    }
-  });
+    };
+
+    debugToggle.addEventListener("dblclick", e => {
+      if (e && e.metaKey && e.altKey) {
+        toggleDebug();
+      }
+    });
+
+    debugToggle.addEventListener("click", e => {
+      if (e) e.preventDefault();
+      tapCount += 1;
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        tapCount = 0;
+      }, 600);
+      if (tapCount >= 5) {
+        tapCount = 0;
+        toggleDebug();
+      }
+    });
+  }
 
   $("playerName")?.addEventListener("input", () => {
     nameTouched = true;

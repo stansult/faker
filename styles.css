@@ -78,9 +78,10 @@
         text-transform: uppercase;
       }
 
-      #debugToggle {
-        cursor: pointer;
-      }
+#debugToggle {
+  cursor: pointer;
+  user-select: none;
+}
 
       .grid {
         display: grid;
