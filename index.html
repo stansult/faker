@@ -83,27 +83,19 @@
             <button id="btnLeaveRoom" class="ghost">Leave</button>
           </div>
           <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
+          <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
           <div id="playersList" class="players mini" style="margin-top: 12px"></div>
         </section>
 
         <section id="submitWordsPanel" class="panel">
-          <div class="row panel-header">
-            <h3>Submit words</h3>
-            <button id="submitWordsToggle" class="ghost hidden" type="button">
-              Show submitted words
-            </button>
+          <h3>Submit words</h3>
+          <label>One word at a time</label>
+          <div class="row">
+            <input id="wordInput" placeholder="e.g. spaceship" />
+            <button id="btnSubmitWords">Submit word</button>
           </div>
-          <div id="submitWordsSummary" class="mini" style="margin-top: 6px; display: none;"></div>
-          <div id="submitWordsBody">
-            <label>One word at a time</label>
-            <div class="row">
-              <input id="wordInput" placeholder="e.g. spaceship" />
-              <button id="btnSubmitWords">Submit word</button>
-            </div>
-            <div class="mini" id="wordsProgress" style="margin-top: 8px"></div>
-            <div class="mini" id="submitWordsAccepted" style="margin-top: 8px"></div>
-            <div class="mini error-text" id="submitWordsError" style="margin-top: 6px"></div>
-          </div>
+          <div class="mini" id="wordsProgress" style="margin-top: 8px"></div>
+          <div class="mini error-text" id="submitWordsError" style="margin-top: 6px"></div>
         </section>
 
         <section class="panel">
