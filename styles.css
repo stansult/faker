@@ -439,6 +439,10 @@ button.pill:focus-visible {
   min-width: 240px;
 }
 
+#overlayMessage {
+  white-space: pre-line;
+}
+
 .overlay-card button {
   margin-top: 10px;
 }
