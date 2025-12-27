@@ -961,7 +961,7 @@ function wireUI() {
     logBuffer = [];
   });
 
-  $("debugToggle")?.addEventListener("click", e => {
+  $("debugToggle")?.addEventListener("dblclick", e => {
     if (e && e.metaKey && e.altKey) {
       document.body.classList.toggle("debug");
       if (document.body.classList.contains("debug")) {
