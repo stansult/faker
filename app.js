@@ -282,6 +282,38 @@ function setSubmitWordsError(message = "") {
   el.style.display = message ? "block" : "none";
 }
 
+function updateSubmitWordsPanel(remaining) {
+  const panel = $("submitWordsPanel");
+  const body = $("submitWordsBody");
+  const toggle = $("submitWordsToggle");
+  const summary = $("submitWordsSummary");
+  if (!panel || !body || !toggle || !summary) return;
+
+  if (remaining === 0) {
+    panel.classList.toggle("collapsed", !submitWordsExpanded);
+    toggle.classList.remove("hidden");
+    toggle.textContent = submitWordsExpanded ? "Hide submitted words" : "Show submitted words";
+    summary.textContent = "All words submitted.";
+    summary.style.display = "block";
+  } else {
+    panel.classList.remove("collapsed");
+    toggle.classList.add("hidden");
+    summary.style.display = "none";
+  }
+}
+
+function getMyWordsRemaining(rs) {
+  if (!rs) return 0;
+  const required = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
+  if (required == null) return 0;
+  const saved = getSaved(rs.roomCode || getRoomCode());
+  const me = saved?.playerId
+    ? (rs.players || []).find(p => p.playerId === saved.playerId)
+    : null;
+  const submitted = Number.isInteger(me?.wordsSubmitted) ? me.wordsSubmitted : 0;
+  return Math.max(0, required - submitted);
+}
+
 function makeClientId(length = 16) {
   const alphabet =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -318,6 +350,7 @@ let voteTimerInterval = null;
 let createInFlight = false;
 let createState = { roomCode: null, retries: 0 };
 let createAbort = false;
+let submitWordsExpanded = false;
 let overlayMode = "progress";
 let overlayDismiss = null;
 
@@ -594,8 +627,7 @@ function updateWordsProgress(rs) {
   if (input) input.disabled = remaining === 0;
   if (btn) btn.disabled = remaining === 0;
 
-  const panel = $("submitWordsPanel");
-  if (panel) panel.classList.toggle("hidden", remaining === 0);
+  updateSubmitWordsPanel(remaining);
   renderAcceptedWords(rs.roomCode || getRoomCode());
   if (remaining === 0) setSubmitWordsError("");
 }
@@ -1694,6 +1726,7 @@ async function leaveRoom() {
   setRoomCode("");
   renderAcceptedWords(roomCode);
   setSubmitWordsError("");
+  submitWordsExpanded = false;
   roleState = { role: null, secretWord: null, gameId: null };
   lastRoomStatus = null;
   lastGameState = null;
@@ -1893,6 +1926,11 @@ function wireUI() {
 
   $("wordInput")?.addEventListener("focus", () => setActionHint("btnSubmitWords"));
   $("wordInput")?.addEventListener("blur", clearActionHints);
+
+  $("submitWordsToggle")?.addEventListener("click", () => {
+    submitWordsExpanded = !submitWordsExpanded;
+    updateSubmitWordsPanel(getMyWordsRemaining(lastRoomStatus));
+  });
 
   $("moveWord")?.addEventListener("keydown", e => {
     if (e.key !== "Enter") return;

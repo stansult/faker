@@ -267,6 +267,15 @@ button.pill:focus-visible {
   color: #b00020;
 }
 
+.panel-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+#submitWordsPanel.collapsed #submitWordsBody {
+  display: none;
+}
+
 .room-header {
   justify-content: space-between;
   align-items: center;
