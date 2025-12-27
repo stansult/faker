@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { resolveVoteIfEnded, ensureScores } from "./_vote.js";
 
 function json(statusCode, obj) {
   return {
@@ -54,6 +55,16 @@ export async function handler(event) {
 
   const game = room.game && room.game.gameId ? room.game : null;
 
+  if (game?.votePhase?.active) {
+    const nowIso = new Date().toISOString();
+    const resolved = resolveVoteIfEnded(room, nowIso);
+    if (resolved) {
+      await store.setJSON(roomCode, room);
+    }
+  }
+
+  ensureScores(players);
+
   // Public game summary (safe for everyone)
   let gameSummary = null;
   if (game) {
@@ -100,7 +111,25 @@ export async function handler(event) {
       endReason: game.endReason || null,
 
       movesThisRound,
-      lastMoves
+      lastMoves,
+      moves: Array.isArray(game.moves) ? game.moves.map(m => ({
+        round: m.round,
+        playerId: m.playerId,
+        playerNumber: m.playerNumber,
+        word: m.word,
+        at: m.at
+      })) : [],
+
+      votePhase: game.votePhase
+        ? {
+            active: !!game.votePhase.active,
+            startedAt: game.votePhase.startedAt || null,
+            endsAt: game.votePhase.endsAt || null,
+            endedAt: game.votePhase.endedAt || null,
+            triggers: Array.isArray(game.votePhase.triggers) ? game.votePhase.triggers : [],
+            votes: game.votePhase.votes || {}
+          }
+        : null
     };
   }
 

@@ -83,6 +83,16 @@
   user-select: none;
 }
 
+.vote-target {
+  cursor: pointer;
+  user-select: none;
+}
+
+.vote-target.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
       .grid {
         display: grid;
         gap: 18px;
@@ -195,17 +205,29 @@ button:disabled {
         font-family: "IBM Plex Mono", "Courier New", monospace;
       }
 
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #f1efe9;
-        border: 1px solid #e2d6c3;
-        font-size: 12px;
-        color: #6a5b49;
-      }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f1efe9;
+  border: 1px solid #e2d6c3;
+  font-size: 12px;
+  color: #6a5b49;
+}
+
+.pill.timer {
+  background: #f7efe3;
+  border-color: #e1d3bf;
+  font-weight: 700;
+}
+
+.pill.timer.urgent {
+  background: #ffe5e1;
+  border-color: #f0b9ae;
+  color: #b00020;
+}
 
       .view {
         display: none;

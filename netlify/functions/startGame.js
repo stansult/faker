@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { initVotePhase, ensureScores } from "./_vote.js";
 
 function json(statusCode, obj) {
   return {
@@ -92,8 +93,8 @@ export async function handler(event) {
     room.wordPool = Array.isArray(room.wordPool) ? room.wordPool : [];
     room.game = room.game || null;
 
-    // Idempotent: if already started, just return
-    if (room.game && room.game.gameId) {
+    // Idempotent: if already started and not ended, just return
+    if (room.game && room.game.gameId && !room.game.endedAt) {
       return json(200, { ok: true, alreadyStarted: true, gameId: room.game.gameId });
     }
 
@@ -158,6 +159,8 @@ export async function handler(event) {
     const now = new Date().toISOString();
     const roundsTotal = Number.isInteger(room.rounds) ? room.rounds : 3;
 
+    ensureScores(room.players);
+
     room.game = {
       gameId: makeId(16),
       startedAt: now,
@@ -166,7 +169,8 @@ export async function handler(event) {
       secretWord,
       fakerPlayerId: faker,
       turnIndex: 0,
-      moves: []
+      moves: [],
+      votePhase: initVotePhase()
     };
 
     room.locked = true;

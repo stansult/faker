@@ -71,6 +71,7 @@ export async function handler(event) {
         playerId: p.playerId,
         playerNumber: p.playerNumber,
         name: p.name || null,
+        score: Number.isInteger(p.score) ? p.score : 0,
         wordsSubmitted,
         wordsRequired,
         ready: wordsSubmitted >= wordsRequired
@@ -108,7 +109,10 @@ export async function handler(event) {
           gameId: room.game.gameId,
           round: room.game.round,
           startedAt: room.game.startedAt,
-          turnIndex: room.game.turnIndex ?? 0
+          turnIndex: room.game.turnIndex ?? 0,
+          endedAt: room.game.endedAt || null,
+          winner: room.game.winner || null,
+          endReason: room.game.endReason || null
         }
       : null;
 
@@ -129,7 +133,7 @@ export async function handler(event) {
     allJoined,
     allReady,
     allJoinedReady,
-    canStart: !room.locked && !game && allReady,
+    canStart: (!game || game.endedAt) && allReady,
 
     game
   });

@@ -124,7 +124,8 @@ export async function handler(event) {
     playerNumber,
     name: requestedName, // <-- name stored here
     joinedAt: now,
-    words: []
+    words: [],
+    score: 0
   });
 
   room.updatedAt = now;

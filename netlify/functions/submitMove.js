@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { ensureScores } from "./_vote.js";
 
 function json(statusCode, obj) {
   return {
@@ -83,6 +84,10 @@ export async function handler(event) {
     }
 
     const game = room.game;
+    const voteActive = !!game.votePhase?.active;
+    if (voteActive) {
+      return json(409, { error: "Voting in progress" });
+    }
 
     if (game.endedAt) {
       return json(409, {
@@ -146,6 +151,9 @@ export async function handler(event) {
       game.endedAt = now;
       game.winner = "faker";
       game.endReason = "faker_said_secret_word_on_turn";
+      ensureScores(room.players);
+      const fakerPlayer = room.players.find(p => p.playerId === fakerPlayerId);
+      if (fakerPlayer) fakerPlayer.score += 1;
       room.updatedAt = now;
 
       await store.setJSON(roomCode, room);

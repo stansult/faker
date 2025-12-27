@@ -106,6 +106,9 @@ function normalizeName(raw) {
     .replace(/\s+/g, " ");
 }
 
+const VOTE_TOTAL_SECONDS = 30;
+const VOTE_FINAL_SECONDS = 5;
+
 /* ===== view helpers ===== */
 
 const views = ["viewLanding", "viewLobby", "viewGame"];
@@ -253,6 +256,7 @@ let nameTouched = false;
 let joinInFlight = null;
 let landingMode = null;
 let logBuffer = [];
+let voteTimerInterval = null;
 
 function persistLogs() {
   try {
@@ -415,6 +419,7 @@ function renderRoomStatus(rs) {
         <tr>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
+          <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
           <td class="mono">${p.wordsSubmitted}/${p.wordsRequired}</td>
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
@@ -428,6 +433,7 @@ function renderRoomStatus(rs) {
           <tr>
             <th>#</th>
             <th>Name</th>
+            <th>Score</th>
             <th>Words</th>
             <th>Status</th>
           </tr>
@@ -490,7 +496,9 @@ function updateViewState(rs) {
     return;
   }
 
-  if (rs?.game?.gameId) {
+  const ended = !!(lastGameState?.game?.endedAt || rs?.game?.endedAt);
+
+  if (rs?.game?.gameId && !ended) {
     setView("viewGame");
   } else {
     setView("viewLobby");
@@ -502,48 +510,138 @@ function updateViewState(rs) {
 function renderGameState(gs) {
   lastGameState = gs;
 
-  const movesRaw = Array.isArray(gs?.game?.lastMoves) ? gs.game.lastMoves : [];
-  const moves = movesRaw.slice().reverse();
-  const list = $("movesList");
-  if (list) {
-    if (!moves.length) {
-      list.textContent = "No moves yet.";
-    } else {
-      const nameByNumber = new Map();
-      const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
-      for (const p of players) {
-        if (p.playerNumber != null) nameByNumber.set(p.playerNumber, p.name || "");
-      }
-      list.innerHTML = `
-        <table class="status-table">
-          <thead>
-            <tr>
-              <th>Round</th>
-              <th>#</th>
-              <th>Name</th>
-              <th>Word</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${moves
-              .map(
-                m => `
-              <tr>
-                <td>${m.round}</td>
-                <td class="mono">${m.playerNumber}</td>
-                <td>${esc(nameByNumber.get(m.playerNumber) || "")}</td>
-                <td>${esc(m.word || "")}</td>
-              </tr>
-            `
-              )
-              .join("")}
-          </tbody>
-        </table>
-      `;
-    }
-  }
+  renderRoundsTable();
+  renderVoteTable();
 
   updateGameUI();
+}
+
+function renderRoundsTable() {
+  const container = $("roundsTable");
+  if (!container) return;
+
+  const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
+  const sortedPlayers = players.slice().sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0));
+
+  const moves = Array.isArray(lastGameState?.game?.moves) ? lastGameState.game.moves : [];
+  const roundsTotal =
+    Number.isInteger(lastGameState?.game?.roundsTotal)
+      ? lastGameState.game.roundsTotal
+      : (Number.isInteger(lastRoomStatus?.rounds) ? lastRoomStatus.rounds : 0);
+
+  if (!sortedPlayers.length) {
+    container.textContent = "No players yet.";
+    return;
+  }
+
+  if (!roundsTotal) {
+    container.textContent = "Rounds will appear once the game starts.";
+    return;
+  }
+
+  const cellMap = new Map();
+  for (const m of moves) {
+    if (!m || m.round == null || m.playerNumber == null) continue;
+    cellMap.set(`${m.round}:${m.playerNumber}`, m.word || "");
+  }
+
+  const headerCells = sortedPlayers
+    .map(p => `<th class="mono">${p.playerNumber}<span class="mini"> ${esc(p.name || "")}</span></th>`)
+    .join("");
+
+  const rows = [];
+  for (let r = 1; r <= roundsTotal; r++) {
+    const cells = sortedPlayers
+      .map(p => {
+        const key = `${r}:${p.playerNumber}`;
+        const word = cellMap.get(key) || "";
+        return `<td>${esc(word)}</td>`;
+      })
+      .join("");
+    rows.push(`<tr><td class="mono">${r}</td>${cells}</tr>`);
+  }
+
+  container.innerHTML = `
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th>Round</th>
+          ${headerCells}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderVoteTable() {
+  const container = $("voteTable");
+  if (!container) return;
+
+  const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
+  const sortedPlayers = players.slice().sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0));
+
+  const votePhase = lastGameState?.game?.votePhase || null;
+  if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
+    container.textContent = "Voting will start once enough players are ready.";
+    return;
+  }
+
+  const saved = getSaved(getRoomCode());
+  const myId = saved?.playerId || null;
+  const myVote = myId ? votePhase.votes?.[myId] || null : null;
+
+  const nameById = new Map();
+  for (const p of sortedPlayers) {
+    nameById.set(p.playerId, p);
+  }
+
+  const rows = sortedPlayers
+    .map(p => {
+      const votedForId = votePhase.votes?.[p.playerId] ?? null;
+      const votedFor = votedForId ? nameById.get(votedForId) : null;
+      const showVote = votedForId || (votePhase.endedAt && votePhase.startedAt);
+      const votedText = showVote ? "voted for" : "";
+      const targetText = votedFor
+        ? `${votedFor.playerNumber}. ${esc(votedFor.name || "")}`
+        : (showVote ? "-" : "");
+
+      const isSelf = myId && p.playerId === myId;
+      const checked = myVote && myVote === p.playerId;
+      const disabled = !votePhase.active || isSelf;
+
+      return `
+        <tr>
+          <td>
+            ${isSelf ? "" : `<input type="checkbox" class="vote-choice" data-target="${p.playerId}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />`}
+          </td>
+          <td>
+            <span class="vote-target ${disabled ? "disabled" : ""}" data-target="${p.playerId}">
+              ${p.playerNumber}. ${esc(p.name || "")}
+            </span>
+          </td>
+          <td>${votedText}</td>
+          <td>${targetText}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <table class="status-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Voter</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
 }
 
 function updateGameUI() {
@@ -554,6 +652,9 @@ function updateGameUI() {
   const moveHint = $("moveHint");
   const input = $("moveWord");
   const btn = $("btnSubmitMove");
+  const voteStatus = $("voteStatus");
+  const voteTimer = $("voteTimer");
+  const triggerBtn = $("btnTriggerVote");
 
   const saved = getSaved(getRoomCode());
   const playerNumber = saved?.playerNumber ?? null;
@@ -582,6 +683,7 @@ function updateGameUI() {
   const game = lastGameState?.game || lastRoomStatus?.game || null;
   const ended = !!game?.endedAt;
   const nextPlayerNumber = game?.nextPlayerNumber ?? null;
+  const votePhase = game?.votePhase || null;
 
   let statusText = "";
   if (!game?.gameId) {
@@ -601,9 +703,12 @@ function updateGameUI() {
 
   if (turnEl) turnEl.textContent = statusText;
 
+  const voteActive = !!votePhase?.active;
+
   const canMove =
     !!role &&
     !ended &&
+    !voteActive &&
     nextPlayerNumber != null &&
     playerNumber != null &&
     nextPlayerNumber === playerNumber;
@@ -613,8 +718,90 @@ function updateGameUI() {
   if (moveHint) {
     moveHint.textContent = canMove
       ? ""
-      : "Moves unlock once your role is known and it is your turn.";
+      : (voteActive ? "Voting is in progress." : "Moves unlock once your role is known and it is your turn.");
   }
+
+  if (voteStatus) {
+    const total = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players.length : 0;
+    const triggers = Array.isArray(votePhase?.triggers) ? votePhase.triggers.length : 0;
+    if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
+      if (triggers > 0) {
+        voteStatus.textContent = `Players ready to vote: ${triggers}/${Math.max(0, total - 1)}.`;
+      } else {
+        voteStatus.textContent = "Voting has not started.";
+      }
+    } else if (votePhase.active) {
+      voteStatus.textContent = `Voting in progress (${triggers}/${Math.max(0, total - 1)} ready).`;
+    } else {
+      voteStatus.textContent = "Voting complete.";
+    }
+  }
+
+  if (triggerBtn) {
+    const saved = getSaved(getRoomCode());
+    const myId = saved?.playerId || null;
+    const triggers = Array.isArray(votePhase?.triggers) ? votePhase.triggers : [];
+    const alreadyTriggered = myId ? triggers.includes(myId) : false;
+    triggerBtn.disabled = !!votePhase?.active || !!ended || alreadyTriggered;
+  }
+
+  updateVoteTimer(votePhase);
+}
+
+function formatSeconds(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const sec = String(s % 60).padStart(2, "0");
+  return `${m}:${sec}`;
+}
+
+function updateVoteTimer(votePhase) {
+  const timer = $("voteTimer");
+  if (!timer) return;
+
+  if (voteTimerInterval) {
+    clearInterval(voteTimerInterval);
+    voteTimerInterval = null;
+  }
+
+  if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
+    timer.textContent = formatSeconds(VOTE_TOTAL_SECONDS);
+    timer.classList.remove("timer", "urgent");
+    return;
+  }
+
+  timer.classList.add("timer");
+
+  if (!votePhase.active && votePhase.startedAt) {
+    timer.textContent = formatSeconds(0);
+    timer.classList.remove("urgent");
+    return;
+  }
+
+  const endsAt = votePhase.endsAt ? Date.parse(votePhase.endsAt) : null;
+  if (!endsAt || !Number.isFinite(endsAt)) {
+    timer.textContent = formatSeconds(VOTE_TOTAL_SECONDS);
+    timer.classList.remove("urgent");
+    return;
+  }
+
+  const tick = () => {
+    const remainingMs = endsAt - Date.now();
+    const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+    timer.textContent = formatSeconds(remainingSec);
+    if (remainingSec <= VOTE_FINAL_SECONDS) {
+      timer.classList.add("urgent");
+    } else {
+      timer.classList.remove("urgent");
+    }
+    if (remainingSec <= 0 && voteTimerInterval) {
+      clearInterval(voteTimerInterval);
+      voteTimerInterval = null;
+    }
+  };
+
+  voteTimerInterval = setInterval(tick, 200);
+  tick();
 }
 
 /* ===== actions ===== */
@@ -636,7 +823,7 @@ function setActionError(show, message = "") {
 function friendlyJoinError(data, status) {
   const raw = String(data?.error || "");
   if (raw === "Room is full") return "This room is full.";
-  if (raw === "Room is locked") return "This room is locked and can’t accept new players.";
+  if (raw === "Room is locked") return "This room is locked and can't accept new players.";
   if (raw === "Room not found" || status === 404) return "Room not found.";
   if (raw) return raw;
   return `Join failed (${status})`;
@@ -1005,6 +1192,44 @@ async function submitMove() {
   await roomStatus("roomStatus (after submitMove)");
 }
 
+async function triggerVote() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return;
+
+  const ok = confirm("Are you sure? You can't take that back.");
+  if (!ok) return;
+
+  const { status, data } = await postJSON("/.netlify/functions/triggerVote", {
+    roomCode,
+    playerId: saved.playerId
+  });
+  log({ status, ...data }, "triggerVote");
+  await fetchGameState({ silent: true });
+}
+
+async function castVote(targetPlayerId) {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return;
+
+  if (!lastGameState?.game?.votePhase?.active) return;
+
+  if (!targetPlayerId || targetPlayerId === saved.playerId) return;
+
+  const { status, data } = await postJSON("/.netlify/functions/castVote", {
+    roomCode,
+    playerId: saved.playerId,
+    targetPlayerId
+  });
+  log({ status, ...data }, "castVote");
+  await fetchGameState({ silent: true });
+}
+
 function leaveRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
@@ -1090,6 +1315,7 @@ function wireUI() {
   $("btnStartShortGame")?.addEventListener("click", startShortGame);
   $("btnGetRole")?.addEventListener("click", () => fetchRole());
   $("btnSubmitMove")?.addEventListener("click", submitMove);
+  $("btnTriggerVote")?.addEventListener("click", triggerVote);
   $("btnRoomStatus")?.addEventListener("click", () => roomStatus());
   $("btnClearLocal")?.addEventListener("click", () => clearSaved(getRoomCode()));
   $("btnClearOutput")?.addEventListener("click", () => {
@@ -1175,6 +1401,31 @@ function wireUI() {
       // Ignore clipboard failures (e.g., permissions)
     }
   });
+
+  const voteTable = $("voteTable");
+  if (voteTable) {
+    let lastTapTarget = null;
+    let lastTapAt = 0;
+    voteTable.addEventListener("click", e => {
+      const target = e.target;
+      if (!target) return;
+      if (target.tagName === "INPUT") e.preventDefault();
+      const el = target.closest?.("[data-target]");
+      if (!el) return;
+      const targetId = el.getAttribute("data-target");
+      if (!targetId) return;
+
+      const now = Date.now();
+      if (lastTapTarget === targetId && now - lastTapAt < 450) {
+        lastTapTarget = null;
+        lastTapAt = 0;
+        castVote(targetId);
+        return;
+      }
+      lastTapTarget = targetId;
+      lastTapAt = now;
+    });
+  }
 
   renderLocal(getRoomCode());
   setView("viewLanding");
