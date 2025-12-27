@@ -199,6 +199,7 @@ let pollTimer = null;
 let pollInFlight = false;
 let nameTouched = false;
 let joinInFlight = null;
+let landingMode = null;
 
 async function roomStatus(label = "roomStatus", opts = {}) {
   const roomCode = getRoomCode();
@@ -422,6 +423,8 @@ function updateViewState(rs) {
   } else {
     setView("viewLobby");
   }
+
+  updateLandingMode(null);
 }
 
 function renderGameState(gs) {
@@ -541,6 +544,32 @@ function updateNameError() {
   if (!nameTouched) return setNameError(false);
   const value = String(input.value || "").trim();
   setNameError(!value);
+
+  const canUse = !!value;
+  const btnCreate = $("btnCreateRoom");
+  const btnJoin = $("btnJoinRoom");
+  if (btnCreate) btnCreate.disabled = !canUse;
+  if (btnJoin) btnJoin.disabled = !canUse;
+}
+
+function updateLandingMode(nextMode = null) {
+  if (nextMode !== null) landingMode = nextMode;
+
+  const isCreate = landingMode === "create";
+  const isJoin = landingMode === "join";
+
+  const btnCreate = $("btnCreateRoom");
+  const btnJoin = $("btnJoinRoom");
+  const btnBack = $("btnBackLanding");
+  const createPanel = $("createSettings");
+  const joinPanel = $("joinRoomCode");
+
+  if (btnCreate) btnCreate.classList.toggle("hidden", isJoin);
+  if (btnJoin) btnJoin.classList.toggle("hidden", isCreate);
+  if (btnBack) btnBack.classList.toggle("hidden", !landingMode);
+
+  if (createPanel) createPanel.classList.toggle("hidden", !isCreate);
+  if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
 }
 
 async function joinRoom() {
@@ -561,6 +590,8 @@ async function joinRoom() {
     log({ error: "Name is required" }, "joinRoom");
     return;
   }
+
+  updateLandingMode("join");
 
   joinInFlight = (async () => {
     try {
@@ -615,6 +646,8 @@ async function createRoom() {
     log({ error: "Name is required" }, "createRoom");
     return;
   }
+
+  updateLandingMode("create");
 
   const playerCount = Number($("playerCount")?.value);
   const rounds = Number($("rounds")?.value);
@@ -879,6 +912,7 @@ function wireUI() {
 
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
+  $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
   $("btnSubmitWordsBulk")?.addEventListener("click", submitWordsBulk);
@@ -929,6 +963,7 @@ function wireUI() {
 
   renderLocal(getRoomCode());
   setView("viewLanding");
+  updateLandingMode(null);
 }
 
 wireUI();

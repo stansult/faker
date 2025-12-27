@@ -26,21 +26,18 @@
             <div class="row">
               <div>
                 <label>Your name</label>
-                <input id="playerName" placeholder="Alex" required />
+                <input id="playerName" placeholder="e.g. Alex" required />
                 <div id="nameError">Name is required to join.</div>
-              </div>
-              <div>
-                <label>Room code (join only)</label>
-                <input id="roomCode" class="mono" placeholder="e.g. AJ820W" />
               </div>
             </div>
             <div class="row" style="margin-top: 12px">
               <button id="btnCreateRoom">Create room</button>
               <button id="btnJoinRoom">Join room</button>
+              <button id="btnBackLanding" class="ghost hidden">Back</button>
             </div>
           </section>
 
-          <section class="panel">
+          <section id="createSettings" class="panel hidden">
             <h3>Room settings</h3>
             <div class="row">
               <div>
@@ -56,9 +53,12 @@
                 <input id="wordsPerPlayer" type="number" min="1" max="10" value="4" />
               </div>
             </div>
-            <p class="mini" style="margin-top: 12px">
-              Invite friends once your room is created. Everyone needs a name.
-            </p>
+          </section>
+
+          <section id="joinRoomCode" class="panel hidden">
+            <h3>Join a room</h3>
+            <label>Room code</label>
+            <input id="roomCode" class="mono" placeholder="e.g. AJ820W" />
           </section>
         </div>
       </section>
