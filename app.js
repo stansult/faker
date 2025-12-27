@@ -961,9 +961,18 @@ async function joinRoom(options = {}) {
     return;
   }
 
+  if (!skipLandingGate) {
+    setLandingDisabled(true);
+    showOverlay("Joining room...");
+  }
+
   const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
   if (precheck.status === 404) {
     setActionError(true, "Room not found.");
+    if (!skipLandingGate) {
+      hideOverlay();
+      setLandingDisabled(false);
+    }
     log({ status: precheck.status, ...precheck.data }, "joinRoom");
     return;
   }
@@ -979,6 +988,10 @@ async function joinRoom(options = {}) {
         if (!allowNameMismatch && savedName && name && savedName !== name) {
           setNameError(true, "Name does not match saved player for this room.");
           $("playerName")?.focus();
+          if (!skipLandingGate) {
+            hideOverlay();
+            setLandingDisabled(false);
+          }
           log({ error: "Name does not match saved player for this room" }, "joinRoom");
           return;
         }
@@ -986,6 +999,11 @@ async function joinRoom(options = {}) {
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
         startPolling();
+        if (!skipLandingGate) {
+          setView("viewLobby");
+          hideOverlay();
+          setLandingDisabled(false);
+        }
         return;
       }
 
@@ -993,6 +1011,10 @@ async function joinRoom(options = {}) {
         nameTouched = true;
         updateNameError();
         $("playerName")?.focus();
+        if (!skipLandingGate) {
+          hideOverlay();
+          setLandingDisabled(false);
+        }
         log({ error: "Name is required" }, "joinRoom");
         return;
       }
@@ -1010,23 +1032,36 @@ async function joinRoom(options = {}) {
 
   log({ status, ...data }, "joinRoom");
 
-  if (status === 200 && data.playerId && data.playerNumber) {
-    setActionError(false);
-    setSaved(roomCode, {
-      ...saved,
-      playerId: data.playerId,
-      playerNumber: data.playerNumber,
-      name: data.name || name || saved.name || null
-    });
-    setLastRoomCode(roomCode);
+      if (status === 200 && data.playerId && data.playerNumber) {
+        setActionError(false);
+        setSaved(roomCode, {
+          ...saved,
+          playerId: data.playerId,
+          playerNumber: data.playerNumber,
+          name: data.name || name || saved.name || null
+        });
+        setLastRoomCode(roomCode);
 
-    await roomStatus("roomStatus (after join)");
-    startPolling();
-  } else if (status !== 200) {
-    setActionError(true, friendlyJoinError(data, status));
-  }
+        await roomStatus("roomStatus (after join)");
+        startPolling();
+        if (!skipLandingGate) {
+          setView("viewLobby");
+          hideOverlay();
+          setLandingDisabled(false);
+        }
+      } else if (status !== 200) {
+        setActionError(true, friendlyJoinError(data, status));
+        if (!skipLandingGate) {
+          hideOverlay();
+          setLandingDisabled(false);
+        }
+      }
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
+      if (!skipLandingGate) {
+        hideOverlay();
+        setLandingDisabled(false);
+      }
     } finally {
       joinInFlight = null;
     }
@@ -1323,15 +1358,27 @@ function leaveRoom() {
   const ok = confirm("Leave room? You won't be able to rejoin.");
   if (!ok) return;
 
-  clearSaved(roomCode);
-  clearLastRoomCode();
-  setRoomCode("");
-  roleState = { role: null, secretWord: null, gameId: null };
-  lastRoomStatus = null;
-  lastGameState = null;
-  stopPolling();
+  const saved = getSaved(roomCode);
 
-  setView("viewLanding");
+  (async () => {
+    if (saved?.playerId) {
+      const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
+        roomCode,
+        playerId: saved.playerId
+      });
+      log({ status, ...data }, "leaveRoom");
+    }
+
+    clearSaved(roomCode);
+    clearLastRoomCode();
+    setRoomCode("");
+    roleState = { role: null, secretWord: null, gameId: null };
+    lastRoomStatus = null;
+    lastGameState = null;
+    stopPolling();
+
+    setView("viewLanding");
+  })();
 }
 
 /* ===== polling ===== */
