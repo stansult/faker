@@ -8,19 +8,16 @@ function nowStamp() {
   return new Date().toLocaleTimeString();
 }
 
-function log(obj, label = "log") {
-  const out = $("output");
-  if (!out) return;
-  const time = nowStamp();
+function renderLogEntry(entry, out) {
   const details = document.createElement("details");
   details.open = false;
 
   const summary = document.createElement("summary");
-  summary.textContent = `[${time}] ${label}`;
+  summary.textContent = `[${entry.time}] ${entry.label}`;
 
   const pre = document.createElement("pre");
   pre.className = "mono";
-  pre.textContent = JSON.stringify(obj, null, 2);
+  pre.textContent = JSON.stringify(entry.data, null, 2);
   pre.addEventListener("click", async () => {
     try {
       const header = summary.textContent || "";
@@ -34,12 +31,29 @@ function log(obj, label = "log") {
   details.appendChild(summary);
   details.appendChild(pre);
 
-  // latest at top
   if (out.firstChild) {
     out.insertBefore(details, out.firstChild);
   } else {
     out.appendChild(details);
   }
+}
+
+function renderLogBuffer() {
+  const out = $("output");
+  if (!out) return;
+  out.textContent = "";
+  for (let i = logBuffer.length - 1; i >= 0; i--) {
+    renderLogEntry(logBuffer[i], out);
+  }
+}
+
+function log(obj, label = "log") {
+  const entry = { time: nowStamp(), label, data: obj };
+  logBuffer.push(entry);
+
+  const out = $("output");
+  if (!out) return;
+  renderLogEntry(entry, out);
 }
 
 async function postJSON(path, bodyObj) {
@@ -200,6 +214,7 @@ let pollInFlight = false;
 let nameTouched = false;
 let joinInFlight = null;
 let landingMode = null;
+let logBuffer = [];
 
 async function roomStatus(label = "roomStatus", opts = {}) {
   const roomCode = getRoomCode();
@@ -943,11 +958,15 @@ function wireUI() {
   $("btnClearOutput")?.addEventListener("click", () => {
     const out = $("output");
     if (out) out.textContent = "";
+    logBuffer = [];
   });
 
   $("debugToggle")?.addEventListener("click", e => {
     if (e && e.metaKey && e.altKey) {
       document.body.classList.toggle("debug");
+      if (document.body.classList.contains("debug")) {
+        renderLogBuffer();
+      }
     }
   });
 
@@ -983,6 +1002,9 @@ function wireUI() {
   setView("viewLanding");
   updateLandingMode(null);
   updateNameError();
+  if (document.body.classList.contains("debug")) {
+    renderLogBuffer();
+  }
 
   const build = $("buildVersion");
   if (build) {

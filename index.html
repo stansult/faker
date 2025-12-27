@@ -1,163 +1,166 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Faker</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="shell">
-      <header class="header">
-        <div class="title">
-          <span class="tag">Party Word Game</span>
-          <h1>Fak<span id="debugToggle">e</span>r</h1>
-          <p class="subtitle">
-            Join a room, submit your words, and try to spot the faker. Legit players
-            share the secret word, the faker must bluff their way through.
-          </p>
-        </div>
-      </header>
 
-      <section id="viewLanding" class="view active">
-        <div class="grid">
-          <section class="panel">
-            <h3>Lobby</h3>
-            <div class="row">
-              <div>
-                <label>Your name</label>
-                <input id="playerName" placeholder="e.g. Alex" autocomplete="off" required />
-                <div id="nameError">Name is required to join.</div>
-              </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faker</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="title">
+        <span class="tag">Party Word Game</span>
+        <h1>Fak<span id="debugToggle">e</span>r</h1>
+        <p class="subtitle">
+          Join a room, submit your words, and try to spot the faker. Legit players
+          share the secret word, the faker must bluff their way through.
+        </p>
+      </div>
+    </header>
+
+    <section id="viewLanding" class="view active">
+      <div class="grid">
+        <section class="panel">
+          <h3>Lobby</h3>
+          <div class="row">
+            <div>
+              <label>Your name</label>
+              <input id="playerName" placeholder="e.g. Alex" autocomplete="off" required />
+              <div id="nameError">Name is required to join.</div>
             </div>
-            <div class="row" style="margin-top: 12px">
-              <button id="btnCreateRoom">Create room</button>
-              <button id="btnJoinRoom">Join room</button>
-              <button id="btnBackLanding" class="ghost hidden">Back</button>
-            </div>
-          </section>
-
-          <section id="createSettings" class="panel hidden">
-            <h3>Room settings</h3>
-            <div class="row">
-              <div>
-                <label>Player count</label>
-                <input id="playerCount" type="number" min="3" max="20" value="4" />
-              </div>
-              <div>
-                <label>Rounds</label>
-                <input id="rounds" type="number" min="1" max="20" value="3" />
-              </div>
-              <div>
-                <label>Words per player</label>
-                <input id="wordsPerPlayer" type="number" min="1" max="10" value="4" />
-              </div>
-            </div>
-          </section>
-
-          <section id="joinRoomCode" class="panel hidden">
-            <h3>Enter room code</h3>
-            <label>Room code</label>
-            <input id="roomCode" class="mono" placeholder="e.g. AJ820W" />
-          </section>
-        </div>
-      </section>
-
-      <section id="viewLobby" class="view">
-        <div class="grid">
-          <section class="panel">
-            <div class="row" style="justify-content: space-between; align-items: center">
-              <div>
-                <h3>Room</h3>
-                <div class="mini" id="roomMeta"></div>
-              </div>
-              <button id="btnLeaveRoom" class="ghost">Leave room</button>
-            </div>
-            <div style="margin-top: 8px">
-              <span class="pill">Room code</span>
-              <span id="roomCodeDisplay" class="mono"></span>
-              <button id="btnCopyRoomCode" class="secondary" style="margin-left: 6px">
-                Copy
-              </button>
-            </div>
-            <div id="playersList" class="players mini" style="margin-top: 12px"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Submit words</h3>
-            <label>One word at a time</label>
-            <div class="row">
-              <input id="wordInput" placeholder="e.g. spaceship" />
-              <button id="btnSubmitWords">Submit word</button>
-            </div>
-            <div class="mini" id="wordsProgress" style="margin-top: 8px"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Start game</h3>
-            <div class="row">
-              <button id="btnStartGame">Start game</button>
-              <button id="btnStartShortGame" class="secondary">Start with current players</button>
-            </div>
-            <div class="mini" id="lobbyStatus" style="margin-top: 8px"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="viewGame" class="view">
-        <div class="grid">
-          <section class="panel">
-            <h3>Your role</h3>
-            <div class="pill" id="roleLabel">Waiting for role...</div>
-            <div style="margin-top: 12px">
-              <label>Secret word</label>
-              <div id="secretWord" class="mono"></div>
-            </div>
-            <div class="mini" id="turnStatus" style="margin-top: 10px"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Your move</h3>
-            <label>One word</label>
-            <div class="row">
-              <input id="moveWord" placeholder="rocket" />
-              <button id="btnSubmitMove">Submit move</button>
-            </div>
-            <div class="mini" id="moveHint" style="margin-top: 8px"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Recent moves</h3>
-            <div id="movesList" class="players mini"></div>
-          </section>
-        </div>
-      </section>
-
-      <section class="panel debug-only">
-        <div class="row" style="justify-content: space-between; align-items: center">
-          <div>
-            <h3>Debug</h3>
-            <div class="mini">Logs and raw controls</div>
           </div>
-          <button id="btnClearOutput" class="secondary">Clear output</button>
-        </div>
-        <div class="row" style="margin-top: 10px">
-          <button id="btnRoomStatus" class="secondary">Refresh status</button>
-          <button id="btnGetRole" class="secondary">Get role</button>
-          <button id="btnClearLocal" class="secondary">Clear local</button>
-        </div>
-        <div class="debug-only" style="margin-top: 14px">
-          <label>Bulk words (one per line)</label>
-          <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo&#10;Banana"></textarea>
-          <div class="row" style="margin-top: 8px">
-            <button id="btnSubmitWordsBulk" class="secondary">Submit bulk words</button>
+          <div class="row" style="margin-top: 12px">
+            <button id="btnCreateRoom">Create room</button>
+            <button id="btnJoinRoom">Join room</button>
+            <button id="btnBackLanding" class="ghost hidden">Back</button>
           </div>
-        </div>
-        <div id="output" style="margin-top: 12px"></div>
-      </section>
-    </div>
-    <div id="buildVersion" class="build"></div>
+        </section>
 
-    <script src="./app.js"></script>
-  </body>
+        <section id="createSettings" class="panel hidden">
+          <h3>Room settings</h3>
+          <div class="row">
+            <div>
+              <label>Player count</label>
+              <input id="playerCount" type="number" min="3" max="20" value="4" />
+            </div>
+            <div>
+              <label>Rounds</label>
+              <input id="rounds" type="number" min="1" max="20" value="3" />
+            </div>
+            <div>
+              <label>Words per player</label>
+              <input id="wordsPerPlayer" type="number" min="1" max="10" value="4" />
+            </div>
+          </div>
+        </section>
+
+        <section id="joinRoomCode" class="panel hidden">
+          <h3>Enter room code</h3>
+          <label>Room code</label>
+          <input id="roomCode" class="mono" placeholder="e.g. AJ820W" />
+        </section>
+      </div>
+    </section>
+
+    <section id="viewLobby" class="view">
+      <div class="grid">
+        <section class="panel">
+          <div class="row" style="justify-content: space-between; align-items: center">
+            <div>
+              <h3>Room</h3>
+              <div class="mini" id="roomMeta"></div>
+            </div>
+            <button id="btnLeaveRoom" class="ghost">Leave room</button>
+          </div>
+          <div style="margin-top: 8px">
+            <span class="pill">Room code</span>
+            <span id="roomCodeDisplay" class="mono"></span>
+            <button id="btnCopyRoomCode" class="secondary" style="margin-left: 6px">
+              Copy
+            </button>
+          </div>
+          <div id="playersList" class="players mini" style="margin-top: 12px"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Submit words</h3>
+          <label>One word at a time</label>
+          <div class="row">
+            <input id="wordInput" placeholder="e.g. spaceship" />
+            <button id="btnSubmitWords">Submit word</button>
+          </div>
+          <div class="mini" id="wordsProgress" style="margin-top: 8px"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Start game</h3>
+          <div class="row">
+            <button id="btnStartGame">Start game</button>
+            <button id="btnStartShortGame" class="secondary">Start with current players</button>
+          </div>
+          <div class="mini" id="lobbyStatus" style="margin-top: 8px"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="viewGame" class="view">
+      <div class="grid">
+        <section class="panel">
+          <h3>Your role</h3>
+          <div class="pill" id="roleLabel">Waiting for role...</div>
+          <div style="margin-top: 12px">
+            <label>Secret word</label>
+            <div id="secretWord" class="mono"></div>
+          </div>
+          <div class="mini" id="turnStatus" style="margin-top: 10px"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Your move</h3>
+          <label>One word</label>
+          <div class="row">
+            <input id="moveWord" placeholder="rocket" />
+            <button id="btnSubmitMove">Submit move</button>
+          </div>
+          <div class="mini" id="moveHint" style="margin-top: 8px"></div>
+        </section>
+
+        <section class="panel">
+          <h3>Recent moves</h3>
+          <div id="movesList" class="players mini"></div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel debug-only">
+      <div class="row" style="justify-content: space-between; align-items: center">
+        <div>
+          <h3>Debug</h3>
+          <div class="mini">Logs and raw controls</div>
+        </div>
+        <button id="btnClearOutput" class="secondary">Clear output</button>
+      </div>
+      <div class="row" style="margin-top: 10px">
+        <button id="btnRoomStatus" class="secondary">Refresh status</button>
+        <button id="btnGetRole" class="secondary">Get role</button>
+        <button id="btnClearLocal" class="secondary">Clear local</button>
+      </div>
+      <div class="debug-only" style="margin-top: 14px">
+        <label>Bulk words (one per line)</label>
+        <textarea id="words" placeholder="Carrot&#10;Spaceship&#10;Igloo&#10;Banana"></textarea>
+        <div class="row" style="margin-top: 8px">
+          <button id="btnSubmitWordsBulk" class="secondary">Submit bulk words</button>
+        </div>
+      </div>
+      <div id="output" style="margin-top: 12px"></div>
+    </section>
+  </div>
+  <div id="buildVersion" class="build"></div>
+
+  <script src="./app.js"></script>
+</body>
+
 </html>
