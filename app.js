@@ -1102,6 +1102,7 @@ async function createRoom() {
         startPolling();
       }
 
+      setView("viewLobby");
       hideOverlay();
       setLandingDisabled(false);
       createInFlight = false;
