@@ -978,8 +978,14 @@ function wireUI() {
 
   const build = $("buildVersion");
   if (build) {
-    const stamp = new Date().toLocaleString();
-    build.textContent = `build ${stamp}`;
+    build.textContent = "build (local)";
+    fetch("./build.txt", { cache: "no-store" })
+      .then(res => (res.ok ? res.text() : null))
+      .then(text => {
+        if (!text) return;
+        build.textContent = `build ${text.trim()}`;
+      })
+      .catch(() => {});
   }
 }
 
