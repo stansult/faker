@@ -935,6 +935,7 @@ async function joinRoom(options = {}) {
   const name = normalizeName($("playerName")?.value || "");
   const skipLandingGate = !!options.skipLandingGate;
   const allowNameMismatch = !!options.allowNameMismatch;
+  const ignoreExistingRoom = !!options.ignoreExistingRoom;
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
@@ -959,6 +960,23 @@ async function joinRoom(options = {}) {
     setActionError(true, "Enter your name to join.");
     $("playerName")?.focus();
     return;
+  }
+
+  if (!skipLandingGate && !ignoreExistingRoom) {
+    const lastRoom = getLastRoomCode();
+    const savedLast = lastRoom ? getSaved(lastRoom) : null;
+    if (lastRoom && lastRoom !== roomCode && savedLast?.playerId) {
+      const ok = confirm(
+        `You're already in room ${lastRoom}. Leave it and join ${roomCode}?`
+      );
+      if (ok) {
+        await leaveRoomByCode(lastRoom, savedLast.playerId);
+      } else {
+        setRoomCode(lastRoom);
+        await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        return;
+      }
+    }
   }
 
   if (!skipLandingGate) {
@@ -1068,8 +1086,9 @@ async function joinRoom(options = {}) {
   })();
 }
 
-async function createRoom() {
+async function createRoom(options = {}) {
   const name = String($("playerName")?.value || "").trim();
+  const ignoreExistingRoom = !!options.ignoreExistingRoom;
   if (!name) {
     nameTouched = true;
     updateNameError();
@@ -1081,6 +1100,23 @@ async function createRoom() {
   if (landingMode !== "create") {
     updateLandingMode("create");
     return;
+  }
+
+  if (!ignoreExistingRoom) {
+    const lastRoom = getLastRoomCode();
+    const savedLast = lastRoom ? getSaved(lastRoom) : null;
+    if (lastRoom && savedLast?.playerId) {
+      const ok = confirm(
+        `You're already in room ${lastRoom}. Leave it and create a new room?`
+      );
+      if (ok) {
+        await leaveRoomByCode(lastRoom, savedLast.playerId);
+      } else {
+        setRoomCode(lastRoom);
+        await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        return;
+      }
+    }
   }
 
   if (createInFlight) return;
@@ -1379,6 +1415,18 @@ function leaveRoom() {
 
     setView("viewLanding");
   })();
+}
+
+async function leaveRoomByCode(roomCode, playerId) {
+  if (!roomCode || !playerId) return;
+  const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
+    roomCode,
+    playerId
+  });
+  log({ status, ...data }, "leaveRoom");
+  clearSaved(roomCode);
+  clearLastRoomCode();
+  stopPolling();
 }
 
 /* ===== polling ===== */
