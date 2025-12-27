@@ -850,6 +850,16 @@ function wireUI() {
     document.body.classList.add("debug");
   }
 
+  document.addEventListener("keydown", e => {
+    const key = String(e.key || "").toLowerCase();
+    const isToggle =
+      key === "d" &&
+      ((e.ctrlKey && e.altKey) || (e.metaKey && e.altKey));
+    if (!isToggle) return;
+    e.preventDefault();
+    document.body.classList.toggle("debug");
+  });
+
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
