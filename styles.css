@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+
 :root {
         color-scheme: light;
         --ink: #1e1b16;
@@ -27,7 +29,7 @@
       h1,
       h2,
       h3 {
-        font-family: "Playfair Display", "Times New Roman", serif;
+        font-family: "Bebas Neue", "Alegreya Sans", sans-serif;
         margin: 0 0 12px 0;
         letter-spacing: 0.3px;
       }
