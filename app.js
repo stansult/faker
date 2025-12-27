@@ -480,7 +480,7 @@ function renderRoomStatus(rs) {
             Number.isInteger(p.wordsRequired) &&
             Number.isInteger(p.wordsSubmitted) &&
             p.wordsSubmitted >= p.wordsRequired
-              ? `<span class="ok-check">&#10003;</span>`
+              ? `<span class="ok-check">&#9989;</span>`
               : `${p.wordsSubmitted}/${p.wordsRequired}`
           }</td>
           <td>${p.ready ? "Ready" : "Not ready"}</td>
