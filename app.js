@@ -1700,6 +1700,12 @@ function wireUI() {
     updateNameError();
   });
 
+  $("playerName")?.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    e.currentTarget?.blur();
+  });
+
   $("roomCode")?.addEventListener("click", async e => {
     const input = e.currentTarget;
     if (!input) return;
@@ -1718,6 +1724,32 @@ function wireUI() {
     if (!input) return;
     const cleaned = sanitizeRoomCode(input.value);
     if (input.value !== cleaned) input.value = cleaned;
+  });
+
+  $("roomCode")?.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    joinRoom();
+  });
+
+  for (const id of ["playerCount", "rounds", "wordsPerPlayer"]) {
+    $(id)?.addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      createRoom();
+    });
+  }
+
+  $("wordInput")?.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    submitWords();
+  });
+
+  $("moveWord")?.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    submitMove();
   });
 
   $("roomCodePill")?.addEventListener("click", async () => {
