@@ -261,6 +261,7 @@ let createInFlight = false;
 let createState = { roomCode: null, retries: 0 };
 let createAbort = false;
 let overlayMode = "progress";
+let overlayDismiss = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 
@@ -919,7 +920,14 @@ function showOverlay(message, actionLabel = "", actionFn = null) {
   if (cancel) cancel.onclick = () => cancelCreate();
 }
 
-function showOverlayChoice(message, primaryLabel, primaryFn, secondaryLabel, secondaryFn) {
+function showOverlayChoice(
+  message,
+  primaryLabel,
+  primaryFn,
+  secondaryLabel,
+  secondaryFn,
+  dismissFn = null
+) {
   const overlay = $("overlay");
   const msg = $("overlayMessage");
   const primary = $("overlayPrimary");
@@ -930,12 +938,19 @@ function showOverlayChoice(message, primaryLabel, primaryFn, secondaryLabel, sec
   msg.textContent = message || "";
   overlay.classList.remove("hidden");
   overlayMode = "choice";
+  overlayDismiss = dismissFn;
   if (buttons) buttons.classList.add("hidden");
   if (choice) choice.classList.remove("hidden");
   primary.textContent = primaryLabel || "OK";
   secondary.textContent = secondaryLabel || "Cancel";
-  primary.onclick = () => primaryFn && primaryFn();
-  secondary.onclick = () => secondaryFn && secondaryFn();
+  primary.onclick = () => {
+    overlayDismiss = null;
+    if (primaryFn) primaryFn();
+  };
+  secondary.onclick = () => {
+    overlayDismiss = null;
+    if (secondaryFn) secondaryFn();
+  };
 }
 
 function hideOverlay() {
@@ -950,6 +965,14 @@ function hideOverlay() {
   if (primary) primary.onclick = null;
   if (secondary) secondary.onclick = null;
   overlayMode = "progress";
+  overlayDismiss = null;
+}
+
+function dismissOverlayChoice() {
+  const dismiss = overlayDismiss;
+  overlayDismiss = null;
+  hideOverlay();
+  if (dismiss) dismiss();
 }
 
 function initOverlayDismissal() {
@@ -960,13 +983,13 @@ function initOverlayDismissal() {
   overlay.addEventListener("click", e => {
     if (overlayMode !== "choice") return;
     if (e.target === overlay) {
-      hideOverlay();
+      dismissOverlayChoice();
     }
   });
 
   document.addEventListener("keydown", e => {
     if (overlayMode !== "choice") return;
-    if (e.key === "Escape") hideOverlay();
+    if (e.key === "Escape") dismissOverlayChoice();
   });
 }
 
@@ -1029,15 +1052,18 @@ async function joinRoom(options = {}) {
           primaryLabel,
           () => resolve("new"),
           secondaryLabel,
-          () => resolve("old")
+          () => resolve("old"),
+          () => resolve(null)
         );
       });
       hideOverlay();
       if (choice === "new") {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
-      } else {
+      } else if (choice === "old") {
         setRoomCode(lastRoom);
         await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        return;
+      } else {
         return;
       }
     }
@@ -1184,15 +1210,18 @@ async function createRoom(options = {}) {
           primaryLabel,
           () => resolve("new"),
           secondaryLabel,
-          () => resolve("old")
+          () => resolve("old"),
+          () => resolve(null)
         );
       });
       hideOverlay();
       if (choice === "new") {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
-      } else {
+      } else if (choice === "old") {
         setRoomCode(lastRoom);
         await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        return;
+      } else {
         return;
       }
     }
@@ -1466,34 +1495,42 @@ async function castVote(targetPlayerId) {
   await fetchGameState({ silent: true });
 }
 
-function leaveRoom() {
+async function leaveRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
 
-  const ok = confirm("Leave room? You won't be able to rejoin.");
+  const ok = await new Promise(resolve => {
+    showOverlayChoice(
+      "Leave room? You won't be able to rejoin.",
+      "Leave room",
+      () => resolve(true),
+      "Cancel",
+      () => resolve(false),
+      () => resolve(false)
+    );
+  });
+  hideOverlay();
   if (!ok) return;
 
   const saved = getSaved(roomCode);
 
-  (async () => {
-    if (saved?.playerId) {
-      const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
-        roomCode,
-        playerId: saved.playerId
-      });
-      log({ status, ...data }, "leaveRoom");
-    }
+  if (saved?.playerId) {
+    const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
+      roomCode,
+      playerId: saved.playerId
+    });
+    log({ status, ...data }, "leaveRoom");
+  }
 
-    clearSaved(roomCode);
-    clearLastRoomCode();
-    setRoomCode("");
-    roleState = { role: null, secretWord: null, gameId: null };
-    lastRoomStatus = null;
-    lastGameState = null;
-    stopPolling();
+  clearSaved(roomCode);
+  clearLastRoomCode();
+  setRoomCode("");
+  roleState = { role: null, secretWord: null, gameId: null };
+  lastRoomStatus = null;
+  lastGameState = null;
+  stopPolling();
 
-    setView("viewLanding");
-  })();
+  setView("viewLanding");
 }
 
 async function leaveRoomByCode(roomCode, playerId) {
