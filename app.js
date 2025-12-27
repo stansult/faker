@@ -541,9 +541,9 @@ function setNameError(show) {
 function updateNameError() {
   const input = $("playerName");
   if (!input) return;
-  if (!nameTouched) return setNameError(false);
   const value = String(input.value || "").trim();
-  setNameError(!value);
+  if (nameTouched) setNameError(!value);
+  else setNameError(false);
 
   const canUse = !!value;
   const btnCreate = $("btnCreateRoom");
@@ -964,6 +964,7 @@ function wireUI() {
   renderLocal(getRoomCode());
   setView("viewLanding");
   updateLandingMode(null);
+  updateNameError();
 }
 
 wireUI();

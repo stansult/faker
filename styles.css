@@ -175,10 +175,15 @@
         color: #6d6357;
       }
 
-      button:disabled {
-        opacity: 0.55;
-        cursor: not-allowed;
-      }
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(35%);
+  box-shadow: none;
+  background: #f0e6d5;
+  border-color: #d8cbb7;
+  color: #8a7a67;
+}
 
       .mini {
         font-size: 12px;
