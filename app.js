@@ -602,6 +602,12 @@ async function joinRoom(options = {}) {
     return;
   }
 
+  const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+  if (precheck.status === 404) {
+    log({ status: precheck.status, ...precheck.data }, "joinRoom");
+    return;
+  }
+
   joinInFlight = (async () => {
     try {
       const saved = ensureLocalIdentity(roomCode);
