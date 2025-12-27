@@ -30,7 +30,12 @@ function makeId(length = 12) {
 function normalizeWord(w) {
   return String(w || "")
     .trim()
+    .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+function isAllowedWord(word) {
+  return /^[a-z'-]+$/.test(String(word || ""));
 }
 
 export async function handler(event) {
@@ -62,6 +67,9 @@ export async function handler(event) {
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!word) return json(400, { error: "word is required" });
+  if (!isAllowedWord(word)) {
+    return json(400, { error: "One word only - letters, hyphens, apostrophes." });
+  }
   if (word.length > 40) return json(400, { error: "Word too long (max 40 chars)" });
 
   connectLambda(event);

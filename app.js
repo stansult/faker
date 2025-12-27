@@ -1612,6 +1612,9 @@ async function submitMove() {
   const raw = String($("moveWord")?.value || "");
   const word = normalizeWord(raw);
   if (!word) return log({ error: "Enter a word" }, "submitMove");
+  if (!isAllowedWord(word)) {
+    return log({ error: "One word only - letters, hyphens, apostrophes." }, "submitMove");
+  }
 
   if (roleState.role === "player" && roleState.secretWord) {
     const secret = normalizeWord(roleState.secretWord);
