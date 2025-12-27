@@ -590,7 +590,7 @@ function updateRejoinButton() {
   if (!btn) return;
   const lastRoom = getLastRoomCode();
   const saved = lastRoom ? getSaved(lastRoom) : null;
-  const canRejoin = !!(saved && saved.playerId && saved.playerNumber && saved.name);
+  const canRejoin = !!(saved && saved.playerId && saved.playerNumber);
   btn.classList.toggle("hidden", !canRejoin);
 }
 
