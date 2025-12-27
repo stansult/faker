@@ -554,6 +554,7 @@ function updateNameError() {
 
 function updateLandingMode(nextMode = null) {
   if (nextMode !== null) landingMode = nextMode;
+  if (nextMode === null) landingMode = null;
 
   const isCreate = landingMode === "create";
   const isJoin = landingMode === "join";
