@@ -274,6 +274,18 @@ button.pill:focus-visible {
   align-items: center;
 }
 
+.landing-actions {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.landing-actions-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .landing-actions #btnRejoinRoom {
   margin-left: auto;
 }
