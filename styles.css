@@ -263,6 +263,10 @@ button.pill:focus-visible {
   font-weight: 700;
 }
 
+.error-text {
+  color: #b00020;
+}
+
 .room-header {
   justify-content: space-between;
   align-items: center;

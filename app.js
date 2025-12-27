@@ -169,6 +169,10 @@ function roomKey(roomCode) {
   return `faker:${String(roomCode || "").toUpperCase()}`;
 }
 
+function wordsKey(roomCode) {
+  return `${roomKey(roomCode)}:words`;
+}
+
 function lastRoomKey() {
   return "faker:lastRoom";
 }
@@ -207,6 +211,7 @@ function setSaved(roomCode, obj) {
 function clearSaved(roomCode) {
   if (!roomCode) return;
   localStorage.removeItem(roomKey(roomCode));
+  localStorage.removeItem(wordsKey(roomCode));
   renderLocal(roomCode);
 }
 
@@ -234,6 +239,43 @@ function renderLocal(roomCode) {
 
   updateNameError();
   updateRejoinButton();
+}
+
+function getAcceptedWords(roomCode) {
+  if (!roomCode) return [];
+  const raw = localStorage.getItem(wordsKey(roomCode));
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function setAcceptedWords(roomCode, words) {
+  if (!roomCode) return;
+  const list = Array.isArray(words) ? words : [];
+  localStorage.setItem(wordsKey(roomCode), JSON.stringify(list));
+  renderAcceptedWords(roomCode);
+}
+
+function renderAcceptedWords(roomCode) {
+  const el = $("submitWordsAccepted");
+  if (!el) return;
+  const words = getAcceptedWords(roomCode);
+  if (!words.length) {
+    el.textContent = "";
+    return;
+  }
+  el.textContent = `Submitted: ${words.join(", ")}`;
+}
+
+function setSubmitWordsError(message = "") {
+  const el = $("submitWordsError");
+  if (!el) return;
+  el.textContent = message || "";
+  el.style.display = message ? "block" : "none";
 }
 
 function makeClientId(length = 16) {
@@ -550,6 +592,8 @@ function updateWordsProgress(rs) {
 
   const panel = $("submitWordsPanel");
   if (panel) panel.classList.toggle("hidden", remaining === 0);
+  renderAcceptedWords(rs.roomCode || getRoomCode());
+  if (remaining === 0) setSubmitWordsError("");
 }
 
 function updateViewState(rs) {
@@ -1393,6 +1437,8 @@ async function submitWords() {
     return log({ error: "Enter a word" }, "submitWords");
   }
 
+  setSubmitWordsError("");
+
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
@@ -1403,8 +1449,29 @@ async function submitWords() {
   if (status === 200) {
     const input = $("wordInput");
     if (input && data.accepted?.length) input.value = "";
+    const current = getAcceptedWords(roomCode);
+    const merged = [...current];
+    for (const w of data.accepted || []) {
+      if (!merged.includes(w)) merged.push(w);
+    }
+    setAcceptedWords(roomCode, merged);
+    if (Array.isArray(data.duplicates) && data.duplicates.length) {
+      const reasonMap = {
+        already_yours: "already submitted",
+        already_in_pool: "already used by another player"
+      };
+      const message = data.duplicates
+        .map(item => {
+          const reason = reasonMap[item.reason] || "not accepted";
+          return `${item.word} (${reason})`;
+        })
+        .join(", ");
+      setSubmitWordsError(`Not accepted: ${message}.`);
+    }
     await roomStatus("roomStatus (after submitWords)");
+    return;
   }
+  if (data?.error) setSubmitWordsError(String(data.error));
 }
 
 async function submitWordsBulk() {
@@ -1419,6 +1486,8 @@ async function submitWordsBulk() {
     return log({ error: "Enter at least one word" }, "submitWordsBulk");
   }
 
+  setSubmitWordsError("");
+
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
@@ -1429,8 +1498,29 @@ async function submitWordsBulk() {
   if (status === 200) {
     const input = $("words");
     if (input && data.accepted?.length) input.value = "";
+    const current = getAcceptedWords(roomCode);
+    const merged = [...current];
+    for (const w of data.accepted || []) {
+      if (!merged.includes(w)) merged.push(w);
+    }
+    setAcceptedWords(roomCode, merged);
+    if (Array.isArray(data.duplicates) && data.duplicates.length) {
+      const reasonMap = {
+        already_yours: "already submitted",
+        already_in_pool: "already used by another player"
+      };
+      const message = data.duplicates
+        .map(item => {
+          const reason = reasonMap[item.reason] || "not accepted";
+          return `${item.word} (${reason})`;
+        })
+        .join(", ");
+      setSubmitWordsError(`Not accepted: ${message}.`);
+    }
     await roomStatus("roomStatus (after submitWordsBulk)");
+    return;
   }
+  if (data?.error) setSubmitWordsError(String(data.error));
 }
 
 async function startGame() {
@@ -1583,6 +1673,8 @@ async function leaveRoom() {
   clearSaved(roomCode);
   clearLastRoomCode();
   setRoomCode("");
+  renderAcceptedWords(roomCode);
+  setSubmitWordsError("");
   roleState = { role: null, secretWord: null, gameId: null };
   lastRoomStatus = null;
   lastGameState = null;
