@@ -42,6 +42,10 @@ function renderLogBuffer() {
   const out = $("output");
   if (!out) return;
   out.textContent = "";
+  if (!logBuffer.length) {
+    out.textContent = "No logs yet.";
+    return;
+  }
   for (let i = logBuffer.length - 1; i >= 0; i--) {
     renderLogEntry(logBuffer[i], out);
   }
@@ -50,6 +54,7 @@ function renderLogBuffer() {
 function log(obj, label = "log") {
   const entry = { time: nowStamp(), label, data: obj };
   logBuffer.push(entry);
+  persistLogs();
 
   const out = $("output");
   if (!out) return;
@@ -248,6 +253,25 @@ let nameTouched = false;
 let joinInFlight = null;
 let landingMode = null;
 let logBuffer = [];
+
+function persistLogs() {
+  try {
+    sessionStorage.setItem("faker:logs", JSON.stringify(logBuffer));
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+function restoreLogs() {
+  try {
+    const raw = sessionStorage.getItem("faker:logs");
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) logBuffer = parsed;
+  } catch {
+    // Ignore storage failures
+  }
+}
 
 async function roomStatus(label = "roomStatus", opts = {}) {
   const roomCode = getRoomCode();
@@ -1041,6 +1065,7 @@ function esc(s) {
 }
 
 function wireUI() {
+  restoreLogs();
   const params = new URLSearchParams(window.location.search);
   if (params.get("debug") === "1") {
     document.body.classList.add("debug");
@@ -1071,6 +1096,7 @@ function wireUI() {
     const out = $("output");
     if (out) out.textContent = "";
     logBuffer = [];
+    persistLogs();
   });
 
   const debugToggle = $("debugToggle");
