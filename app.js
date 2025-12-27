@@ -122,17 +122,25 @@ function setText(id, text) {
 /* ===== room code ===== */
 
 function getRoomCode() {
-  return String($("roomCode")?.value || "")
-    .trim()
-    .toUpperCase();
+  return sanitizeRoomCode($("roomCode")?.value || "");
 }
 
 function setRoomCode(code) {
-  const value = String(code || "").trim().toUpperCase();
+  const value = sanitizeRoomCode(code || "");
   const el = $("roomCode");
   if (el) el.value = value;
   setText("roomCodeDisplay", value);
   setText("roomCodeGame", value);
+}
+
+function sanitizeRoomCode(raw) {
+  const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  return String(raw || "")
+    .toUpperCase()
+    .split("")
+    .filter(ch => alphabet.includes(ch))
+    .join("")
+    .trim();
 }
 
 /* ===== localStorage identity ===== */
@@ -1078,6 +1086,13 @@ function wireUI() {
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
+  });
+
+  $("roomCode")?.addEventListener("input", e => {
+    const input = e.currentTarget;
+    if (!input) return;
+    const cleaned = sanitizeRoomCode(input.value);
+    if (input.value !== cleaned) input.value = cleaned;
   });
 
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
