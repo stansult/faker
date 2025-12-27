@@ -176,6 +176,12 @@
         cursor: pointer;
       }
 
+      button.action-hint {
+        border-color: #d4a354;
+        background: linear-gradient(180deg, #ffe7c2, #f4cf92);
+        box-shadow: 0 10px 18px rgba(163, 114, 40, 0.22);
+      }
+
       button.secondary {
         background: linear-gradient(180deg, #e8f5f2, #d7ece7);
         color: #1d5c4e;

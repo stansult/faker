@@ -1706,6 +1706,20 @@ function wireUI() {
     e.currentTarget?.blur();
   });
 
+  const actionHintButtons = [
+    $("btnJoinRoom"),
+    $("btnSubmitWords"),
+    $("btnSubmitMove")
+  ].filter(Boolean);
+  const clearActionHints = () => {
+    for (const btn of actionHintButtons) btn.classList.remove("action-hint");
+  };
+  const setActionHint = id => {
+    clearActionHints();
+    const btn = $(id);
+    if (btn) btn.classList.add("action-hint");
+  };
+
   $("roomCode")?.addEventListener("click", async e => {
     const input = e.currentTarget;
     if (!input) return;
@@ -1732,6 +1746,9 @@ function wireUI() {
     joinRoom();
   });
 
+  $("roomCode")?.addEventListener("focus", () => setActionHint("btnJoinRoom"));
+  $("roomCode")?.addEventListener("blur", clearActionHints);
+
   for (const id of ["playerCount", "rounds", "wordsPerPlayer"]) {
     $(id)?.addEventListener("keydown", e => {
       if (e.key !== "Enter") return;
@@ -1746,11 +1763,17 @@ function wireUI() {
     submitWords();
   });
 
+  $("wordInput")?.addEventListener("focus", () => setActionHint("btnSubmitWords"));
+  $("wordInput")?.addEventListener("blur", clearActionHints);
+
   $("moveWord")?.addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
     e.preventDefault();
     submitMove();
   });
+
+  $("moveWord")?.addEventListener("focus", () => setActionHint("btnSubmitMove"));
+  $("moveWord")?.addEventListener("blur", clearActionHints);
 
   $("roomCodePill")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
