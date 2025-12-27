@@ -1014,12 +1014,23 @@ async function joinRoom(options = {}) {
     const lastRoom = getLastRoomCode();
     const savedLast = lastRoom ? getSaved(lastRoom) : null;
     if (lastRoom && lastRoom !== roomCode && savedLast?.playerId) {
+      const savedName = normalizeName(savedLast.name || "");
+      const nameChanged = !!(savedName && name && savedName !== name);
+      const message = nameChanged
+        ? `You're already in room ${lastRoom} as ${savedName}.`
+        : `You're already in room ${lastRoom}.`;
+      const primaryLabel = nameChanged
+        ? `Join new room (${roomCode}) as "${name}"`
+        : `Join new room (${roomCode})`;
+      const secondaryLabel = nameChanged
+        ? `Re-join old room (${lastRoom}) as "${savedName}"`
+        : `Re-join old room (${lastRoom})`;
       const choice = await new Promise(resolve => {
         showOverlayChoice(
-          `You're already in room ${lastRoom}.`,
-          `Join new room (${roomCode})`,
+          message,
+          primaryLabel,
           () => resolve("new"),
-          `Re-join old room (${lastRoom})`,
+          secondaryLabel,
           () => resolve("old")
         );
       });
@@ -1161,12 +1172,21 @@ async function createRoom(options = {}) {
     const lastRoom = getLastRoomCode();
     const savedLast = lastRoom ? getSaved(lastRoom) : null;
     if (lastRoom && savedLast?.playerId) {
+      const savedName = normalizeName(savedLast.name || "");
+      const nameChanged = !!(savedName && name && savedName !== name);
+      const message = nameChanged
+        ? `You're already in room ${lastRoom} as ${savedName}.`
+        : `You're already in room ${lastRoom}.`;
+      const primaryLabel = nameChanged ? "Create new room" : "Create new room";
+      const secondaryLabel = nameChanged
+        ? `Re-join old room (${lastRoom}) as "${savedName}"`
+        : `Re-join old room (${lastRoom})`;
       const choice = await new Promise(resolve => {
         showOverlayChoice(
-          `You're already in room ${lastRoom}.`,
-          "Create new room",
+          message,
+          primaryLabel,
           () => resolve("new"),
-          `Re-join old room (${lastRoom})`,
+          secondaryLabel,
           () => resolve("old")
         );
       });
