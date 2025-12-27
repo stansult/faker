@@ -32,6 +32,10 @@ function uniqPreserve(arr) {
   return out;
 }
 
+function isAllowedWord(word) {
+  return /^[a-z'-]+$/.test(String(word || ""));
+}
+
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -63,14 +67,20 @@ export async function handler(event) {
   if (!wordsRaw) return json(400, { error: "words must be an array" });
 
   // normalize + drop empties + remove dupes within this submission
-  const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean));
-  if (submitted.length === 0) return json(400, { error: "Provide at least 1 word" });
-
   connectLambda(event);
   const store = getStore("faker-rooms");
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
+
+  const invalid = [];
+  const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
+    if (!isAllowedWord(word)) {
+      invalid.push(word);
+      return false;
+    }
+    return true;
+  });
 
   // Once game started, no more word submissions
   if (room.locked || (room.game && room.game.gameId)) {
@@ -82,6 +92,22 @@ export async function handler(event) {
   if (!me) return json(404, { error: "Player not found in room" });
 
   const required = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
+
+  if (submitted.length === 0) {
+    if (invalid.length > 0) {
+      return json(200, {
+        ok: true,
+        accepted: [],
+        duplicates: invalid.map(word => ({ word, reason: "invalid_format" })),
+        yourTotal: me.words.length,
+        required,
+        remaining: Math.max(0, required - me.words.length),
+        wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
+        note: "No valid words"
+      });
+    }
+    return json(400, { error: "Provide at least 1 word" });
+  }
 
   me.words = Array.isArray(me.words) ? me.words : [];
   // Normalize stored words too (defensive)
@@ -134,7 +160,7 @@ export async function handler(event) {
   const mySet = new Set(me.words);
 
   const accepted = [];
-  const duplicates = [];
+  const duplicates = invalid.map(word => ({ word, reason: "invalid_format" }));
 
   let slotsLeft = required - me.words.length;
 

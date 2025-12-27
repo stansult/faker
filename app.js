@@ -106,6 +106,10 @@ function normalizeName(raw) {
     .replace(/\s+/g, " ");
 }
 
+function isAllowedWord(word) {
+  return /^[a-z'-]+$/.test(String(word || ""));
+}
+
 const copiedTimers = {};
 
 function flashCopied(id, durationMs = 2500) {
@@ -1436,6 +1440,10 @@ async function submitWords() {
   if (!words.length) {
     return log({ error: "Enter a word" }, "submitWords");
   }
+  if (!isAllowedWord(words[0])) {
+    setSubmitWordsError("One word only - letters, hyphens, apostrophes.");
+    return;
+  }
 
   setSubmitWordsError("");
 
@@ -1457,6 +1465,7 @@ async function submitWords() {
     setAcceptedWords(roomCode, merged);
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
+        invalid_format: "invalid format",
         already_yours: "already submitted",
         already_in_pool: "already used by another player"
       };
@@ -1486,12 +1495,21 @@ async function submitWordsBulk() {
     return log({ error: "Enter at least one word" }, "submitWordsBulk");
   }
 
-  setSubmitWordsError("");
+  const invalid = words.filter(w => !isAllowedWord(w));
+  const valid = words.filter(w => isAllowedWord(w));
+  if (invalid.length) {
+    setSubmitWordsError(`Not accepted: ${invalid.join(", ")} (invalid format).`);
+  } else {
+    setSubmitWordsError("");
+  }
+  if (!valid.length) {
+    return;
+  }
 
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
-    words
+    words: valid
   });
   log({ status, ...data }, "submitWordsBulk");
 
@@ -1506,6 +1524,7 @@ async function submitWordsBulk() {
     setAcceptedWords(roomCode, merged);
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
+        invalid_format: "invalid format",
         already_yours: "already submitted",
         already_in_pool: "already used by another player"
       };
