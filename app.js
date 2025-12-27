@@ -74,6 +74,31 @@ async function postJSON(path, bodyObj) {
   return { status: res.status, data };
 }
 
+function normalizeWord(raw) {
+  return String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+/* ===== view helpers ===== */
+
+const views = ["viewLanding", "viewLobby", "viewGame"];
+
+function setView(activeId) {
+  for (const id of views) {
+    const el = $(id);
+    if (!el) continue;
+    if (id === activeId) el.classList.add("active");
+    else el.classList.remove("active");
+  }
+}
+
+function setText(id, text) {
+  const el = $(id);
+  if (el) el.textContent = text || "";
+}
+
 /* ===== room code ===== */
 
 function getRoomCode() {
@@ -83,9 +108,10 @@ function getRoomCode() {
 }
 
 function setRoomCode(code) {
+  const value = String(code || "").trim().toUpperCase();
   const el = $("roomCode");
-  if (!el) return;
-  el.value = String(code || "").trim().toUpperCase();
+  if (el) el.value = value;
+  setText("roomCodeDisplay", value);
 }
 
 /* ===== localStorage identity ===== */
@@ -119,11 +145,10 @@ function clearSaved(roomCode) {
 }
 
 function renderLocal(roomCode) {
-  const el = $("localPlayer");
-  if (!el) return;
-
   const saved = getSaved(roomCode);
-  el.textContent = saved ? JSON.stringify(saved) : "(none)";
+
+  const localEl = $("localPlayer");
+  if (localEl) localEl.textContent = saved ? JSON.stringify(saved) : "(none)";
 
   const roomInput = $("roomCode");
   if (roomInput) {
@@ -168,21 +193,74 @@ function ensureLocalIdentity(roomCode) {
 /* ===== room status + lobby rendering ===== */
 
 let lastRoomStatus = null;
+let lastGameState = null;
+let roleState = { role: null, secretWord: null, gameId: null };
+let pollTimer = null;
+let pollInFlight = false;
+let nameTouched = false;
+let joinInFlight = null;
 
-async function roomStatus(label = "roomStatus") {
+async function roomStatus(label = "roomStatus", opts = {}) {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, label);
+  if (!roomCode) {
+    if (!opts.silent) log({ error: "Enter room code first" }, label);
+    return null;
+  }
 
   const { status, data } = await postJSON("/.netlify/functions/roomStatus", { roomCode });
-  log({ status, ...data }, label);
+  if (!opts.silent) log({ status, ...data }, label);
 
   if (status === 200) renderRoomStatus(data);
+  return { status, data };
+}
+
+async function fetchGameState(opts = {}) {
+  const roomCode = getRoomCode();
+  if (!roomCode) return null;
+
+  const saved = getSaved(roomCode);
+  const payload = { roomCode };
+  if (saved?.playerId) payload.playerId = saved.playerId;
+
+  const { status, data } = await postJSON("/.netlify/functions/gameState", payload);
+  if (!opts.silent) log({ status, ...data }, opts.label || "gameState");
+
+  if (status === 200) {
+    lastGameState = data;
+    renderGameState(data);
+  }
+  return { status, data };
+}
+
+async function fetchRole(opts = {}) {
+  const roomCode = getRoomCode();
+  if (!roomCode) return null;
+
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return null;
+
+  const { status, data } = await postJSON("/.netlify/functions/getRole", {
+    roomCode,
+    playerId: saved.playerId
+  });
+  if (!opts.silent) log({ status, ...data }, "getRole");
+
+  if (status === 200) {
+    roleState = {
+      role: data.role || null,
+      secretWord: data.secretWord || null,
+      gameId: lastRoomStatus?.game?.gameId || null
+    };
+    updateGameUI();
+  }
+  return { status, data };
 }
 
 function applyRoomStatus(status) {
   lastRoomStatus = status || null;
 
   const btnStart = $("btnStartGame");
+  const btnStartShort = $("btnStartShortGame");
   if (!btnStart) return;
 
   const roomCode = getRoomCode();
@@ -202,22 +280,20 @@ function applyRoomStatus(status) {
 
   btnStart.disabled = !canStart;
 
-  const btnStartShort = $("btnStartShortGame");
   if (btnStartShort) {
     btnStartShort.disabled = !canStartShort;
+    btnStartShort.classList.toggle("hidden", !isHost || allJoined);
   }
 
-  // Title: explain the most relevant blocking reason.
-  if (canStart) {
-    btnStart.title = "Start game";
-    return;
-  }
+  const statusEl = $("lobbyStatus");
+  if (!statusEl) return;
+
   if (gameStarted) {
-    btnStart.title = "Game already started";
+    statusEl.textContent = "Game already started.";
     return;
   }
   if (locked) {
-    btnStart.title = "Room is locked";
+    statusEl.textContent = "Room is locked.";
     return;
   }
   if (!allJoined) {
@@ -225,72 +301,44 @@ function applyRoomStatus(status) {
     const currentPlayers =
       status?.currentPlayers ??
       (Array.isArray(status?.players) ? status.players.length : "?");
-    btnStart.title = `Waiting for players (${currentPlayers}/${maxPlayers})`;
-    if (btnStartShort) {
-      if (!isHost) {
-        btnStartShort.title = "Only host can start short";
-      } else if (!allJoinedReady) {
-        btnStartShort.title = "Waiting for joined players to submit words";
-      } else {
-        btnStartShort.title = "Start with current players";
-      }
+    if (allJoinedReady) {
+      statusEl.textContent = `All joined players are ready. Waiting for more (${currentPlayers}/${maxPlayers}).`;
+    } else {
+      statusEl.textContent = `Waiting for players (${currentPlayers}/${maxPlayers}).`;
     }
     return;
   }
   if (!allReady) {
-    btnStart.title = "Waiting for words from players";
-    if (btnStartShort) {
-      if (!isHost) {
-        btnStartShort.title = "Only host can start short";
-      } else if (!allJoinedReady) {
-        btnStartShort.title = "Waiting for joined players to submit words";
-      } else {
-        btnStartShort.title = "Start with current players";
-      }
-    }
+    statusEl.textContent = "Waiting for words from players.";
     return;
   }
 
-  btnStart.title = "Start is available when all players are ready";
-  if (btnStartShort) btnStartShort.title = "Start with current players";
-}
-
-function esc(s) {
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+  statusEl.textContent = "Everyone is ready. Start the game.";
 }
 
 function renderRoomStatus(rs) {
-  const el = $("playersList");
-  if (!el) return;
+  lastRoomStatus = rs;
+
+  setRoomCode(rs.roomCode || "");
 
   const players = Array.isArray(rs.players) ? rs.players : [];
   const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
   const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
   const rounds = Number.isInteger(rs.rounds) ? rs.rounds : null;
 
-  let html = "";
+  const metaParts = [];
+  metaParts.push(`Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}`);
+  if (wordsRequired) metaParts.push(`Words each: ${wordsRequired}`);
+  if (rounds) metaParts.push(`Rounds: ${rounds}`);
+  setText("roomMeta", metaParts.join(" • "));
 
-  html += `<div class="small">Room: <span class="mono">${esc(rs.roomCode || "")}</span></div>`;
-  html += `<div class="small">Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}${wordsRequired ? " • Words each: " + wordsRequired : ""}${rounds ? " • Rounds: " + rounds : ""}</div>`;
-  html += `<div class="small">Ready: ${players.filter(p => p.ready).length} / ${players.length}</div>`;
-
-  html += `<table class="ptable" style="margin-top:8px;">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Name</th>
-        <th>Words</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${players
-        .map(
-          p => `
+  const el = $("playersList");
+  if (el) {
+    const rows = players
+      .slice()
+      .sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0))
+      .map(
+        p => `
         <tr>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
@@ -298,20 +346,188 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
       `
-        )
-        .join("")}
-    </tbody>
-  </table>`;
+      )
+      .join("");
 
-  el.innerHTML = html;
+    el.innerHTML = `
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Words</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
 
+  updateWordsProgress(rs);
   applyRoomStatus(rs);
+  updateViewState(rs);
+
+  if (rs.game?.gameId) {
+    if (roleState.gameId !== rs.game.gameId) {
+      roleState = { role: null, secretWord: null, gameId: rs.game.gameId };
+      updateGameUI();
+      fetchRole({ silent: true });
+    }
+    fetchGameState({ silent: true });
+  }
+}
+
+function updateWordsProgress(rs) {
+  const saved = getSaved(rs.roomCode || getRoomCode());
+  const me = saved?.playerId
+    ? (rs.players || []).find(p => p.playerId === saved.playerId)
+    : null;
+
+  const required = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
+  const submitted = Number.isInteger(me?.wordsSubmitted) ? me.wordsSubmitted : 0;
+  const remaining = required != null ? Math.max(0, required - submitted) : null;
+
+  const progress = $("wordsProgress");
+  if (!progress) return;
+
+  if (required == null) {
+    progress.textContent = "";
+    return;
+  }
+
+  if (remaining === 0) {
+    progress.textContent = `All ${required} words submitted.`;
+  } else {
+    progress.textContent = `Submitted ${submitted}/${required} words. ${remaining} to go.`;
+  }
+
+  const input = $("wordInput");
+  const btn = $("btnSubmitWords");
+  if (input) input.disabled = remaining === 0;
+  if (btn) btn.disabled = remaining === 0;
+}
+
+function updateViewState(rs) {
+  const roomCode = rs?.roomCode || getRoomCode();
+  const saved = roomCode ? getSaved(roomCode) : null;
+
+  if (!saved?.playerId) {
+    setView("viewLanding");
+    return;
+  }
+
+  if (rs?.game?.gameId) {
+    setView("viewGame");
+  } else {
+    setView("viewLobby");
+  }
+}
+
+function renderGameState(gs) {
+  lastGameState = gs;
+
+  const moves = Array.isArray(gs?.game?.lastMoves) ? gs.game.lastMoves : [];
+  const list = $("movesList");
+  if (list) {
+    if (!moves.length) {
+      list.textContent = "No moves yet.";
+    } else {
+      list.innerHTML = `
+        <table class="status-table">
+          <thead>
+            <tr>
+              <th>Round</th>
+              <th>#</th>
+              <th>Word</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${moves
+              .map(
+                m => `
+              <tr>
+                <td>${m.round}</td>
+                <td class="mono">${m.playerNumber}</td>
+                <td>${esc(m.word || "")}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  updateGameUI();
+}
+
+function updateGameUI() {
+  const roleEl = $("roleLabel");
+  const secretEl = $("secretWord");
+  const turnEl = $("turnStatus");
+  const moveHint = $("moveHint");
+  const input = $("moveWord");
+  const btn = $("btnSubmitMove");
+
+  const saved = getSaved(getRoomCode());
+  const playerNumber = saved?.playerNumber ?? null;
+
+  const role = roleState.role;
+  const secret = roleState.secretWord;
+
+  if (roleEl) {
+    if (!role) roleEl.textContent = "Waiting for role...";
+    else if (role === "faker") roleEl.textContent = "You are the faker";
+    else roleEl.textContent = "You are legit";
+  }
+
+  if (secretEl) {
+    if (!role) secretEl.textContent = "";
+    else if (role === "faker") secretEl.textContent = "You do not know the word.";
+    else secretEl.textContent = secret || "";
+  }
+
+  const game = lastGameState?.game || lastRoomStatus?.game || null;
+  const ended = !!game?.endedAt;
+  const nextPlayerNumber = game?.nextPlayerNumber ?? null;
+
+  let statusText = "";
+  if (!game?.gameId) {
+    statusText = "Game has not started.";
+  } else if (ended) {
+    const winner = game?.winner ? `Winner: ${game.winner}.` : "";
+    statusText = `Game ended. ${winner}`.trim();
+  } else if (!role) {
+    statusText = "Fetching your role...";
+  } else if (nextPlayerNumber == null || playerNumber == null) {
+    statusText = "Waiting for turn order...";
+  } else if (nextPlayerNumber === playerNumber) {
+    statusText = "Your turn to play.";
+  } else {
+    statusText = `Waiting for player #${nextPlayerNumber}.`;
+  }
+
+  if (turnEl) turnEl.textContent = statusText;
+
+  const canMove =
+    !!role &&
+    !ended &&
+    nextPlayerNumber != null &&
+    playerNumber != null &&
+    nextPlayerNumber === playerNumber;
+
+  if (input) input.disabled = !canMove;
+  if (btn) btn.disabled = !canMove;
+  if (moveHint) {
+    moveHint.textContent = canMove
+      ? ""
+      : "Moves unlock once your role is known and it is your turn.";
+  }
 }
 
 /* ===== actions ===== */
-
-let joinInFlight = null;
-let nameTouched = false;
 
 function setNameError(show) {
   const el = $("nameError");
@@ -348,13 +564,13 @@ async function joinRoom() {
 
   joinInFlight = (async () => {
     try {
-      // log({ note: "joinRoom started" }, "joinRoom");
       const saved = ensureLocalIdentity(roomCode);
 
       // If already joined on this browser profile, reuse (do not update name)
       if (saved.playerId && saved.playerNumber) {
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
+        startPolling();
         return;
       }
 
@@ -380,11 +596,11 @@ async function joinRoom() {
         });
 
         await roomStatus("roomStatus (after join)");
+        startPolling();
       }
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
     } finally {
-      // log({ note: "joinRoom finished" }, "joinRoom");
       joinInFlight = null;
     }
   })();
@@ -433,6 +649,7 @@ async function createRoom() {
         await joinRoom();
       } else {
         await roomStatus("roomStatus (after create)");
+        startPolling();
       }
       break;
     }
@@ -442,7 +659,7 @@ async function createRoom() {
     log(
       {
         note:
-          "Room code was created, but roomStatus did not become readable yet. Try Join room now, or click Room status again in a moment.",
+          "Room code was created, but roomStatus did not become readable yet. Try Join room now, or refresh status shortly.",
         roomCode: data.roomCode
       },
       "createRoom (visibility)"
@@ -450,9 +667,15 @@ async function createRoom() {
   }
 }
 
-function wordsFromTextarea() {
+function getWordSubmission() {
+  const input = $("wordInput");
+  if (input) {
+    const word = normalizeWord(input.value);
+    return word ? [word] : [];
+  }
+
   const raw = String($("words")?.value || "");
-  return raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return raw.split(/\r?\n/).map(s => normalizeWord(s)).filter(Boolean);
 }
 
 async function submitWords() {
@@ -462,7 +685,11 @@ async function submitWords() {
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWords");
 
-  const words = wordsFromTextarea();
+  const words = getWordSubmission();
+  if (!words.length) {
+    return log({ error: "Enter a word" }, "submitWords");
+  }
+
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
@@ -470,7 +697,11 @@ async function submitWords() {
   });
   log({ status, ...data }, "submitWords");
 
-  if (status === 200) await roomStatus("roomStatus (after submitWords)");
+  if (status === 200) {
+    const input = $("wordInput");
+    if (input && data.accepted?.length) input.value = "";
+    await roomStatus("roomStatus (after submitWords)");
+  }
 }
 
 async function startGame() {
@@ -525,21 +756,6 @@ async function startShortGame() {
   await roomStatus("roomStatus (after startShortGame)");
 }
 
-async function getRole() {
-  const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "getRole");
-
-  const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "getRole");
-
-  const { status, data } = await postJSON("/.netlify/functions/getRole", {
-    roomCode,
-    playerId: saved.playerId
-  });
-
-  log({ status, ...data }, "getRole");
-}
-
 async function submitMove() {
   const roomCode = getRoomCode();
   if (!roomCode) return log({ error: "Enter room code first" }, "submitMove");
@@ -547,7 +763,16 @@ async function submitMove() {
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined" }, "submitMove");
 
-  const word = String($("moveWord")?.value || "").trim();
+  const raw = String($("moveWord")?.value || "");
+  const word = normalizeWord(raw);
+  if (!word) return log({ error: "Enter a word" }, "submitMove");
+
+  if (roleState.role === "player" && roleState.secretWord) {
+    const secret = normalizeWord(roleState.secretWord);
+    if (word === secret) {
+      return log({ error: "You cannot use the secret word" }, "submitMove");
+    }
+  }
 
   const { status, data } = await postJSON("/.netlify/functions/submitMove", {
     roomCode,
@@ -561,7 +786,63 @@ async function submitMove() {
   await roomStatus("roomStatus (after submitMove)");
 }
 
+function leaveRoom() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+
+  const ok = confirm("You won't be able to rejoin! Leave now?");
+  if (!ok) return;
+
+  clearSaved(roomCode);
+  setRoomCode("");
+  roleState = { role: null, secretWord: null, gameId: null };
+  lastRoomStatus = null;
+  lastGameState = null;
+  stopPolling();
+
+  setView("viewLanding");
+}
+
+/* ===== polling ===== */
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(pollTick, 4000);
+  pollTick();
+}
+
+function stopPolling() {
+  if (!pollTimer) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+async function pollTick() {
+  if (pollInFlight) return;
+  const roomCode = getRoomCode();
+  const saved = getSaved(roomCode);
+  if (!roomCode || !saved?.playerId) return;
+
+  pollInFlight = true;
+  try {
+    await roomStatus("roomStatus (poll)", { silent: true });
+    if (lastRoomStatus?.game?.gameId) {
+      await fetchGameState({ silent: true, label: "gameState (poll)" });
+    }
+  } finally {
+    pollInFlight = false;
+  }
+}
+
 /* ===== wire UI ===== */
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
 
 function wireUI() {
   const params = new URLSearchParams(window.location.search);
@@ -571,23 +852,22 @@ function wireUI() {
 
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
-  $("btnClearLocal")?.addEventListener("click", () => clearSaved(getRoomCode()));
+  $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
   $("btnStartGame")?.addEventListener("click", startGame);
   $("btnStartShortGame")?.addEventListener("click", startShortGame);
-  $("btnGetRole")?.addEventListener("click", getRole);
+  $("btnGetRole")?.addEventListener("click", () => fetchRole());
   $("btnSubmitMove")?.addEventListener("click", submitMove);
-  $("playerName")?.addEventListener("input", () => {
-    nameTouched = true;
-    updateNameError();
-  });
-
-  // IMPORTANT: don’t pass the click event into roomStatus(label)
   $("btnRoomStatus")?.addEventListener("click", () => roomStatus());
-
+  $("btnClearLocal")?.addEventListener("click", () => clearSaved(getRoomCode()));
   $("btnClearOutput")?.addEventListener("click", () => {
     const out = $("output");
     if (out) out.textContent = "";
+  });
+
+  $("playerName")?.addEventListener("input", () => {
+    nameTouched = true;
+    updateNameError();
   });
 
   $("roomCode")?.addEventListener("click", async e => {
@@ -603,8 +883,18 @@ function wireUI() {
     }
   });
 
+  $("btnCopyRoomCode")?.addEventListener("click", async () => {
+    const value = String($("roomCodeDisplay")?.textContent || "").trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
+  });
+
   renderLocal(getRoomCode());
-  applyRoomStatus(null);
+  setView("viewLanding");
 }
 
 wireUI();
