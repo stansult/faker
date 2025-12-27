@@ -667,13 +667,14 @@ async function createRoom() {
   }
 }
 
-function getWordSubmission() {
+function getSingleWordSubmission() {
   const input = $("wordInput");
-  if (input) {
-    const word = normalizeWord(input.value);
-    return word ? [word] : [];
-  }
+  if (!input) return [];
+  const word = normalizeWord(input.value);
+  return word ? [word] : [];
+}
 
+function getBulkWordSubmission() {
   const raw = String($("words")?.value || "");
   return raw.split(/\r?\n/).map(s => normalizeWord(s)).filter(Boolean);
 }
@@ -685,7 +686,7 @@ async function submitWords() {
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWords");
 
-  const words = getWordSubmission();
+  const words = getSingleWordSubmission();
   if (!words.length) {
     return log({ error: "Enter a word" }, "submitWords");
   }
@@ -701,6 +702,32 @@ async function submitWords() {
     const input = $("wordInput");
     if (input && data.accepted?.length) input.value = "";
     await roomStatus("roomStatus (after submitWords)");
+  }
+}
+
+async function submitWordsBulk() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return log({ error: "Enter room code first" }, "submitWordsBulk");
+
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWordsBulk");
+
+  const words = getBulkWordSubmission();
+  if (!words.length) {
+    return log({ error: "Enter at least one word" }, "submitWordsBulk");
+  }
+
+  const { status, data } = await postJSON("/.netlify/functions/submitWords", {
+    roomCode,
+    playerId: saved.playerId,
+    words
+  });
+  log({ status, ...data }, "submitWordsBulk");
+
+  if (status === 200) {
+    const input = $("words");
+    if (input && data.accepted?.length) input.value = "";
+    await roomStatus("roomStatus (after submitWordsBulk)");
   }
 }
 
@@ -854,6 +881,7 @@ function wireUI() {
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
+  $("btnSubmitWordsBulk")?.addEventListener("click", submitWordsBulk);
   $("btnStartGame")?.addEventListener("click", startGame);
   $("btnStartShortGame")?.addEventListener("click", startShortGame);
   $("btnGetRole")?.addEventListener("click", () => fetchRole());
