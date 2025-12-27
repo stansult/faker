@@ -799,6 +799,7 @@ function updateGameUI() {
   const playerLabel = $("playerLabel");
   const secretEl = $("secretWord");
   const turnEl = $("turnStatus");
+  const moveInstruction = $("moveInstruction");
   const moveHint = $("moveHint");
   const input = $("moveWord");
   const btn = $("btnSubmitMove");
@@ -828,6 +829,18 @@ function updateGameUI() {
     if (!role) secretEl.textContent = "";
     else if (role === "faker") secretEl.textContent = "You do not know the word.";
     else secretEl.textContent = secret || "(waiting for secret word)";
+  }
+
+  if (moveInstruction) {
+    if (role === "faker") {
+      moveInstruction.textContent =
+        "Blend in. Use a word that could fit the secret.";
+    } else if (role === "player") {
+      moveInstruction.textContent =
+        "Use a word close to the secret so legit players recognize you. Don't be too close, or the faker guesses!";
+    } else {
+      moveInstruction.textContent = "One word only.";
+    }
   }
 
   const game = lastGameState?.game || lastRoomStatus?.game || null;
