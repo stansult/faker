@@ -850,19 +850,6 @@ function wireUI() {
     document.body.classList.add("debug");
   }
 
-  document.addEventListener("keydown", e => {
-    const key = String(e.key || "").toLowerCase();
-    const isToggle =
-      key === "d" &&
-      ((e.ctrlKey && e.altKey) ||
-        (e.metaKey && e.altKey) ||
-        (e.ctrlKey && e.shiftKey) ||
-        (e.metaKey && e.shiftKey));
-    if (!isToggle) return;
-    e.preventDefault();
-    document.body.classList.toggle("debug");
-  });
-
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
@@ -876,6 +863,12 @@ function wireUI() {
   $("btnClearOutput")?.addEventListener("click", () => {
     const out = $("output");
     if (out) out.textContent = "";
+  });
+
+  $("debugToggle")?.addEventListener("click", e => {
+    if (e && e.metaKey && e.altKey) {
+      document.body.classList.toggle("debug");
+    }
   });
 
   $("playerName")?.addEventListener("input", () => {
