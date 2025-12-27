@@ -576,8 +576,6 @@ async function joinRoom() {
   const roomCode = getRoomCode();
   const name = String($("playerName")?.value || "").trim();
 
-  if (!roomCode) return log({ error: "Enter room code first" }, "joinRoom");
-
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
     return;
@@ -591,7 +589,16 @@ async function joinRoom() {
     return;
   }
 
-  updateLandingMode("join");
+  if (landingMode !== "join") {
+    updateLandingMode("join");
+    $("roomCode")?.focus();
+    return;
+  }
+
+  if (!roomCode) {
+    $("roomCode")?.focus();
+    return;
+  }
 
   joinInFlight = (async () => {
     try {
@@ -647,7 +654,10 @@ async function createRoom() {
     return;
   }
 
-  updateLandingMode("create");
+  if (landingMode !== "create") {
+    updateLandingMode("create");
+    return;
+  }
 
   const playerCount = Number($("playerCount")?.value);
   const rounds = Number($("rounds")?.value);
