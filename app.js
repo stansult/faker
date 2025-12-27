@@ -854,7 +854,10 @@ function wireUI() {
     const key = String(e.key || "").toLowerCase();
     const isToggle =
       key === "d" &&
-      ((e.ctrlKey && e.altKey) || (e.metaKey && e.altKey));
+      ((e.ctrlKey && e.altKey) ||
+        (e.metaKey && e.altKey) ||
+        (e.ctrlKey && e.shiftKey) ||
+        (e.metaKey && e.shiftKey));
     if (!isToggle) return;
     e.preventDefault();
     document.body.classList.toggle("debug");
