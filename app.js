@@ -1016,15 +1016,12 @@ async function joinRoom(options = {}) {
     if (lastRoom && lastRoom !== roomCode && savedLast?.playerId) {
       const savedName = normalizeName(savedLast.name || "");
       const nameChanged = !!(savedName && name && savedName !== name);
-      const message = nameChanged
-        ? `You're already in room ${lastRoom} as ${savedName}.`
-        : `You're already in room ${lastRoom}.`;
-      const primaryLabel = nameChanged
-        ? `Join new room (${roomCode}) as "${name}"`
-        : `Join new room (${roomCode})`;
-      const secondaryLabel = nameChanged
-        ? `Re-join old room (${lastRoom}) as "${savedName}"`
-        : `Re-join old room (${lastRoom})`;
+      const baseMessage = `You're already in room ${lastRoom}`;
+      const message = nameChanged ? `${baseMessage} as ${savedName}.` : `${baseMessage}.`;
+      const basePrimary = `Join new room (${roomCode})`;
+      const primaryLabel = nameChanged ? `${basePrimary} as "${name}"` : basePrimary;
+      const baseSecondary = `Re-join old room (${lastRoom})`;
+      const secondaryLabel = nameChanged ? `${baseSecondary} as "${savedName}"` : baseSecondary;
       const choice = await new Promise(resolve => {
         showOverlayChoice(
           message,
@@ -1174,13 +1171,11 @@ async function createRoom(options = {}) {
     if (lastRoom && savedLast?.playerId) {
       const savedName = normalizeName(savedLast.name || "");
       const nameChanged = !!(savedName && name && savedName !== name);
-      const message = nameChanged
-        ? `You're already in room ${lastRoom} as ${savedName}.`
-        : `You're already in room ${lastRoom}.`;
-      const primaryLabel = nameChanged ? "Create new room" : "Create new room";
-      const secondaryLabel = nameChanged
-        ? `Re-join old room (${lastRoom}) as "${savedName}"`
-        : `Re-join old room (${lastRoom})`;
+      const baseMessage = `You're already in room ${lastRoom}`;
+      const message = nameChanged ? `${baseMessage} as "${savedName}".` : `${baseMessage}.`;
+      const primaryLabel = "Create new room";
+      const baseSecondary = `Re-join old room (${lastRoom})`;
+      const secondaryLabel = nameChanged ? `${baseSecondary} as "${savedName}"` : baseSecondary;
       const choice = await new Promise(resolve => {
         showOverlayChoice(
           message,
