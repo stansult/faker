@@ -478,7 +478,8 @@ function updateViewState(rs) {
 function renderGameState(gs) {
   lastGameState = gs;
 
-  const moves = Array.isArray(gs?.game?.lastMoves) ? gs.game.lastMoves : [];
+  const movesRaw = Array.isArray(gs?.game?.lastMoves) ? gs.game.lastMoves : [];
+  const moves = movesRaw.slice().reverse();
   const list = $("movesList");
   if (list) {
     if (!moves.length) {
