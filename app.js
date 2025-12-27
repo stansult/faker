@@ -850,7 +850,7 @@ function leaveRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
 
-  const ok = confirm("You won't be able to rejoin! Leave now?");
+  const ok = confirm("Leave room? You won't be able to rejoin.");
   if (!ok) return;
 
   clearSaved(roomCode);
