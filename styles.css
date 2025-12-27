@@ -267,6 +267,11 @@ button.pill:focus-visible {
   color: #b00020;
 }
 
+.word-used {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
 
 .room-header {
   justify-content: space-between;

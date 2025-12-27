@@ -112,7 +112,8 @@ export async function handler(event) {
           turnIndex: room.game.turnIndex ?? 0,
           endedAt: room.game.endedAt || null,
           winner: room.game.winner || null,
-          endReason: room.game.endReason || null
+          endReason: room.game.endReason || null,
+          revealedWord: room.game.endedAt ? room.game.secretWord || null : null
         }
       : null;
 

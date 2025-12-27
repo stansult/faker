@@ -109,6 +109,7 @@ export async function handler(event) {
       endedAt: game.endedAt || null,
       winner: game.winner || null,
       endReason: game.endReason || null,
+      revealedWord: game.endedAt ? game.secretWord || null : null,
 
       movesThisRound,
       lastMoves,

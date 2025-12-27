@@ -271,6 +271,48 @@ function setSubmitWordsError(message = "") {
   el.style.display = message ? "block" : "none";
 }
 
+function getRevealedWord() {
+  return (
+    lastGameState?.game?.revealedWord ||
+    lastRoomStatus?.game?.revealedWord ||
+    null
+  );
+}
+
+function showGameOverOverlay(game) {
+  if (!game?.endedAt || !game?.gameId) return;
+  const key = `${game.gameId}:${game.endedAt}`;
+  if (key === lastGameOverKey) return;
+  lastGameOverKey = key;
+
+  const winner = String(game.winner || "");
+  const endReason = String(game.endReason || "");
+  const revealed = getRevealedWord();
+
+  let message = "Game over.";
+  if (winner === "faker" && endReason === "faker_said_secret_word_on_turn") {
+    const word = revealed ? `\nHe guessed the word: ${revealed}` : "";
+    message = `Faker won!${word}`;
+  } else if (endReason.startsWith("voting_")) {
+    message = winner === "legits"
+      ? "Votes are in — Legit players won!"
+      : "Votes are in — Faker won!";
+  } else if (winner === "faker") {
+    message = "Faker won!";
+  } else if (winner === "legits") {
+    message = "Legit players won!";
+  }
+
+  showOverlayChoice(
+    message,
+    "OK",
+    () => hideOverlay(),
+    "Close",
+    () => hideOverlay(),
+    () => hideOverlay()
+  );
+}
+
 function setMoveError(message = "") {
   const el = $("moveError");
   if (!el) return;
@@ -286,7 +328,14 @@ function renderAcceptedWords(roomCode) {
     el.textContent = "";
     return;
   }
-  el.textContent = `Submitted words: ${words.join(", ")}`;
+  const revealed = String(getRevealedWord() || "");
+  const rendered = words.map(word => {
+    if (revealed && normalizeWord(word) === normalizeWord(revealed)) {
+      return `<span class="word-used">${esc(word)}</span>`;
+    }
+    return esc(word);
+  });
+  el.innerHTML = `Submitted words: ${rendered.join(", ")}`;
 }
 
 function makeClientId(length = 16) {
@@ -327,6 +376,7 @@ let createState = { roomCode: null, retries: 0 };
 let createAbort = false;
 let overlayMode = "progress";
 let overlayDismiss = null;
+let lastGameOverKey = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -571,6 +621,10 @@ function renderRoomStatus(rs) {
     }
     fetchGameState({ silent: true });
   }
+
+  if (rs.game?.endedAt) {
+    showGameOverOverlay(rs.game);
+  }
 }
 
 function updateWordsProgress(rs) {
@@ -635,6 +689,7 @@ function renderGameState(gs) {
   renderVoteTable();
 
   updateGameUI();
+  if (gs?.game?.endedAt) showGameOverOverlay(gs.game);
 }
 
 function renderRoundsTable() {
