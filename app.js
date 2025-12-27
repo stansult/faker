@@ -134,6 +134,23 @@ function roomKey(roomCode) {
   return `faker:${String(roomCode || "").toUpperCase()}`;
 }
 
+function lastRoomKey() {
+  return "faker:lastRoom";
+}
+
+function getLastRoomCode() {
+  return String(localStorage.getItem(lastRoomKey()) || "").trim().toUpperCase() || null;
+}
+
+function setLastRoomCode(roomCode) {
+  if (!roomCode) return;
+  localStorage.setItem(lastRoomKey(), String(roomCode).trim().toUpperCase());
+}
+
+function clearLastRoomCode() {
+  localStorage.removeItem(lastRoomKey());
+}
+
 function getSaved(roomCode) {
   if (!roomCode) return null;
   const raw = localStorage.getItem(roomKey(roomCode));
@@ -181,6 +198,7 @@ function renderLocal(roomCode) {
   }
 
   updateNameError();
+  updateRejoinButton();
 }
 
 function makeClientId(length = 16) {
@@ -567,6 +585,15 @@ function updateNameError() {
   if (btnJoin) btnJoin.disabled = !canUse;
 }
 
+function updateRejoinButton() {
+  const btn = $("btnRejoinRoom");
+  if (!btn) return;
+  const lastRoom = getLastRoomCode();
+  const saved = lastRoom ? getSaved(lastRoom) : null;
+  const canRejoin = !!(saved && saved.playerId && saved.playerNumber && saved.name);
+  btn.classList.toggle("hidden", !canRejoin);
+}
+
 function updateLandingMode(nextMode = null) {
   if (nextMode !== null) landingMode = nextMode;
   if (nextMode === null) landingMode = null;
@@ -577,15 +604,18 @@ function updateLandingMode(nextMode = null) {
   const btnCreate = $("btnCreateRoom");
   const btnJoin = $("btnJoinRoom");
   const btnBack = $("btnBackLanding");
+  const btnRejoin = $("btnRejoinRoom");
   const createPanel = $("createSettings");
   const joinPanel = $("joinRoomCode");
 
   if (btnCreate) btnCreate.classList.toggle("hidden", isJoin);
   if (btnJoin) btnJoin.classList.toggle("hidden", isCreate);
   if (btnBack) btnBack.classList.toggle("hidden", !landingMode);
+  if (btnRejoin) btnRejoin.classList.toggle("hidden", !!landingMode);
 
   if (createPanel) createPanel.classList.toggle("hidden", !isCreate);
   if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
+  updateRejoinButton();
 }
 
 async function joinRoom(options = {}) {
@@ -595,14 +625,6 @@ async function joinRoom(options = {}) {
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
-    return;
-  }
-
-  if (!name) {
-    nameTouched = true;
-    updateNameError();
-    $("playerName")?.focus();
-    log({ error: "Name is required" }, "joinRoom");
     return;
   }
 
@@ -629,9 +651,18 @@ async function joinRoom(options = {}) {
 
       // If already joined on this browser profile, reuse (do not update name)
       if (saved.playerId && saved.playerNumber) {
+        setLastRoomCode(roomCode);
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
         startPolling();
+        return;
+      }
+
+      if (!name) {
+        nameTouched = true;
+        updateNameError();
+        $("playerName")?.focus();
+        log({ error: "Name is required" }, "joinRoom");
         return;
       }
 
@@ -655,6 +686,7 @@ async function joinRoom(options = {}) {
           playerNumber: data.playerNumber,
           name: data.name || name || saved.name || null
         });
+        setLastRoomCode(roomCode);
 
         await roomStatus("roomStatus (after join)");
         startPolling();
@@ -887,6 +919,7 @@ function leaveRoom() {
   if (!ok) return;
 
   clearSaved(roomCode);
+  clearLastRoomCode();
   setRoomCode("");
   roleState = { role: null, secretWord: null, gameId: null };
   lastRoomStatus = null;
@@ -945,6 +978,15 @@ function wireUI() {
 
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
+  $("btnRejoinRoom")?.addEventListener("click", async () => {
+    const lastRoom = getLastRoomCode();
+    const saved = lastRoom ? getSaved(lastRoom) : null;
+    if (!lastRoom || !saved) return;
+    setRoomCode(lastRoom);
+    const nameInput = $("playerName");
+    if (nameInput && saved.name) nameInput.value = saved.name;
+    await joinRoom({ skipLandingGate: true });
+  });
   $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
@@ -1002,6 +1044,7 @@ function wireUI() {
   setView("viewLanding");
   updateLandingMode(null);
   updateNameError();
+  updateRejoinButton();
   if (document.body.classList.contains("debug")) {
     renderLogBuffer();
   }
