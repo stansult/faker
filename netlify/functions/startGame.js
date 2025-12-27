@@ -18,6 +18,14 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+const RETRY_START_DELAY_MS = 150;
+const RETRY_MAX_DELAY_MS = 700;
+const RETRY_BACKOFF = 1.25;
+const RETRY_MAX_ATTEMPTS = 12;
+const VERIFY_MAX_ATTEMPTS = 12;
+const VERIFY_SLEEP_MIN_MS = 120;
+const VERIFY_SLEEP_JITTER_MS = 120;
+
 function makeId(length = 12) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
@@ -83,9 +91,9 @@ export async function handler(event) {
 
   // Only this endpoint starts the game.
   // Small retry loop because room visibility can lag (eventual consistency).
-  let delay = 150;
+  let delay = RETRY_START_DELAY_MS;
 
-  for (let attempt = 1; attempt <= 12; attempt++) {
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
     const room = await store.get(roomCode, { type: "json" });
     if (!room) return json(404, { error: "Room not found" });
 
@@ -180,13 +188,13 @@ export async function handler(event) {
 
     // Verify visibility (eventual consistency)
     let verified = false;
-    for (let v = 0; v < 12; v++) {
+    for (let v = 0; v < VERIFY_MAX_ATTEMPTS; v++) {
       const verify = await store.get(roomCode, { type: "json" });
       if (verify?.game?.gameId) {
         verified = true;
         break;
       }
-      await sleep(120 + Math.floor(Math.random() * 120));
+      await sleep(VERIFY_SLEEP_MIN_MS + Math.floor(Math.random() * VERIFY_SLEEP_JITTER_MS));
     }
 
     if (verified) {
@@ -194,7 +202,7 @@ export async function handler(event) {
     }
 
     await sleep(delay + Math.floor(Math.random() * 100));
-    delay = Math.min(700, Math.floor(delay * 1.25));
+    delay = Math.min(RETRY_MAX_DELAY_MS, Math.floor(delay * RETRY_BACKOFF));
   }
 
   return json(503, { error: "Game start not visible yet, please retry" });

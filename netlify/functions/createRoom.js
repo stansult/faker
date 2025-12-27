@@ -13,7 +13,15 @@ function json(statusCode, bodyObj) {
   };
 }
 
-function makeRoomCode(length = 6) {
+const ROOM_CODE_LENGTH = 6;
+const MIN_PLAYERS = 3;
+const MAX_PLAYERS = 20;
+const MIN_ROUNDS = 1;
+const MAX_ROUNDS = 20;
+const MIN_WORDS_PER_PLAYER = 1;
+const MAX_WORDS_PER_PLAYER = 20;
+
+function makeRoomCode(length = ROOM_CODE_LENGTH) {
   const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
   let out = "";
   const bytes = new Uint8Array(length);
@@ -64,23 +72,37 @@ export async function handler(event) {
       ? 4 // default if omitted
       : Number(wordsPerPlayerRaw);
 
-  if (!Number.isInteger(playerCount) || playerCount < 3 || playerCount > 20) {
-    return json(400, { error: "playerCount must be an integer between 3 and 20" });
+  if (
+    !Number.isInteger(playerCount) ||
+    playerCount < MIN_PLAYERS ||
+    playerCount > MAX_PLAYERS
+  ) {
+    return json(400, {
+      error: `playerCount must be an integer between ${MIN_PLAYERS} and ${MAX_PLAYERS}`
+    });
   }
-  if (!Number.isInteger(rounds) || rounds < 1 || rounds > 20) {
-    return json(400, { error: "rounds must be an integer between 1 and 20" });
+  if (!Number.isInteger(rounds) || rounds < MIN_ROUNDS || rounds > MAX_ROUNDS) {
+    return json(400, {
+      error: `rounds must be an integer between ${MIN_ROUNDS} and ${MAX_ROUNDS}`
+    });
   }
 
   // NEW validation:
-  if (!Number.isInteger(wordsPerPlayer) || wordsPerPlayer < 1 || wordsPerPlayer > 20) {
-    return json(400, { error: "wordsPerPlayer must be an integer between 1 and 20" });
+  if (
+    !Number.isInteger(wordsPerPlayer) ||
+    wordsPerPlayer < MIN_WORDS_PER_PLAYER ||
+    wordsPerPlayer > MAX_WORDS_PER_PLAYER
+  ) {
+    return json(400, {
+      error: `wordsPerPlayer must be an integer between ${MIN_WORDS_PER_PLAYER} and ${MAX_WORDS_PER_PLAYER}`
+    });
   }
 
   connectLambda(event);
   const store = getStore("faker-rooms");
 
   for (let attempt = 0; attempt < 5; attempt++) {
-    const roomCode = makeRoomCode(6);
+    const roomCode = makeRoomCode(ROOM_CODE_LENGTH);
     const existing = await store.get(roomCode);
     if (existing) continue;
 

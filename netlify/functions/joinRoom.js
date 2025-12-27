@@ -13,7 +13,17 @@ function json(statusCode, obj) {
   };
 }
 
-function makeId(length = 16) {
+const PLAYER_ID_LENGTH = 16;
+const ROOM_READ_RETRY_START_DELAY_MS = 120;
+const ROOM_READ_RETRY_JITTER_MS = 80;
+const ROOM_READ_RETRY_MAX_DELAY_MS = 650;
+const ROOM_READ_RETRY_BACKOFF = 1.25;
+const ROOM_READ_RETRY_MAX_ATTEMPTS = 30;
+const VISIBILITY_VERIFY_MAX_ATTEMPTS = 12;
+const VISIBILITY_VERIFY_SLEEP_MIN_MS = 120;
+const VISIBILITY_VERIFY_SLEEP_JITTER_MS = 120;
+
+function makeId(length = PLAYER_ID_LENGTH) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -67,14 +77,14 @@ export async function handler(event) {
 
   // Read with retry (eventual consistency)
   let room = null;
-  let delay = 120;
+  let delay = ROOM_READ_RETRY_START_DELAY_MS;
 
-  for (let attempt = 1; attempt <= 30; attempt++) {
+  for (let attempt = 1; attempt <= ROOM_READ_RETRY_MAX_ATTEMPTS; attempt++) {
     room = await store.get(roomCode, { type: "json" });
     if (room) break;
 
-    await sleep(delay + Math.floor(Math.random() * 80));
-    delay = Math.min(650, Math.floor(delay * 1.25));
+    await sleep(delay + Math.floor(Math.random() * ROOM_READ_RETRY_JITTER_MS));
+    delay = Math.min(ROOM_READ_RETRY_MAX_DELAY_MS, Math.floor(delay * ROOM_READ_RETRY_BACKOFF));
   }
 
   if (!room) return json(404, { error: "Room not found" });
@@ -115,7 +125,7 @@ export async function handler(event) {
 
   if (!requestedName) return json(400, { error: "name is required" });
 
-  const playerId = requestedPlayerId || makeId(16);
+  const playerId = requestedPlayerId || makeId(PLAYER_ID_LENGTH);
   const playerNumber = room.players.length + 1;
   const now = new Date().toISOString();
 
@@ -134,12 +144,15 @@ export async function handler(event) {
 
   // Verify our player is actually present (defends against stale reads / lost updates)
   let vMe = null;
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < VISIBILITY_VERIFY_MAX_ATTEMPTS; i++) {
     const verify = await store.get(roomCode, { type: "json" });
     const vPlayers = Array.isArray(verify?.players) ? verify.players : [];
     vMe = vPlayers.find(p => p.playerId === playerId);
     if (vMe) break;
-    await sleep(120 + Math.floor(Math.random() * 120));
+    await sleep(
+      VISIBILITY_VERIFY_SLEEP_MIN_MS +
+        Math.floor(Math.random() * VISIBILITY_VERIFY_SLEEP_JITTER_MS)
+    );
   }
   
   if (!vMe) {

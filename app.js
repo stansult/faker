@@ -329,6 +329,7 @@ let overlayMode = "progress";
 let overlayDismiss = null;
 
 const CREATE_TIMEOUT_MS = 12000;
+const POST_ACTION_DELAY_MS = 200;
 
 function persistLogs() {
   try {
@@ -1352,7 +1353,7 @@ async function createRoom(options = {}) {
       if (createAbort) return false;
       const res = await postJSON("/.netlify/functions/roomStatus", { roomCode });
       if (res.status === 200) return true;
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
     }
     return false;
   };
@@ -1562,7 +1563,7 @@ async function startGame() {
   });
   log({ status, ...data }, "startGame");
 
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after startGame)");
 }
 
@@ -1605,7 +1606,7 @@ async function startShortGame() {
   });
   log({ status, ...data }, "startShortGame");
 
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after startShortGame)");
 }
 
@@ -1647,7 +1648,7 @@ async function submitMove() {
     setMoveError("");
   }
 
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after submitMove)");
 }
 

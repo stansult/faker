@@ -18,7 +18,17 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
-function makeId(length = 12) {
+const MOVE_ID_LENGTH = 12;
+const MAX_WORD_LENGTH = 40;
+const RETRY_START_DELAY_MS = 150;
+const RETRY_MAX_DELAY_MS = 700;
+const RETRY_BACKOFF = 1.25;
+const RETRY_MAX_ATTEMPTS = 12;
+const VERIFY_MAX_ATTEMPTS = 12;
+const VERIFY_SLEEP_MIN_MS = 120;
+const VERIFY_SLEEP_JITTER_MS = 120;
+
+function makeId(length = MOVE_ID_LENGTH) {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -70,17 +80,19 @@ export async function handler(event) {
   if (!isAllowedWord(word)) {
     return json(400, { error: "One word only - letters, hyphens, apostrophes." });
   }
-  if (word.length > 40) return json(400, { error: "Word too long (max 40 chars)" });
+  if (word.length > MAX_WORD_LENGTH) {
+    return json(400, { error: `Word too long (max ${MAX_WORD_LENGTH} chars)` });
+  }
 
   connectLambda(event);
   const store = getStore("faker-rooms");
 
-  const moveId = makeId(12);
+  const moveId = makeId(MOVE_ID_LENGTH);
 
   // Merge-safe update with verification (helps with eventual consistency / concurrent writes)
-  let delay = 150;
+  let delay = RETRY_START_DELAY_MS;
 
-  for (let attempt = 1; attempt <= 12; attempt++) {
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
     const room = await store.get(roomCode, { type: "json" });
     if (!room) return json(404, { error: "Room not found" });
 
@@ -177,14 +189,14 @@ export async function handler(event) {
 
       // Verify the move made it in
       let verified = false;
-      for (let v = 0; v < 12; v++) {
+      for (let v = 0; v < VERIFY_MAX_ATTEMPTS; v++) {
         const verify = await store.get(roomCode, { type: "json" });
         const vMoves = Array.isArray(verify?.game?.moves) ? verify.game.moves : [];
         if (vMoves.some(m => m.moveId === moveId)) {
           verified = true;
           break;
         }
-        await sleep(120 + Math.floor(Math.random() * 120));
+        await sleep(VERIFY_SLEEP_MIN_MS + Math.floor(Math.random() * VERIFY_SLEEP_JITTER_MS));
       }
 
       if (verified) {
@@ -197,8 +209,8 @@ export async function handler(event) {
         });
       }
 
-      await sleep(delay + Math.floor(Math.random() * 120));
-      delay = Math.min(700, Math.floor(delay * 1.25));
+      await sleep(delay + Math.floor(Math.random() * VERIFY_SLEEP_JITTER_MS));
+      delay = Math.min(RETRY_MAX_DELAY_MS, Math.floor(delay * RETRY_BACKOFF));
       continue;
     }
 
@@ -230,7 +242,7 @@ export async function handler(event) {
     let nextPlayerNumber = players[nextTurnIndex]?.playerNumber ?? null;
     let round = game.round;
 
-    for (let v = 0; v < 12; v++) {
+    for (let v = 0; v < VERIFY_MAX_ATTEMPTS; v++) {
       const verify = await store.get(roomCode, { type: "json" });
       const vGame = verify?.game;
       const vMoves = Array.isArray(vGame?.moves) ? vGame.moves : [];
@@ -247,7 +259,7 @@ export async function handler(event) {
 
         break;
       }
-      await sleep(120 + Math.floor(Math.random() * 120));
+      await sleep(VERIFY_SLEEP_MIN_MS + Math.floor(Math.random() * VERIFY_SLEEP_JITTER_MS));
     }
 
     if (verified) {
@@ -261,8 +273,8 @@ export async function handler(event) {
       });
     }
 
-    await sleep(delay + Math.floor(Math.random() * 120));
-    delay = Math.min(700, Math.floor(delay * 1.25));
+    await sleep(delay + Math.floor(Math.random() * VERIFY_SLEEP_JITTER_MS));
+    delay = Math.min(RETRY_MAX_DELAY_MS, Math.floor(delay * RETRY_BACKOFF));
   }
 
   return json(503, { error: "Move not visible yet, please retry" });
