@@ -573,9 +573,10 @@ function updateLandingMode(nextMode = null) {
   if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
 }
 
-async function joinRoom() {
+async function joinRoom(options = {}) {
   const roomCode = getRoomCode();
   const name = String($("playerName")?.value || "").trim();
+  const skipLandingGate = !!options.skipLandingGate;
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
@@ -590,7 +591,7 @@ async function joinRoom() {
     return;
   }
 
-  if (landingMode !== "join") {
+  if (!skipLandingGate && landingMode !== "join") {
     updateLandingMode("join");
     $("roomCode")?.focus();
     return;
@@ -690,7 +691,7 @@ async function createRoom() {
 
       // Auto-join the creator once the room key exists
       if (!getSaved(data.roomCode)?.playerId) {
-        await joinRoom();
+        await joinRoom({ skipLandingGate: true });
       } else {
         await roomStatus("roomStatus (after create)");
         startPolling();
