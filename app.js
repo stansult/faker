@@ -137,6 +137,8 @@ function setView(activeId) {
     if (id === activeId) el.classList.add("active");
     else el.classList.remove("active");
   }
+  const subheading = $("subheading");
+  if (subheading) subheading.classList.toggle("hidden", activeId !== "viewLanding");
 }
 
 function setText(id, text) {
