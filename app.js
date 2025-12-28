@@ -640,6 +640,10 @@ function renderRoomStatus(rs) {
   updateWordsProgress(rs);
   applyRoomStatus(rs);
 
+  if (rs.game?.gameId && lastGameState?.game?.gameId && lastGameState.game.gameId !== rs.game.gameId) {
+    lastGameState = null;
+  }
+
   if (rs.game?.gameId && roleState.gameId !== rs.game.gameId) {
     roleState = { role: null, secretWord: null, gameId: rs.game.gameId };
     updateGameUI();
@@ -706,10 +710,16 @@ function updateViewState(rs) {
     return;
   }
 
-  const ended = !!(lastGameState?.game?.endedAt || rs?.game?.endedAt);
+  const currentGameId = rs?.game?.gameId || null;
+  const ended = !!(
+    rs?.game?.endedAt ||
+    (currentGameId &&
+      lastGameState?.game?.gameId === currentGameId &&
+      lastGameState?.game?.endedAt)
+  );
 
-  if (rs?.game?.gameId && !ended) {
-    setActiveGameSession(rs.game.gameId);
+  if (currentGameId && !ended) {
+    setActiveGameSession(currentGameId);
     setView("viewGame");
   } else {
     setView("viewLobby");
