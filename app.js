@@ -315,6 +315,40 @@ async function updateMyWords(words) {
   await roomStatus("roomStatus (after updateWords)", { silent: true });
 }
 
+async function markWordsDone() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return;
+
+  const ok = await new Promise(resolve => {
+    showOverlayChoice(
+      "Are you ready to lock your words?\nYou can’t change them later, even for typos.",
+      "Done!",
+      () => resolve(true),
+      "Check again",
+      () => resolve(false),
+      () => resolve(false),
+      null
+    );
+  });
+  hideOverlay();
+  if (!ok) return;
+
+  const { status, data } = await postJSON("/.netlify/functions/markWordsDone", {
+    roomCode,
+    playerId: saved.playerId
+  });
+  log({ status, ...data }, "markWordsDone");
+  if (status !== 200) {
+    const message = data?.error ? String(data.error) : `Done failed (${status})`;
+    setSubmitWordsError(message);
+    return;
+  }
+
+  await roomStatus("roomStatus (after markWordsDone)", { silent: true });
+}
+
 function showGameOverOverlay(game) {
   if (!game?.endedAt || !game?.gameId) return;
   if (!hasActiveGameSession) return;
@@ -485,8 +519,9 @@ function renderEditableWords(roomCode) {
   const words = getAcceptedWords(roomCode);
   const gameActive = !!(lastRoomStatus?.game?.gameId && !lastRoomStatus?.game?.endedAt);
   const gamesPlayed = Number.isInteger(lastRoomStatus?.gamesPlayed) ? lastRoomStatus.gamesPlayed : 0;
+  const meDone = !!(lastRoomStatus?.players || []).find(p => p.playerId === getSaved(roomCode)?.playerId)?.doneWords;
 
-  if (gameActive || gamesPlayed > 0 || !words.length) {
+  if (gameActive || gamesPlayed > 0 || meDone || !words.length) {
     container.textContent = "";
     return;
   }
@@ -860,6 +895,11 @@ function updateWordsProgress(rs) {
   const required = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
   const submitted = Number.isInteger(me?.wordsSubmitted) ? me.wordsSubmitted : 0;
   const remaining = required != null ? Math.max(0, required - submitted) : null;
+  const doneWords = !!me?.doneWords;
+  const gameActive = !!(rs?.game?.gameId && !rs?.game?.endedAt);
+  const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
+  const gameActive = !!(rs?.game?.gameId && !rs?.game?.endedAt);
+  const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
 
   const progress = $("wordsProgress");
   if (!progress) return;
@@ -877,11 +917,14 @@ function updateWordsProgress(rs) {
 
   const input = $("wordInput");
   const btn = $("btnSubmitWords");
-  if (input) input.disabled = remaining === 0;
-  if (btn) btn.disabled = remaining === 0;
+  if (input) input.disabled = remaining === 0 || doneWords;
+  if (btn) btn.disabled = remaining === 0 || doneWords;
+
+  const doneBtn = $("btnDoneWords");
+  if (doneBtn) doneBtn.classList.toggle("hidden", doneWords || remaining !== 0);
 
   const panel = $("submitWordsPanel");
-  if (panel) panel.classList.toggle("hidden", remaining === 0);
+  if (panel) panel.classList.toggle("hidden", gameActive || gamesPlayed > 0 || doneWords);
   renderAcceptedWords(rs.roomCode || getRoomCode());
   renderEditableWords(rs.roomCode || getRoomCode());
   if (remaining === 0) setSubmitWordsError("");
@@ -2394,6 +2437,7 @@ function wireUI() {
   $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
+  $("btnDoneWords")?.addEventListener("click", markWordsDone);
   $("btnSubmitWordsBulk")?.addEventListener("click", submitWordsBulk);
   $("btnStartGame")?.addEventListener("click", startGame);
   $("btnStartShortGame")?.addEventListener("click", startShortGame);

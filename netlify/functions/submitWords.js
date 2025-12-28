@@ -95,6 +95,10 @@ export async function handler(event) {
   const me = players.find(p => p.playerId === playerId);
   if (!me) return json(404, { error: "Player not found in room" });
 
+  if (me.doneWords) {
+    return json(409, { error: "Words are locked" });
+  }
+
   const required = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
 
   if (submitted.length === 0) {

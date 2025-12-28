@@ -72,6 +72,7 @@ export async function handler(event) {
     .sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0))
     .map(p => {
       const wordsSubmitted = Array.isArray(p.words) ? p.words.length : 0;
+      const doneWords = !!p.doneWords;
       return {
         playerId: p.playerId,
         playerNumber: p.playerNumber,
@@ -79,7 +80,8 @@ export async function handler(event) {
         score: Number.isInteger(p.score) ? p.score : 0,
         wordsSubmitted,
         wordsRequired,
-        ready: wordsSubmitted >= wordsRequired
+        doneWords,
+        ready: doneWords && wordsSubmitted >= wordsRequired
       };
     });
 

@@ -139,6 +139,7 @@ export async function handler(event) {
     name: requestedName, // <-- name stored here
     joinedAt: now,
     words: [],
+    doneWords: false,
     score: 0
   });
 

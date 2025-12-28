@@ -137,7 +137,7 @@ export async function handler(event) {
       const ws = Array.isArray(p.words) ? p.words : [];
       const normalized = ws.map(normalizeWord).filter(Boolean);
       const unique = uniqPreserve(normalized);
-      if (unique.length < required) missing.push(p.playerNumber);
+      if (!p.doneWords || unique.length < required) missing.push(p.playerNumber);
     }
 
     if (missing.length) {
