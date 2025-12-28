@@ -852,12 +852,18 @@ function renderVoteTable() {
       const isSelf = myId && p.playerId === myId;
       const checked = myVote && myVote === p.playerId;
       const disabled = !votePhase.active || isSelf;
+      const spacer = `<span class="vote-spacer" aria-hidden="true"></span>`;
+      const checkbox = isSelf
+        ? spacer
+        : `<input type="checkbox" class="vote-choice" data-target="${p.playerId}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />`;
+      const targetClass = disabled && !isSelf ? "vote-target disabled" : "vote-target";
+      const rowClass = isSelf ? "vote-row-self" : "";
 
       return `
-        <tr>
+        <tr class="${rowClass}">
           <td class="vote-player">
-            ${isSelf ? "" : `<input type="checkbox" class="vote-choice" data-target="${p.playerId}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />`}
-            <span class="vote-target ${disabled ? "disabled" : ""}" data-target="${p.playerId}">
+            ${checkbox}
+            <span class="${targetClass}" data-target="${p.playerId}">
               ${p.playerNumber}. ${esc(p.name || "")}
             </span>
           </td>

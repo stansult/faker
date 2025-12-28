@@ -185,6 +185,11 @@
   opacity: 0.5;
 }
 
+.vote-row-self .vote-target {
+  cursor: default;
+  opacity: 1;
+}
+
 .vote-player {
   display: flex;
   align-items: center;
@@ -193,6 +198,12 @@
 
 .vote-player input[type="checkbox"] {
   margin: 0;
+}
+
+.vote-spacer {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
 }
 
       .grid {
@@ -448,6 +459,10 @@ button.pill:focus-visible {
 .pill.timer.urgent {
   background: #ffe5e1;
   border-color: #f0b9ae;
+  color: #b00020;
+}
+
+#voteChangeHint {
   color: #b00020;
 }
 
