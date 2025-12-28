@@ -913,6 +913,11 @@ function updateGameUI() {
     const alreadyTriggered = myId ? triggers.includes(myId) : false;
     triggerBtn.disabled = !!votePhase?.active || !!ended || alreadyTriggered;
     triggerBtn.classList.toggle("pressed", alreadyTriggered);
+    if (role === "faker") {
+      triggerBtn.textContent = "I'm ready to accuse";
+    } else {
+      triggerBtn.textContent = "I know who's faker!";
+    }
   }
 
   const voteReadyHint = $("voteReadyHint");
