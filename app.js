@@ -912,6 +912,7 @@ function updateGameUI() {
     const triggers = Array.isArray(votePhase?.triggers) ? votePhase.triggers : [];
     const alreadyTriggered = myId ? triggers.includes(myId) : false;
     triggerBtn.disabled = !!votePhase?.active || !!ended || alreadyTriggered;
+    triggerBtn.classList.toggle("pressed", alreadyTriggered);
   }
 
   updateVoteTimer(votePhase);
@@ -1761,7 +1762,17 @@ async function triggerVote() {
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return;
 
-  const ok = confirm("Are you sure? You can't take that back.");
+  const ok = await new Promise(resolve => {
+    showOverlayChoice(
+      "Are you ready to vote early?\nOnce enough players are ready, voting will start",
+      "I'm ready!",
+      () => resolve(true),
+      "No",
+      () => resolve(false),
+      () => resolve(false)
+    );
+  });
+  hideOverlay();
   if (!ok) return;
 
   const { status, data } = await postJSON("/.netlify/functions/triggerVote", {
