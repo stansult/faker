@@ -959,7 +959,7 @@ function updateGameUI() {
   if (btn) btn.disabled = !canMove;
   if (moveHeader) {
     if (canMove) {
-      moveHeader.textContent = "Your move";
+      moveHeader.textContent = "Your move!";
     } else if (nextPlayerNumber != null) {
       const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
       const next = players.find(p => p.playerNumber === nextPlayerNumber);
