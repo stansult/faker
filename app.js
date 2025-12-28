@@ -818,6 +818,7 @@ function updateGameUI() {
   const playerLabel = $("playerLabel");
   const secretEl = $("secretWord");
   const turnEl = $("turnStatus");
+  const moveHeader = $("moveHeader");
   const moveInstruction = $("moveInstruction");
   const moveHint = $("moveHint");
   const input = $("moveWord");
@@ -867,23 +868,10 @@ function updateGameUI() {
   const nextPlayerNumber = game?.nextPlayerNumber ?? null;
   const votePhase = game?.votePhase || null;
 
-  let statusText = "";
-  if (!game?.gameId) {
-    statusText = "Game has not started.";
-  } else if (ended) {
-    const winner = game?.winner ? `Winner: ${game.winner}.` : "";
-    statusText = `Game ended. ${winner}`.trim();
-  } else if (!role) {
-    statusText = "Fetching your role...";
-  } else if (nextPlayerNumber == null || playerNumber == null) {
-    statusText = "Waiting for turn order...";
-  } else if (nextPlayerNumber === playerNumber) {
-    statusText = "Your turn to play.";
-  } else {
-    statusText = `Waiting for player #${nextPlayerNumber}.`;
+  if (turnEl) {
+    turnEl.textContent = "";
+    turnEl.style.display = "none";
   }
-
-  if (turnEl) turnEl.textContent = statusText;
 
   const voteActive = !!votePhase?.active;
 
@@ -897,6 +885,18 @@ function updateGameUI() {
 
   if (input) input.disabled = !canMove;
   if (btn) btn.disabled = !canMove;
+  if (moveHeader) {
+    if (canMove) {
+      moveHeader.textContent = "Your move";
+    } else if (nextPlayerNumber != null) {
+      const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
+      const next = players.find(p => p.playerNumber === nextPlayerNumber);
+      const name = next?.name ? ` ${next.name}` : "";
+      moveHeader.textContent = `Waiting for player #${nextPlayerNumber}${name}`;
+    } else {
+      moveHeader.textContent = "Your move";
+    }
+  }
   if (moveHint) {
     moveHint.textContent = canMove
       ? ""
