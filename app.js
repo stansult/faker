@@ -1282,6 +1282,17 @@ function cancelCreate() {
   createState = { roomCode: null, retries: 0 };
 }
 
+async function waitForVoteTrigger(roomCode, playerId, timeoutMs = 4000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await fetchGameState({ silent: true });
+    const triggers = lastGameState?.game?.votePhase?.triggers || [];
+    if (triggers.includes(playerId)) return true;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return false;
+}
+
 async function joinRoom(options = {}) {
   const roomCode = getRoomCode();
   const name = normalizeName($("playerName")?.value || "");
@@ -1889,7 +1900,7 @@ async function triggerVote() {
       playerId: saved.playerId
     });
     log({ status, ...data }, "triggerVote");
-    await fetchGameState({ silent: true });
+    await waitForVoteTrigger(roomCode, saved.playerId);
   } finally {
     voteTriggerInFlight = false;
     hideOverlay();
