@@ -654,6 +654,7 @@ function updateViewState(rs) {
   }
 
   updateLandingMode(null);
+  applyRoleTheme();
 }
 
 function renderGameState(gs) {
@@ -794,6 +795,24 @@ function renderVoteTable() {
   `;
 }
 
+function applyRoleTheme() {
+  const body = document.body;
+  if (!body) return;
+  body.classList.remove("role-neutral", "role-legit", "role-faker");
+
+  const game = lastGameState?.game || lastRoomStatus?.game || null;
+  const active = !!game?.gameId && !game?.endedAt;
+
+  let theme = "role-neutral";
+  if (active && roleState.role === "faker") {
+    theme = "role-faker";
+  } else if (active && roleState.role === "player") {
+    theme = "role-legit";
+  }
+
+  body.classList.add(theme);
+}
+
 function updateGameUI() {
   const roleEl = $("roleLabel");
   const playerLabel = $("playerLabel");
@@ -932,6 +951,7 @@ function updateGameUI() {
   }
 
   updateVoteTimer(votePhase);
+  applyRoleTheme();
 }
 
 function formatSeconds(totalSeconds) {

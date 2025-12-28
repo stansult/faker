@@ -10,6 +10,20 @@
         --panel: #ffffff;
         --line: #eadfce;
         --shadow: 0 18px 50px rgba(28, 23, 16, 0.12);
+        --btn-bg-top: #fff3df;
+        --btn-bg-bottom: #f2dfc2;
+        --btn-border: #cbb89f;
+        --btn-color: #6b4a19;
+        --btn-secondary-bg-top: #e8f5f2;
+        --btn-secondary-bg-bottom: #d7ece7;
+        --btn-secondary-border: #b8d5cd;
+        --btn-secondary-color: #1d5c4e;
+        --btn-ghost-bg: #ffffff;
+        --btn-ghost-border: #ddd1bd;
+        --btn-ghost-color: #6d6357;
+        --pill-bg: #f1efe9;
+        --pill-border: #e2d6c3;
+        --pill-color: #6a5b49;
       }
 
       * {
@@ -24,6 +38,52 @@
           radial-gradient(circle at 85% 15%, #e9f2ef 0%, transparent 40%),
           linear-gradient(135deg, #f7f1e7, #f3e9d7 55%, #f5f4f0 100%);
         min-height: 100vh;
+      }
+
+      body.role-neutral {
+        background: radial-gradient(circle at 15% 10%, #f0ece3 0%, transparent 45%),
+          radial-gradient(circle at 85% 15%, #eef3f1 0%, transparent 40%),
+          linear-gradient(135deg, #f7f5f0, #f1ebe0 55%, #f4f2ee 100%);
+      }
+
+      body.role-legit {
+        --accent-2: #2b8a78;
+        --panel: #ffffff;
+        --line: #d9e6db;
+        --btn-bg-top: #eaf7ef;
+        --btn-bg-bottom: #cfead9;
+        --btn-border: #a8d0ba;
+        --btn-color: #205a3d;
+        --btn-secondary-bg-top: #e7f4f1;
+        --btn-secondary-bg-bottom: #d1ebe6;
+        --btn-secondary-border: #a9d4cc;
+        --btn-secondary-color: #1f5a4b;
+        --pill-bg: #eef7f2;
+        --pill-border: #cfe7db;
+        --pill-color: #2b5a46;
+        background: radial-gradient(circle at 15% 10%, #dff1e4 0%, transparent 45%),
+          radial-gradient(circle at 85% 15%, #e6f3ee 0%, transparent 40%),
+          linear-gradient(135deg, #f3f8f5, #e7f3ec 55%, #f4f7f5 100%);
+      }
+
+      body.role-faker {
+        --accent: #c74b3a;
+        --panel: #ffffff;
+        --line: #efd6d2;
+        --btn-bg-top: #fee9e7;
+        --btn-bg-bottom: #f7c9c3;
+        --btn-border: #e1a3a0;
+        --btn-color: #7a1f1a;
+        --btn-secondary-bg-top: #f9e3e0;
+        --btn-secondary-bg-bottom: #f1c4bd;
+        --btn-secondary-border: #dba5a0;
+        --btn-secondary-color: #7a1f1a;
+        --pill-bg: #f9e4e1;
+        --pill-border: #e8bdb7;
+        --pill-color: #7a1f1a;
+        background: radial-gradient(circle at 15% 10%, #f2d6d2 0%, transparent 45%),
+          radial-gradient(circle at 85% 15%, #f3e2de 0%, transparent 40%),
+          linear-gradient(135deg, #f8f0ee, #f2d9d4 55%, #f7f2f1 100%);
       }
 
       h1,
@@ -168,10 +228,10 @@
 
       button {
         padding: 9px 14px;
-        border: 1px solid #cbb89f;
+        border: 1px solid var(--btn-border);
         border-radius: 12px;
-        background: linear-gradient(180deg, #fff3df, #f2dfc2);
-        color: #6b4a19;
+        background: linear-gradient(180deg, var(--btn-bg-top), var(--btn-bg-bottom));
+        color: var(--btn-color);
         font-weight: 700;
         cursor: pointer;
       }
@@ -183,9 +243,13 @@
       }
 
 button.secondary {
-  background: linear-gradient(180deg, #e8f5f2, #d7ece7);
-  color: #1d5c4e;
-  border-color: #b8d5cd;
+  background: linear-gradient(
+    180deg,
+    var(--btn-secondary-bg-top),
+    var(--btn-secondary-bg-bottom)
+  );
+  color: var(--btn-secondary-color);
+  border-color: var(--btn-secondary-border);
 }
 
 button.secondary.pressed {
@@ -196,9 +260,9 @@ button.secondary.pressed {
 }
 
       button.ghost {
-        background: #fff;
-        border-color: #ddd1bd;
-        color: #6d6357;
+        background: var(--btn-ghost-bg);
+        border-color: var(--btn-ghost-border);
+        color: var(--btn-ghost-color);
       }
 
 button:disabled {
@@ -226,10 +290,10 @@ button:disabled {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #f1efe9;
-  border: 1px solid #e2d6c3;
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   font-size: 12px;
-  color: #6a5b49;
+  color: var(--pill-color);
 }
 
 button.pill {
