@@ -145,11 +145,13 @@
           </section>
 
           <section class="panel">
-            <div class="row" style="margin-top: 8px">
-              <button id="btnTriggerVote" class="secondary">I know who's faker!</button>
-            </div>
-            <div class="mini" id="voteReadyHint" style="margin-top: 6px">
-              Voting will start once enough players are ready.
+            <div id="voteReadyPanel">
+              <div class="row" style="margin-top: 8px">
+                <button id="btnTriggerVote" class="secondary">I know who's faker!</button>
+              </div>
+              <div class="mini" id="voteReadyHint" style="margin-top: 6px">
+                Voting will start once enough players are ready.
+              </div>
             </div>
             <div id="voteDetails" style="margin-top: 12px">
               <div class="row" style="justify-content: space-between; align-items: center">
@@ -160,6 +162,7 @@
                 <div id="voteTimer" class="pill mono timer">0:30</div>
               </div>
               <div id="voteTable" class="players mini" style="margin-top: 12px"></div>
+              <div class="mini" id="voteChangeHint" style="margin-top: 8px"></div>
             </div>
           </section>
         </div>

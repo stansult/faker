@@ -855,16 +855,14 @@ function renderVoteTable() {
 
       return `
         <tr>
-          <td>
+          <td class="vote-player">
             ${isSelf ? "" : `<input type="checkbox" class="vote-choice" data-target="${p.playerId}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />`}
-          </td>
-          <td>
             <span class="vote-target ${disabled ? "disabled" : ""}" data-target="${p.playerId}">
               ${p.playerNumber}. ${esc(p.name || "")}
             </span>
           </td>
-          <td>${votedText}</td>
-          <td>${targetText}</td>
+          <td class="vote-status">${votedText}</td>
+          <td class="vote-target-name">${targetText}</td>
         </tr>
       `;
     })
@@ -874,8 +872,7 @@ function renderVoteTable() {
     <table class="status-table">
       <thead>
         <tr>
-          <th></th>
-          <th>Voter</th>
+          <th>Player</th>
           <th></th>
           <th></th>
         </tr>
@@ -924,6 +921,7 @@ function updateGameUI() {
   const voteStatus = $("voteStatus");
   const voteTimer = $("voteTimer");
   const triggerBtn = $("btnTriggerVote");
+  const voteReadyPanel = $("voteReadyPanel");
 
   const saved = getSaved(getRoomCode());
   const playerNumber = saved?.playerNumber ?? null;
@@ -975,6 +973,7 @@ function updateGameUI() {
   const voteStarted = !!votePhase?.startedAt;
 
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
+  if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
 
   const canMove =
     !!role &&
@@ -1049,6 +1048,15 @@ function updateGameUI() {
     voteReadyHint.textContent = alreadyTriggered
       ? "Voting will start once enough players are ready."
       : "Click if you are ready to vote early!";
+  }
+
+  const voteChangeHint = $("voteChangeHint");
+  if (voteChangeHint) {
+    const saved = getSaved(getRoomCode());
+    const myId = saved?.playerId || null;
+    const myVote = myId ? votePhase?.votes?.[myId] || null : null;
+    voteChangeHint.textContent =
+      voteActive && myVote ? "There's still time to change your mind!" : "";
   }
 
   updateVoteTimer(votePhase);

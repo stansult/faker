@@ -185,6 +185,16 @@
   opacity: 0.5;
 }
 
+.vote-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vote-player input[type="checkbox"] {
+  margin: 0;
+}
+
       .grid {
         display: grid;
         gap: 18px;
@@ -432,6 +442,7 @@ button.pill:focus-visible {
   background: #f7efe3;
   border-color: #e1d3bf;
   font-weight: 700;
+  color: #6a5b49;
 }
 
 .pill.timer.urgent {
