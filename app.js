@@ -280,6 +280,11 @@ function getRevealedWord() {
   );
 }
 
+function getUsedWords() {
+  const used = lastGameState?.game?.usedWords || lastRoomStatus?.usedWords || [];
+  return Array.isArray(used) ? used : [];
+}
+
 function showGameOverOverlay(game) {
   if (!game?.endedAt || !game?.gameId) return;
   if (!hasActiveGameSession) return;
@@ -348,9 +353,9 @@ function renderAcceptedWords(roomCode) {
     el.textContent = "";
     return;
   }
-  const revealed = String(getRevealedWord() || "");
+  const usedSet = new Set(getUsedWords().map(w => normalizeWord(w)));
   const rendered = words.map(word => {
-    if (revealed && normalizeWord(word) === normalizeWord(revealed)) {
+    if (usedSet.size && usedSet.has(normalizeWord(word))) {
       return `<span class="word-used">${esc(word)}</span>`;
     }
     return esc(word);

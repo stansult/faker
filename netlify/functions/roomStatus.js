@@ -125,6 +125,7 @@ export async function handler(event) {
     rounds,
     wordsRequired,
     wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
+    usedWords: Array.isArray(room.usedWords) ? room.usedWords : [],
 
     players: playersView,
 

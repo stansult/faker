@@ -154,7 +154,11 @@ export async function handler(event) {
       const ws = Array.isArray(p.words) ? p.words : [];
       for (const w of ws) allWords.push(normalizeWord(w));
     }
-    room.wordPool = uniqPreserve(allWords.filter(Boolean));
+    const usedWords = Array.isArray(room.usedWords)
+      ? room.usedWords.map(normalizeWord).filter(Boolean)
+      : [];
+    const usedSet = new Set(usedWords);
+    room.wordPool = uniqPreserve(allWords.filter(Boolean)).filter(w => !usedSet.has(w));
 
     if (room.wordPool.length < 2) {
       return json(409, { error: "Word pool too small to start" });
@@ -168,6 +172,10 @@ export async function handler(event) {
     const roundsTotal = Number.isInteger(room.rounds) ? room.rounds : 3;
 
     ensureScores(room.players);
+
+    const updatedUsed = uniqPreserve([...usedWords, secretWord]);
+    room.usedWords = updatedUsed;
+    room.wordPool = room.wordPool.filter(w => w !== secretWord);
 
     room.game = {
       gameId: makeId(16),

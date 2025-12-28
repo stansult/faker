@@ -90,8 +90,13 @@ export async function handler(event) {
     }
   }
 
+  const usedWords = Array.isArray(room.usedWords)
+    ? room.usedWords.map(normalizeWord).filter(Boolean)
+    : [];
+  const usedSet = new Set(usedWords);
+
   room.players = renumbered;
-  room.wordPool = uniqPreserve(allWords);
+  room.wordPool = uniqPreserve(allWords).filter(w => !usedSet.has(w));
   room.updatedAt = new Date().toISOString();
   if (!Number.isInteger(room.playerCount)) {
     room.playerCount = players.length;

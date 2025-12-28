@@ -119,6 +119,7 @@ export async function handler(event) {
 
       players: [],
       wordPool: [],
+      usedWords: [],
 
       game: null
     };
