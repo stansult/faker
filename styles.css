@@ -24,6 +24,9 @@
         --pill-bg: #f1efe9;
         --pill-border: #e2d6c3;
         --pill-color: #6a5b49;
+        --btn-disabled-bg: #f0e6d5;
+        --btn-disabled-border: #d8cbb7;
+        --btn-disabled-color: #8a7a67;
       }
 
       * {
@@ -61,6 +64,9 @@
         --pill-bg: #eef7f2;
         --pill-border: #cfe7db;
         --pill-color: #2b5a46;
+        --btn-disabled-bg: #dfeee6;
+        --btn-disabled-border: #c0d8ca;
+        --btn-disabled-color: #5b7a68;
         background: radial-gradient(circle at 15% 10%, #dff1e4 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #e6f3ee 0%, transparent 40%),
           linear-gradient(135deg, #f3f8f5, #e7f3ec 55%, #f4f7f5 100%);
@@ -81,6 +87,9 @@
         --pill-bg: #f9e4e1;
         --pill-border: #e8bdb7;
         --pill-color: #7a1f1a;
+        --btn-disabled-bg: #f3d9d6;
+        --btn-disabled-border: #e0b8b3;
+        --btn-disabled-color: #8b5a55;
         background: radial-gradient(circle at 15% 10%, #f2d6d2 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #f3e2de 0%, transparent 40%),
           linear-gradient(135deg, #f8f0ee, #f2d9d4 55%, #f7f2f1 100%);
@@ -270,9 +279,9 @@ button:disabled {
   cursor: not-allowed;
   filter: grayscale(35%);
   box-shadow: none;
-  background: #f0e6d5;
-  border-color: #d8cbb7;
-  color: #8a7a67;
+  background: var(--btn-disabled-bg);
+  border-color: var(--btn-disabled-border);
+  color: var(--btn-disabled-color);
 }
 
       .mini {
