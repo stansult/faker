@@ -140,6 +140,8 @@ function setView(activeId) {
   const subheading = $("subheading");
   if (subheading) subheading.classList.toggle("hidden", activeId !== "viewLanding");
   updatePlayerBadge();
+  const gameBadge = $("playerBadgeGame");
+  if (gameBadge) gameBadge.classList.toggle("hidden", activeId === "viewGame");
 }
 
 function setText(id, text) {
