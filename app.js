@@ -2480,12 +2480,6 @@ function wireUI() {
   if (params.get("debug") === "1") {
     document.body.classList.add("debug");
   }
-  const roomParam = params.get("room");
-  if (roomParam) {
-    setRoomCode(roomParam);
-    updateLandingMode("join");
-  }
-
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnRejoinRoom")?.addEventListener("click", async () => {
@@ -2733,6 +2727,11 @@ function wireUI() {
   renderLocal(getRoomCode());
   setView("viewLanding");
   updateLandingMode(null);
+  const roomParam = params.get("room");
+  if (roomParam) {
+    setRoomCode(roomParam);
+    updateLandingMode("join");
+  }
   updateNameError();
   updateRejoinButton();
   initOverlayDismissal();
