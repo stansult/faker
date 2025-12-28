@@ -30,6 +30,10 @@
         --input-disabled-bg: #f7efe3;
         --input-disabled-border: #d8cbb7;
         --input-disabled-color: #8a7a67;
+        --overlay-bg: rgba(248, 241, 231, 0.6);
+        --overlay-card-bg: #fffdfa;
+        --overlay-card-border: #eadfce;
+        --overlay-shadow: 0 18px 40px rgba(27, 22, 15, 0.16);
       }
 
       * {
@@ -73,6 +77,10 @@
         --input-disabled-bg: #e5f2ea;
         --input-disabled-border: #c0d8ca;
         --input-disabled-color: #5b7a68;
+        --overlay-bg: rgba(232, 242, 236, 0.65);
+        --overlay-card-bg: #f7fcf9;
+        --overlay-card-border: #d4e5da;
+        --overlay-shadow: 0 18px 40px rgba(22, 45, 34, 0.16);
         background: radial-gradient(circle at 15% 10%, #dff1e4 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #e6f3ee 0%, transparent 40%),
           linear-gradient(135deg, #f3f8f5, #e7f3ec 55%, #f4f7f5 100%);
@@ -99,6 +107,10 @@
         --input-disabled-bg: #f6e2de;
         --input-disabled-border: #e0b8b3;
         --input-disabled-color: #8b5a55;
+        --overlay-bg: rgba(248, 229, 226, 0.65);
+        --overlay-card-bg: #fff8f7;
+        --overlay-card-border: #efcfc9;
+        --overlay-shadow: 0 18px 40px rgba(56, 23, 19, 0.18);
         background: radial-gradient(circle at 15% 10%, #f2d6d2 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #f3e2de 0%, transparent 40%),
           linear-gradient(135deg, #f8f0ee, #f2d9d4 55%, #f7f2f1 100%);
@@ -519,7 +531,7 @@ button.pill:focus-visible {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(248, 241, 231, 0.6);
+  background: var(--overlay-bg);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -527,12 +539,33 @@ button.pill:focus-visible {
   z-index: 50;
 }
 
+.overlay.role-neutral {
+  --overlay-bg: rgba(248, 241, 231, 0.6);
+  --overlay-card-bg: #fffdfa;
+  --overlay-card-border: #eadfce;
+  --overlay-shadow: 0 18px 40px rgba(27, 22, 15, 0.16);
+}
+
+.overlay.role-legit {
+  --overlay-bg: rgba(232, 242, 236, 0.65);
+  --overlay-card-bg: #f7fcf9;
+  --overlay-card-border: #d4e5da;
+  --overlay-shadow: 0 18px 40px rgba(22, 45, 34, 0.16);
+}
+
+.overlay.role-faker {
+  --overlay-bg: rgba(248, 229, 226, 0.65);
+  --overlay-card-bg: #fff8f7;
+  --overlay-card-border: #efcfc9;
+  --overlay-shadow: 0 18px 40px rgba(56, 23, 19, 0.18);
+}
+
 .overlay-card {
-  background: #fffdfa;
-  border: 1px solid #eadfce;
+  background: var(--overlay-card-bg);
+  border: 1px solid var(--overlay-card-border);
   border-radius: 14px;
   padding: 18px 22px;
-  box-shadow: 0 18px 40px rgba(27, 22, 15, 0.16);
+  box-shadow: var(--overlay-shadow);
   text-align: center;
   min-width: 240px;
 }

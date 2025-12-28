@@ -319,6 +319,7 @@ function showGameOverOverlay(game) {
     message = "Legit players won!";
   }
 
+  setOverlayTheme(role);
   showOverlay(message, "Close", () => hideOverlay(), () => hideOverlay(), false);
   clearActiveGameSession();
 }
@@ -1142,6 +1143,16 @@ function setLandingDisabled(disabled) {
   if (roomInput) roomInput.disabled = disabled;
 }
 
+function setOverlayTheme(role) {
+  const overlay = $("overlay");
+  if (!overlay) return;
+  overlay.classList.remove("role-neutral", "role-legit", "role-faker");
+  let theme = "role-neutral";
+  if (role === "faker") theme = "role-faker";
+  else if (role === "player") theme = "role-legit";
+  overlay.classList.add(theme);
+}
+
 function showOverlay(
   message,
   actionLabel = "",
@@ -1215,7 +1226,10 @@ function showOverlayChoice(
 
 function hideOverlay() {
   const overlay = $("overlay");
-  if (overlay) overlay.classList.add("hidden");
+  if (overlay) {
+    overlay.classList.add("hidden");
+    overlay.classList.remove("role-neutral", "role-legit", "role-faker");
+  }
   const btn = $("overlayAction");
   if (btn) btn.onclick = null;
   const cancel = $("overlayCancel");
