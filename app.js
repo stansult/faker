@@ -843,6 +843,11 @@ function renderVoteTable() {
   `;
 }
 
+function isGameViewActive() {
+  const view = $("viewGame");
+  return !!view && view.classList.contains("active");
+}
+
 function applyRoleTheme() {
   const body = document.body;
   if (!body) return;
@@ -851,11 +856,12 @@ function applyRoleTheme() {
   const game = lastGameState?.game || lastRoomStatus?.game || null;
   const active = !!game?.gameId && !game?.endedAt;
   const roleMatchesGame = !roleState.gameId || roleState.gameId === game?.gameId;
+  const inGameView = isGameViewActive();
 
   let theme = "role-neutral";
-  if (active && roleMatchesGame && roleState.role === "faker") {
+  if (inGameView && active && roleMatchesGame && roleState.role === "faker") {
     theme = "role-faker";
-  } else if (active && roleMatchesGame && roleState.role === "player") {
+  } else if (inGameView && active && roleMatchesGame && roleState.role === "player") {
     theme = "role-legit";
   }
 
