@@ -920,6 +920,7 @@ function updateGameUI() {
   const moveHint = $("moveHint");
   const input = $("moveWord");
   const btn = $("btnSubmitMove");
+  const movePanel = $("movePanel");
   const voteStatus = $("voteStatus");
   const voteTimer = $("voteTimer");
   const triggerBtn = $("btnTriggerVote");
@@ -971,6 +972,9 @@ function updateGameUI() {
   }
 
   const voteActive = !!votePhase?.active;
+  const voteStarted = !!votePhase?.startedAt;
+
+  if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
 
   const canMove =
     !!role &&
