@@ -282,6 +282,7 @@ function getRevealedWord() {
 
 function showGameOverOverlay(game) {
   if (!game?.endedAt || !game?.gameId) return;
+  if (!hasActiveGameSession) return;
   const key = `${game.gameId}:${game.endedAt}`;
   if (key === lastGameOverKey) return;
   lastGameOverKey = key;
@@ -319,6 +320,7 @@ function showGameOverOverlay(game) {
   }
 
   showOverlay(message, "Close", () => hideOverlay(), () => hideOverlay(), false);
+  clearActiveGameSession();
 }
 
 function setMoveError(message = "") {
@@ -386,9 +388,38 @@ let overlayMode = "progress";
 let overlayDismiss = null;
 let lastGameOverKey = null;
 let startInFlight = false;
+let hasActiveGameSession = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
+const ACTIVE_GAME_KEY = "faker:activeGameId";
+
+function restoreActiveGameSession() {
+  try {
+    hasActiveGameSession = !!sessionStorage.getItem(ACTIVE_GAME_KEY);
+  } catch {
+    hasActiveGameSession = false;
+  }
+}
+
+function setActiveGameSession(gameId) {
+  if (!gameId) return;
+  hasActiveGameSession = true;
+  try {
+    sessionStorage.setItem(ACTIVE_GAME_KEY, String(gameId));
+  } catch {
+    // Ignore storage failures
+  }
+}
+
+function clearActiveGameSession() {
+  hasActiveGameSession = false;
+  try {
+    sessionStorage.removeItem(ACTIVE_GAME_KEY);
+  } catch {
+    // Ignore storage failures
+  }
+}
 
 function persistLogs() {
   try {
@@ -656,6 +687,7 @@ function updateViewState(rs) {
   const ended = !!(lastGameState?.game?.endedAt || rs?.game?.endedAt);
 
   if (rs?.game?.gameId && !ended) {
+    setActiveGameSession(rs.game.gameId);
     setView("viewGame");
   } else {
     setView("viewLobby");
@@ -667,6 +699,10 @@ function updateViewState(rs) {
 
 function renderGameState(gs) {
   lastGameState = gs;
+
+  if (gs?.game?.gameId && !gs?.game?.endedAt) {
+    setActiveGameSession(gs.game.gameId);
+  }
 
   renderRoundsTable();
   renderVoteTable();
@@ -1882,6 +1918,8 @@ async function leaveRoom() {
   roleState = { role: null, secretWord: null, gameId: null };
   lastRoomStatus = null;
   lastGameState = null;
+  clearActiveGameSession();
+  lastGameOverKey = null;
   stopPolling();
 
   setView("viewLanding");
@@ -1896,6 +1934,8 @@ async function leaveRoomByCode(roomCode, playerId) {
   log({ status, ...data }, "leaveRoom");
   clearSaved(roomCode);
   clearLastRoomCode();
+  clearActiveGameSession();
+  lastGameOverKey = null;
   stopPolling();
 }
 
@@ -1942,6 +1982,7 @@ function esc(s) {
 
 function wireUI() {
   restoreLogs();
+  restoreActiveGameSession();
   const params = new URLSearchParams(window.location.search);
   if (params.get("debug") === "1") {
     document.body.classList.add("debug");
