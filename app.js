@@ -551,13 +551,13 @@ function applyRoomStatus(status) {
     !allJoined &&
     allJoinedReady &&
     isHost &&
-    currentPlayers > 3;
+    currentPlayers >= 3;
 
   btnStart.disabled = startInFlight || !canStart;
 
   if (btnStartShort) {
     btnStartShort.disabled = startInFlight || !canStartShort;
-    btnStartShort.classList.toggle("hidden", !isHost || allJoined || currentPlayers <= 3);
+    btnStartShort.classList.toggle("hidden", !isHost || allJoined || currentPlayers < 3);
   }
 }
 
