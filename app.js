@@ -139,6 +139,7 @@ function setView(activeId) {
   }
   const subheading = $("subheading");
   if (subheading) subheading.classList.toggle("hidden", activeId !== "viewLanding");
+  updatePlayerBadge();
 }
 
 function setText(id, text) {
@@ -765,6 +766,7 @@ function renderRoomStatus(rs) {
 
   updateWordsProgress(rs);
   applyRoomStatus(rs);
+  updatePlayerBadge();
 
   if (rs.game?.gameId && lastGameState?.game?.gameId && lastGameState.game.gameId !== rs.game.gameId) {
     lastGameState = null;
@@ -1293,6 +1295,23 @@ function updateNameError() {
   const btnJoin = $("btnJoinRoom");
   if (btnCreate && !createInFlight) btnCreate.disabled = !canUse;
   if (btnJoin && !createInFlight) btnJoin.disabled = !canUse;
+}
+
+function updatePlayerBadge() {
+  const roomCode = getRoomCode();
+  const saved = roomCode ? getSaved(roomCode) : null;
+  const name = saved?.name ? String(saved.name) : "";
+  const number = Number.isInteger(saved?.playerNumber) ? saved.playerNumber : null;
+  const text = name
+    ? (number != null ? `Player #${number}: ${name}` : `Player: ${name}`)
+    : "";
+
+  const badges = [$("playerBadge"), $("playerBadgeGame")];
+  for (const badge of badges) {
+    if (!badge) continue;
+    badge.textContent = text;
+    badge.classList.toggle("hidden", !text);
+  }
 }
 
 function updateRejoinButton() {

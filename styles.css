@@ -359,6 +359,10 @@ button:disabled {
   color: var(--pill-color);
 }
 
+.pill.player-badge {
+  font-weight: 600;
+}
+
 button.pill {
   cursor: pointer;
   appearance: none;
