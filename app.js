@@ -129,8 +129,10 @@ const VOTE_FINAL_SECONDS = 5;
 /* ===== view helpers ===== */
 
 const views = ["viewLanding", "viewLobby", "viewGame"];
+let currentView = "viewLanding";
 
 function setView(activeId) {
+  currentView = activeId;
   for (const id of views) {
     const el = $(id);
     if (!el) continue;
@@ -142,6 +144,51 @@ function setView(activeId) {
   updatePlayerBadge();
   const gameBadge = $("playerBadgeGame");
   if (gameBadge) gameBadge.classList.toggle("hidden", activeId === "viewGame");
+  updateTitle();
+}
+
+function updateTitle() {
+  const base = "Faker";
+  const rs = lastRoomStatus;
+  const game = lastGameState?.game || rs?.game || null;
+  const matchEnded = !!rs?.matchEnded;
+  const roomCode = rs?.roomCode || getRoomCode();
+
+  if (currentView === "viewLanding") {
+    document.title = `${base} — Lobby`;
+    return;
+  }
+
+  if (matchEnded) {
+    document.title = `${base} — Match Over`;
+    return;
+  }
+
+  if (currentView === "viewLobby") {
+    document.title = roomCode ? `${base} — Room ${roomCode}` : `${base} — Room`;
+    return;
+  }
+
+  if (currentView === "viewGame") {
+    const votePhase = game?.votePhase || null;
+    if (votePhase?.startedAt) {
+      document.title = `${base} — Voting`;
+      return;
+    }
+    const gamesTotal = Number.isInteger(rs?.gamesTotal) ? rs.gamesTotal : null;
+    const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
+    const ended = !!game?.endedAt;
+    const gameActive = !!(game?.gameId && !ended);
+    if (gamesTotal) {
+      const current = gameActive ? gamesPlayed + 1 : Math.max(1, gamesPlayed);
+      document.title = `${base} — Game ${current}/${gamesTotal}`;
+      return;
+    }
+    document.title = `${base} — Game`;
+    return;
+  }
+
+  document.title = base;
 }
 
 function setText(id, text) {
@@ -887,6 +934,8 @@ function renderRoomStatus(rs) {
   if (rs.matchEnded && !gameOverOverlay && !matchEndShown) {
     showMatchEndOverlay();
   }
+
+  updateTitle();
 }
 
 function updateWordsProgress(rs) {
@@ -1297,6 +1346,7 @@ function updateGameUI() {
 
   updateVoteTimer(votePhase);
   applyRoleTheme();
+  updateTitle();
 }
 
 function formatSeconds(totalSeconds) {
