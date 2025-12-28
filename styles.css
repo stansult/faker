@@ -27,6 +27,9 @@
         --btn-disabled-bg: #f0e6d5;
         --btn-disabled-border: #d8cbb7;
         --btn-disabled-color: #8a7a67;
+        --input-disabled-bg: #f7efe3;
+        --input-disabled-border: #d8cbb7;
+        --input-disabled-color: #8a7a67;
       }
 
       * {
@@ -67,6 +70,9 @@
         --btn-disabled-bg: #dfeee6;
         --btn-disabled-border: #c0d8ca;
         --btn-disabled-color: #5b7a68;
+        --input-disabled-bg: #e5f2ea;
+        --input-disabled-border: #c0d8ca;
+        --input-disabled-color: #5b7a68;
         background: radial-gradient(circle at 15% 10%, #dff1e4 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #e6f3ee 0%, transparent 40%),
           linear-gradient(135deg, #f3f8f5, #e7f3ec 55%, #f4f7f5 100%);
@@ -90,6 +96,9 @@
         --btn-disabled-bg: #f3d9d6;
         --btn-disabled-border: #e0b8b3;
         --btn-disabled-color: #8b5a55;
+        --input-disabled-bg: #f6e2de;
+        --input-disabled-border: #e0b8b3;
+        --input-disabled-color: #8b5a55;
         background: radial-gradient(circle at 15% 10%, #f2d6d2 0%, transparent 45%),
           radial-gradient(circle at 85% 15%, #f3e2de 0%, transparent 40%),
           linear-gradient(135deg, #f8f0ee, #f2d9d4 55%, #f7f2f1 100%);
@@ -226,8 +235,12 @@
         background: #fffdf8;
       }
 
-      input:read-only {
-        background: #f7efe3;
+      input:read-only,
+      input:disabled,
+      textarea:disabled {
+        background: var(--input-disabled-bg);
+        border-color: var(--input-disabled-border);
+        color: var(--input-disabled-color);
       }
 
       textarea {
