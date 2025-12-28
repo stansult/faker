@@ -79,13 +79,16 @@
           <div class="row room-header">
             <div class="room-title">
               <h3>Room</h3>
-              <button id="roomCodePill" class="pill mono" type="button">
+              <div id="roomCodePill" class="pill mono room-code-pill">
+                <span class="mono">Room</span>
                 <span id="roomCodeDisplay" class="mono"></span>
-              </button>
-              <span id="roomCodeCopied" class="mini copied-note" role="status">copied!</span>
+                <button id="btnCopyRoomCode" class="icon-btn" type="button" aria-label="Copy room code">📋</button>
+                <button id="btnCopyRoomLink" class="icon-btn" type="button" aria-label="Copy invite link">🔗</button>
+              </div>
             </div>
             <button id="btnLeaveRoom" class="ghost">Leave</button>
           </div>
+          <div id="roomCodeCopied" class="mini copied-note" role="status"></div>
           <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
           <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
           <div id="playersList" class="players mini" style="margin-top: 12px"></div>
@@ -118,14 +121,14 @@
       <section id="viewGame" class="view">
         <div class="row" style="justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
           <div id="playerBadgeGame" class="pill player-badge player-banner"></div>
-          <div class="pill">
+          <div class="pill room-code-pill">
             <span class="mini">Room</span>
-            <button id="roomCodePillGame" class="mono" type="button">
-              <span id="roomCodeGame" class="mono"></span>
-            </button>
-            <span id="roomCodeCopiedGame" class="mini copied-note" role="status">copied!</span>
+            <span id="roomCodeGame" class="mono"></span>
+            <button id="btnCopyRoomCodeGame" class="icon-btn" type="button" aria-label="Copy room code">📋</button>
+            <button id="btnCopyRoomLinkGame" class="icon-btn" type="button" aria-label="Copy invite link">🔗</button>
           </div>
         </div>
+        <div id="roomCodeCopiedGame" class="mini copied-note" role="status"></div>
         <h2 id="gameHeader" style="margin: 0 0 12px 0;"></h2>
         <div class="grid">
           <section class="panel" id="movePanel">

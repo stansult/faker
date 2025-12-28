@@ -112,9 +112,10 @@ function isAllowedWord(word) {
 
 const copiedTimers = {};
 
-function flashCopied(id, durationMs = 2500) {
+function flashCopied(id, message, durationMs = 2500) {
   const el = $(id);
   if (!el) return;
+  if (message) el.textContent = message;
   el.classList.add("show");
   if (copiedTimers[id]) clearTimeout(copiedTimers[id]);
   copiedTimers[id] = setTimeout(() => {
@@ -208,6 +209,12 @@ function setRoomCode(code) {
   if (el) el.value = value;
   setText("roomCodeDisplay", value);
   setText("roomCodeGame", value);
+}
+
+function getInviteUrl(roomCode) {
+  const value = sanitizeRoomCode(roomCode || "");
+  if (!value) return "";
+  return `https://faker-game.netlify.app/?room=${value}`;
 }
 
 function sanitizeRoomCode(raw) {
@@ -2473,6 +2480,10 @@ function wireUI() {
   if (params.get("debug") === "1") {
     document.body.classList.add("debug");
   }
+  const roomParam = params.get("room");
+  if (roomParam) {
+    setRoomCode(roomParam);
+  }
 
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
@@ -2645,23 +2656,49 @@ function wireUI() {
   $("moveWord")?.addEventListener("focus", () => setActionHint("btnSubmitMove"));
   $("moveWord")?.addEventListener("blur", clearActionHints);
 
-  $("roomCodePill")?.addEventListener("click", async () => {
+  $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      flashCopied("roomCodeCopied");
+      flashCopied("roomCodeCopied", "Code copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
   });
 
-  $("roomCodePillGame")?.addEventListener("click", async () => {
+  $("btnCopyRoomLink")?.addEventListener("click", async () => {
+    const value = String($("roomCodeDisplay")?.textContent || "").trim();
+    if (!value) return;
+    const invite = getInviteUrl(value);
+    if (!invite) return;
+    try {
+      await navigator.clipboard.writeText(invite);
+      flashCopied("roomCodeCopied", "Link copied!");
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
+  });
+
+  $("btnCopyRoomCodeGame")?.addEventListener("click", async () => {
     const value = String($("roomCodeGame")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      flashCopied("roomCodeCopiedGame");
+      flashCopied("roomCodeCopiedGame", "Code copied!");
+    } catch {
+      // Ignore clipboard failures (e.g., permissions)
+    }
+  });
+
+  $("btnCopyRoomLinkGame")?.addEventListener("click", async () => {
+    const value = String($("roomCodeGame")?.textContent || "").trim();
+    if (!value) return;
+    const invite = getInviteUrl(value);
+    if (!invite) return;
+    try {
+      await navigator.clipboard.writeText(invite);
+      flashCopied("roomCodeCopiedGame", "Link copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
