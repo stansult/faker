@@ -2483,6 +2483,7 @@ function wireUI() {
   const roomParam = params.get("room");
   if (roomParam) {
     setRoomCode(roomParam);
+    updateLandingMode("join");
   }
 
   $("btnCreateRoom")?.addEventListener("click", createRoom);
