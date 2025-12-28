@@ -881,7 +881,7 @@ function updateGameUI() {
   if (moveHint) {
     moveHint.textContent = canMove
       ? ""
-      : (voteActive ? "Voting is in progress." : "Moves unlock once your role is known and it is your turn.");
+      : (voteActive ? "Voting is in progress." : "");
   }
 
   if (voteStatus) {
