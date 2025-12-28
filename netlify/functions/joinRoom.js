@@ -92,6 +92,10 @@ export async function handler(event) {
   room.players = Array.isArray(room.players) ? room.players : [];
   room.game = room.game || null;
 
+  if (room.matchEnded) {
+    return json(409, { error: "Match ended" });
+  }
+
   // If this playerId already exists, treat as re-join (even if locked/game started).
   const existing = room.players.find(p => p.playerId === requestedPlayerId);
   if (existing) {

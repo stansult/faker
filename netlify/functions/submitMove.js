@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { ensureScores, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
+import { ensureScores, finalizeGameEnd, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
 
 function json(statusCode, obj) {
   return {
@@ -183,7 +183,7 @@ export async function handler(event) {
       ensureScores(room.players);
       const fakerPlayer = room.players.find(p => p.playerId === fakerPlayerId);
       if (fakerPlayer) fakerPlayer.score += 1;
-      room.updatedAt = now;
+      finalizeGameEnd(room, now);
 
       await store.setJSON(roomCode, room);
 

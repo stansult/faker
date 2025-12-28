@@ -650,6 +650,20 @@ button.pill:focus-visible {
   white-space: pre-line;
 }
 
+.overlay-title {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.match-table {
+  margin: 10px 0 8px;
+}
+
+.match-total {
+  margin-top: 6px;
+}
+
 .overlay-card button {
   margin-top: 10px;
 }

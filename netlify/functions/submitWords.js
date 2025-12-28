@@ -73,6 +73,10 @@ export async function handler(event) {
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
 
+  if (room.matchEnded) {
+    return json(409, { error: "Match ended" });
+  }
+
   const invalid = [];
   const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
     if (!isAllowedWord(word)) {

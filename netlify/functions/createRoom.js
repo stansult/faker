@@ -16,10 +16,29 @@ function json(statusCode, bodyObj) {
 const ROOM_CODE_LENGTH = 6;
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 20;
-const MIN_ROUNDS = 1;
-const MAX_ROUNDS = 20;
+const MIN_GAMES = 1;
+const MAX_GAMES = 20;
+const MIN_ROUNDS_PER_GAME = 1;
+const MAX_ROUNDS_PER_GAME = 20;
 const MIN_WORDS_PER_PLAYER = 1;
 const MAX_WORDS_PER_PLAYER = 20;
+
+function computeWordsPerPlayer(totalGames, totalPlayers) {
+  // We require MORE total words than total games to avoid predictable end-game
+  // states (e.g., "last game, I'm faker, I know my last unused word") and to
+  // keep contributions even across players.
+  //
+  // Formula A:
+  //   minimumPoolSize = totalGames + totalPlayers
+  //   wordsPerPlayer = ceil(minimumPoolSize / totalPlayers)
+  //
+  // This guarantees:
+  // 1) The actual pool (totalPlayers * wordsPerPlayer) is >= minimumPoolSize.
+  // 2) Everyone submits the same number of words.
+  // 3) The pool is always larger than the number of games.
+  const minimumPoolSize = totalGames + totalPlayers;
+  return Math.ceil(minimumPoolSize / totalPlayers);
+}
 
 function makeRoomCode(length = ROOM_CODE_LENGTH) {
   const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
@@ -59,18 +78,17 @@ export async function handler(event) {
   }
 
   const playerCount = Number(payload.playerCount);
-  const roundsRaw = payload.rounds;
-  const rounds =
+  const gamesRaw = payload.gamesTotal;
+  const gamesTotal =
+    gamesRaw == null || gamesRaw === ""
+      ? 3
+      : Number(gamesRaw);
+
+  const roundsRaw = payload.roundsPerGame;
+  const roundsPerGame =
     roundsRaw == null || roundsRaw === ""
       ? 3
       : Number(roundsRaw);
-
-  // NEW:
-  const wordsPerPlayerRaw = payload.wordsPerPlayer;
-  const wordsPerPlayer =
-    wordsPerPlayerRaw == null || wordsPerPlayerRaw === ""
-      ? 4 // default if omitted
-      : Number(wordsPerPlayerRaw);
 
   if (
     !Number.isInteger(playerCount) ||
@@ -81,21 +99,28 @@ export async function handler(event) {
       error: `playerCount must be an integer between ${MIN_PLAYERS} and ${MAX_PLAYERS}`
     });
   }
-  if (!Number.isInteger(rounds) || rounds < MIN_ROUNDS || rounds > MAX_ROUNDS) {
+  if (!Number.isInteger(gamesTotal) || gamesTotal < MIN_GAMES || gamesTotal > MAX_GAMES) {
     return json(400, {
-      error: `rounds must be an integer between ${MIN_ROUNDS} and ${MAX_ROUNDS}`
+      error: `gamesTotal must be an integer between ${MIN_GAMES} and ${MAX_GAMES}`
+    });
+  }
+  if (
+    !Number.isInteger(roundsPerGame) ||
+    roundsPerGame < MIN_ROUNDS_PER_GAME ||
+    roundsPerGame > MAX_ROUNDS_PER_GAME
+  ) {
+    return json(400, {
+      error: `roundsPerGame must be an integer between ${MIN_ROUNDS_PER_GAME} and ${MAX_ROUNDS_PER_GAME}`
     });
   }
 
-  // NEW validation:
+  const wordsPerPlayer = computeWordsPerPlayer(gamesTotal, playerCount);
   if (
     !Number.isInteger(wordsPerPlayer) ||
     wordsPerPlayer < MIN_WORDS_PER_PLAYER ||
     wordsPerPlayer > MAX_WORDS_PER_PLAYER
   ) {
-    return json(400, {
-      error: `wordsPerPlayer must be an integer between ${MIN_WORDS_PER_PLAYER} and ${MAX_WORDS_PER_PLAYER}`
-    });
+    return json(400, { error: "Failed to compute wordsPerPlayer" });
   }
 
   connectLambda(event);
@@ -113,9 +138,12 @@ export async function handler(event) {
       updatedAt: now,
 
       playerCount,
-      rounds,
-      wordsPerPlayer, // NEW
+      gamesTotal,
+      gamesPlayed: 0,
+      roundsPerGame,
+      wordsPerPlayer,
       locked: false,
+      matchEnded: false,
 
       players: [],
       wordPool: [],
@@ -136,7 +164,13 @@ export async function handler(event) {
       await sleep(150 + Math.floor(Math.random() * 150));
     }
 
-    return json(200, { roomCode, pending: !visible, wordsPerPlayer });
+    return json(200, {
+      roomCode,
+      pending: !visible,
+      wordsPerPlayer,
+      gamesTotal,
+      roundsPerGame
+    });
   }
 
   return json(500, { error: "Failed to create unique room code. Try again." });

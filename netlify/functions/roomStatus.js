@@ -51,8 +51,13 @@ export async function handler(event) {
   if (!room) return json(404, { error: "Room not found" });
 
   const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : 0;
-  const rounds = Number.isInteger(room.rounds) ? room.rounds : 3;
+  const roundsPerGame = Number.isInteger(room.roundsPerGame)
+    ? room.roundsPerGame
+    : (Number.isInteger(room.rounds) ? room.rounds : 3);
   const wordsRequired = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
+  const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
+  const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
+  const matchEnded = !!room.matchEnded;
 
   const players = Array.isArray(room.players) ? room.players : [];
 
@@ -122,10 +127,13 @@ export async function handler(event) {
     locked: !!room.locked,
     maxPlayers,
     currentPlayers,
-    rounds,
+    roundsPerGame,
     wordsRequired,
     wordPoolSize: Array.isArray(room.wordPool) ? room.wordPool.length : 0,
     usedWords: Array.isArray(room.usedWords) ? room.usedWords : [],
+    gamesTotal,
+    gamesPlayed,
+    matchEnded,
 
     players: playersView,
 
@@ -135,7 +143,7 @@ export async function handler(event) {
     allJoined,
     allReady,
     allJoinedReady,
-    canStart: (!game || game.endedAt) && allReady,
+    canStart: (!game || game.endedAt) && allReady && !matchEnded,
 
     game
   });

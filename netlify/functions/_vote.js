@@ -19,6 +19,17 @@ export function ensureScores(players) {
   }
 }
 
+export function finalizeGameEnd(room, nowIso) {
+  const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
+  const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
+  room.gamesPlayed = gamesPlayed + 1;
+  if (gamesTotal != null && room.gamesPlayed >= gamesTotal) {
+    room.matchEnded = true;
+    room.locked = true;
+  }
+  room.updatedAt = nowIso;
+}
+
 export function resolveVoteIfEnded(room, nowIso) {
   const game = room.game;
   const vote = game?.votePhase;
@@ -62,6 +73,6 @@ export function resolveVoteIfEnded(room, nowIso) {
     if (faker) faker.score += 1;
   }
 
-  room.updatedAt = now;
+  finalizeGameEnd(room, now);
   return true;
 }

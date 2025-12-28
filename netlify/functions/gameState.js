@@ -49,6 +49,9 @@ export async function handler(event) {
 
   const players = Array.isArray(room.players) ? room.players : [];
   const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : null;
+  const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
+  const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
+  const matchEnded = !!room.matchEnded;
   const currentPlayers = players.length;
 
   const me = playerId ? players.find(p => p.playerId === playerId) : null;
@@ -111,6 +114,9 @@ export async function handler(event) {
       endReason: game.endReason || null,
       revealedWord: game.endedAt ? game.secretWord || null : null,
       usedWords: Array.isArray(room.usedWords) ? room.usedWords : [],
+      gamesTotal,
+      gamesPlayed,
+      matchEnded,
 
       movesThisRound,
       lastMoves,

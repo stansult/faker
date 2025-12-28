@@ -333,6 +333,9 @@ function showGameOverOverlay(game) {
       clearTimeout(gameOverDismissTimer);
       gameOverDismissTimer = null;
     }
+    if (lastRoomStatus?.matchEnded && !matchEndShown) {
+      showMatchEndOverlay();
+    }
   };
   showOverlay(message, "Close", close, close, false);
   clearActiveGameSession();
@@ -343,6 +346,89 @@ function setMoveError(message = "") {
   if (!el) return;
   el.textContent = message || "";
   el.style.display = message ? "block" : "none";
+}
+
+function ordinalPlace(n) {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`;
+  const last = n % 10;
+  if (last === 1) return `${n}st`;
+  if (last === 2) return `${n}nd`;
+  if (last === 3) return `${n}rd`;
+  return `${n}th`;
+}
+
+function buildMatchSummaryHtml() {
+  const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
+  const gamesTotal = Number.isInteger(lastRoomStatus?.gamesTotal) ? lastRoomStatus.gamesTotal : null;
+  const sorted = players
+    .slice()
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || (a.playerNumber ?? 0) - (b.playerNumber ?? 0));
+
+  const placeCounts = new Map();
+  const rows = [];
+  let lastScore = null;
+  let place = 0;
+
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    const score = Number.isInteger(p.score) ? p.score : 0;
+    if (lastScore === null || score < lastScore) {
+      place = i + 1;
+      lastScore = score;
+    }
+    placeCounts.set(place, (placeCounts.get(place) || 0) + 1);
+    rows.push({ place, name: p.name || "Unknown", score });
+  }
+
+  const bodyRows = rows
+    .map(row => {
+      const tie = (placeCounts.get(row.place) || 0) > 1 ? " (tie)" : "";
+      return `
+        <tr>
+          <td>${esc(row.name)}</td>
+          <td class="mono">${row.score}</td>
+          <td>${ordinalPlace(row.place)} place${tie}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="overlay-title">Match over.</div>
+    <table class="status-table match-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Score</th>
+          <th>Place</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${bodyRows}
+      </tbody>
+    </table>
+    <div class="mini match-total">Total games: ${gamesTotal != null ? gamesTotal : "?"}</div>
+  `;
+}
+
+function showMatchEndOverlay() {
+  if (matchEndShown) return;
+  matchEndShown = true;
+  setOverlayTheme(null);
+  showOverlay("", "", null, null, false);
+  const msg = $("overlayMessage");
+  if (msg) msg.innerHTML = buildMatchSummaryHtml();
+  const waitForLobby = () => {
+    const lobby = $("viewLobby");
+    if (lobby && lobby.classList.contains("active")) {
+      showOverlay("", "Leave room", leaveRoomAfterMatchEnd, null, false);
+      const refreshed = $("overlayMessage");
+      if (refreshed) refreshed.innerHTML = buildMatchSummaryHtml();
+      return;
+    }
+    setTimeout(waitForLobby, 200);
+  };
+  setTimeout(waitForLobby, 200);
 }
 
 function renderAcceptedWords(roomCode) {
@@ -411,6 +497,7 @@ let startOverlay = null;
 let startOverlayPending = false;
 let gameOverOverlay = null;
 let gameOverDismissTimer = null;
+let matchEndShown = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -533,6 +620,7 @@ function applyRoomStatus(status) {
   const allJoined = !!status?.allJoined;
   const allReady = !!status?.allReady;
   const allJoinedReady = !!status?.allJoinedReady;
+  const matchEnded = !!status?.matchEnded;
 
   const gameEnded = !!status?.game?.endedAt;
   const gameStarted = !!status?.game?.gameId;
@@ -541,7 +629,7 @@ function applyRoomStatus(status) {
 
   const isHost = !!saved && saved.playerNumber === 1;
   const canStart =
-    !gameActive && !locked && allJoined && allReady;
+    !gameActive && !locked && !matchEnded && allJoined && allReady;
   const currentPlayers =
     status?.currentPlayers ??
     (Array.isArray(status?.players) ? status.players.length : 0);
@@ -551,18 +639,23 @@ function applyRoomStatus(status) {
     !allJoined &&
     allJoinedReady &&
     isHost &&
-    currentPlayers >= 3;
+    currentPlayers >= 3 &&
+    !matchEnded;
 
   btnStart.disabled = startInFlight || !canStart;
 
   if (btnStartShort) {
     btnStartShort.disabled = startInFlight || !canStartShort;
-    btnStartShort.classList.toggle("hidden", !isHost || allJoined || currentPlayers < 3);
+    btnStartShort.classList.toggle(
+      "hidden",
+      !isHost || allJoined || currentPlayers < 3 || matchEnded
+    );
   }
 }
 
 function renderRoomStatus(rs) {
   lastRoomStatus = rs;
+  if (!rs.matchEnded) matchEndShown = false;
   const nextGameId = rs?.game?.gameId || null;
   const ended = !!rs?.game?.endedAt;
   const shouldStartOverlay =
@@ -578,7 +671,10 @@ function renderRoomStatus(rs) {
   const players = Array.isArray(rs.players) ? rs.players : [];
   const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
   const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
-  const rounds = Number.isInteger(rs.rounds) ? rs.rounds : null;
+  const roundsPerGame = Number.isInteger(rs.roundsPerGame) ? rs.roundsPerGame : null;
+  const gamesTotal = Number.isInteger(rs.gamesTotal) ? rs.gamesTotal : null;
+  const gamesPlayed = Number.isInteger(rs.gamesPlayed) ? rs.gamesPlayed : 0;
+  const gameActive = !!(rs.game && rs.game.gameId && !rs.game.endedAt);
   const totalSlots =
     maxPlayers ??
     (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
@@ -598,12 +694,21 @@ function renderRoomStatus(rs) {
 
   const metaParts = [];
   metaParts.push(`Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}`);
-  if (wordsRequired) metaParts.push(`Words each: ${wordsRequired}`);
-  if (rounds) metaParts.push(`Rounds: ${rounds}`);
+  if (gamesTotal != null) {
+    const currentGameNumber = gameActive ? gamesPlayed + 1 : gamesPlayed;
+    if (gamesPlayed === 0 && !gameActive) {
+      metaParts.push(`Games: ${gamesTotal}`);
+      if (wordsRequired) metaParts.push(`Words each: ${wordsRequired}`);
+    } else {
+      metaParts.push(`Games: ${currentGameNumber} / ${gamesTotal}`);
+    }
+  }
+  if (roundsPerGame) metaParts.push(`Rounds per game: ${roundsPerGame}`);
   setText("roomMeta", metaParts.join(" • "));
 
   const el = $("playersList");
   if (el) {
+    const showWordsColumn = !(gamesPlayed > 0 || gameActive);
     const byNumber = new Map(
       players.map(p => [p.playerNumber, p])
     );
@@ -616,7 +721,7 @@ function renderRoomStatus(rs) {
           <td class="mono">${n}</td>
           <td></td>
           <td class="mono">-</td>
-          <td class="mono">-</td>
+          ${showWordsColumn ? '<td class="mono">-</td>' : ""}
           <td class="mini">Not joined</td>
         </tr>
       `;
@@ -626,19 +731,20 @@ function renderRoomStatus(rs) {
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
           <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
-          <td class="mono">${
+          ${showWordsColumn ? `<td class="mono">${
             Number.isInteger(p.wordsRequired) &&
             Number.isInteger(p.wordsSubmitted) &&
             p.wordsSubmitted >= p.wordsRequired
               ? `<span class="ok-check">&#9989;</span>`
               : `${p.wordsSubmitted}/${p.wordsRequired}`
-          }</td>
+          }</td>` : ""}
           <td>${p.ready ? "Ready" : "Not ready"}</td>
         </tr>
       `;
       })
       .join("");
 
+    const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
     el.innerHTML = `
       <table class="status-table">
         <thead>
@@ -646,7 +752,7 @@ function renderRoomStatus(rs) {
             <th>#</th>
             <th>Name</th>
             <th>Score</th>
-            <th>Words</th>
+            ${wordHeader}
             <th>Status</th>
           </tr>
         </thead>
@@ -681,6 +787,10 @@ function renderRoomStatus(rs) {
 
   if (rs.game?.endedAt) {
     showGameOverOverlay(rs.game);
+  }
+
+  if (rs.matchEnded && !gameOverOverlay && !matchEndShown) {
+    showMatchEndOverlay();
   }
 }
 
@@ -773,7 +883,7 @@ function renderRoundsTable() {
   const roundsTotal =
     Number.isInteger(lastGameState?.game?.roundsTotal)
       ? lastGameState.game.roundsTotal
-      : (Number.isInteger(lastRoomStatus?.rounds) ? lastRoomStatus.rounds : 0);
+      : (Number.isInteger(lastRoomStatus?.roundsPerGame) ? lastRoomStatus.roundsPerGame : 0);
 
   if (!sortedPlayers.length) {
     container.textContent = "No players yet.";
@@ -929,6 +1039,7 @@ function updateGameUI() {
   const input = $("moveWord");
   const btn = $("btnSubmitMove");
   const movePanel = $("movePanel");
+  const gameHeader = $("gameHeader");
   const voteStatus = $("voteStatus");
   const voteTimer = $("voteTimer");
   const triggerBtn = $("btnTriggerVote");
@@ -974,6 +1085,18 @@ function updateGameUI() {
   const ended = !!game?.endedAt;
   const nextPlayerNumber = game?.nextPlayerNumber ?? null;
   const votePhase = game?.votePhase || null;
+  const gamesTotal = Number.isInteger(lastRoomStatus?.gamesTotal) ? lastRoomStatus.gamesTotal : null;
+  const gamesPlayed = Number.isInteger(lastRoomStatus?.gamesPlayed) ? lastRoomStatus.gamesPlayed : 0;
+  const gameActive = !!(game?.gameId && !ended);
+
+  if (gameHeader) {
+    if (gamesTotal) {
+      const currentGameNumber = gameActive ? gamesPlayed + 1 : Math.max(1, gamesPlayed);
+      gameHeader.textContent = `Game #${currentGameNumber} of ${gamesTotal}`;
+    } else {
+      gameHeader.textContent = "";
+    }
+  }
 
   if (turnEl) {
     turnEl.textContent = "";
@@ -1150,6 +1273,7 @@ function friendlyJoinError(data, status) {
   const raw = String(data?.error || "");
   if (raw === "Room is full") return "This room is full.";
   if (raw === "Room is locked") return "This room is locked and can't accept new players.";
+  if (raw === "Match ended") return "This match is over. Please create a new room.";
   if (raw === "Room not found" || status === 404) return "Room not found.";
   if (raw) return raw;
   return `Join failed (${status})`;
@@ -1650,13 +1774,10 @@ async function createRoom(options = {}) {
     if (createAbort) return false;
     if (!reuseExisting || !createState.roomCode) {
       const playerCount = Number($("playerCount")?.value);
-      const rounds = Number($("rounds")?.value);
-      const wordsPerPlayer = Number($("wordsPerPlayer")?.value);
+      const gamesTotal = Number($("gamesTotal")?.value);
+      const roundsPerGame = Number($("roundsPerGame")?.value);
 
-      const payload = { playerCount, rounds };
-      if (Number.isInteger(wordsPerPlayer) && wordsPerPlayer >= 1 && wordsPerPlayer <= 10) {
-        payload.wordsPerPlayer = wordsPerPlayer;
-      }
+      const payload = { playerCount, gamesTotal, roundsPerGame };
 
       const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
       log({ status, ...data }, "createRoom");
@@ -2084,7 +2205,38 @@ async function leaveRoom() {
   lastGameState = null;
   clearActiveGameSession();
   lastGameOverKey = null;
+  matchEndShown = false;
   stopPolling();
+
+  setView("viewLanding");
+}
+
+async function leaveRoomAfterMatchEnd() {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+
+  const saved = getSaved(roomCode);
+  if (saved?.playerId) {
+    const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
+      roomCode,
+      playerId: saved.playerId
+    });
+    log({ status, ...data }, "leaveRoom");
+  }
+
+  clearSaved(roomCode);
+  clearLastRoomCode();
+  setRoomCode("");
+  renderAcceptedWords(roomCode);
+  setSubmitWordsError("");
+  roleState = { role: null, secretWord: null, gameId: null };
+  lastRoomStatus = null;
+  lastGameState = null;
+  clearActiveGameSession();
+  lastGameOverKey = null;
+  matchEndShown = false;
+  stopPolling();
+  hideOverlay();
 
   setView("viewLanding");
 }
@@ -2100,6 +2252,7 @@ async function leaveRoomByCode(roomCode, playerId) {
   clearLastRoomCode();
   clearActiveGameSession();
   lastGameOverKey = null;
+  matchEndShown = false;
   stopPolling();
 }
 
@@ -2267,7 +2420,7 @@ function wireUI() {
   $("roomCode")?.addEventListener("focus", () => setActionHint("btnJoinRoom"));
   $("roomCode")?.addEventListener("blur", clearActionHints);
 
-  for (const id of ["playerCount", "rounds", "wordsPerPlayer"]) {
+  for (const id of ["playerCount", "gamesTotal", "roundsPerGame"]) {
     $(id)?.addEventListener("keydown", e => {
       if (e.key !== "Enter") return;
       e.preventDefault();

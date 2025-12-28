@@ -160,6 +160,16 @@ export async function handler(event) {
     const usedSet = new Set(usedWords);
     room.wordPool = uniqPreserve(allWords.filter(Boolean)).filter(w => !usedSet.has(w));
 
+    const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
+    const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
+    if (gamesTotal != null && gamesPlayed >= gamesTotal) {
+      room.matchEnded = true;
+      room.locked = true;
+      room.updatedAt = new Date().toISOString();
+      await store.setJSON(roomCode, room);
+      return json(409, { error: "Match already ended" });
+    }
+
     if (room.wordPool.length < 2) {
       return json(409, { error: "Word pool too small to start" });
     }
@@ -169,7 +179,9 @@ export async function handler(event) {
     const faker = pick(room.players).playerId;
 
     const now = new Date().toISOString();
-    const roundsTotal = Number.isInteger(room.rounds) ? room.rounds : 3;
+    const roundsTotal = Number.isInteger(room.roundsPerGame)
+      ? room.roundsPerGame
+      : (Number.isInteger(room.rounds) ? room.rounds : 3);
 
     ensureScores(room.players);
 
