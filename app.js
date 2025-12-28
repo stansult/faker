@@ -390,6 +390,7 @@ let overlayDismiss = null;
 let lastGameOverKey = null;
 let startInFlight = false;
 let hasActiveGameSession = false;
+let voteTriggerInFlight = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -978,8 +979,8 @@ function updateGameUI() {
     const myId = saved?.playerId || null;
     const triggers = Array.isArray(votePhase?.triggers) ? votePhase.triggers : [];
     const alreadyTriggered = myId ? triggers.includes(myId) : false;
-    triggerBtn.disabled = !!votePhase?.active || !!ended || alreadyTriggered;
-    triggerBtn.classList.toggle("pressed", alreadyTriggered);
+    triggerBtn.disabled = voteTriggerInFlight || !!votePhase?.active || !!ended || alreadyTriggered;
+    triggerBtn.classList.toggle("pressed", alreadyTriggered || voteTriggerInFlight);
     if (role === "faker") {
       triggerBtn.textContent = "I'm ready to accuse";
     } else {
@@ -1858,6 +1859,7 @@ async function triggerVote() {
 
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return;
+  if (voteTriggerInFlight) return;
 
   const ok = await new Promise(resolve => {
     showOverlayChoice(
@@ -1872,12 +1874,21 @@ async function triggerVote() {
   hideOverlay();
   if (!ok) return;
 
-  const { status, data } = await postJSON("/.netlify/functions/triggerVote", {
-    roomCode,
-    playerId: saved.playerId
-  });
-  log({ status, ...data }, "triggerVote");
-  await fetchGameState({ silent: true });
+  voteTriggerInFlight = true;
+  updateGameUI();
+  showOverlay("Locking in your vote...", "", null, null, false);
+  try {
+    const { status, data } = await postJSON("/.netlify/functions/triggerVote", {
+      roomCode,
+      playerId: saved.playerId
+    });
+    log({ status, ...data }, "triggerVote");
+    await fetchGameState({ silent: true });
+  } finally {
+    voteTriggerInFlight = false;
+    hideOverlay();
+    updateGameUI();
+  }
 }
 
 async function castVote(targetPlayerId) {
