@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { ensureScores } from "./_vote.js";
+import { ensureScores, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
 
 function json(statusCode, obj) {
   return {
@@ -220,13 +220,21 @@ export async function handler(event) {
 
     if (wrapped) {
       const nextRound = Number.isInteger(game.round) ? game.round + 1 : 2;
-      game.round = nextRound;
-
       const roundsTotal = Number.isInteger(game.roundsTotal) ? game.roundsTotal : 3;
+
       if (nextRound > roundsTotal) {
-        game.endedAt = now;
-        game.winner = null;
-        game.endReason = "rounds_complete";
+        // Normal voting starts automatically once all rounds are done.
+        if (!game.votePhase?.active && !game.votePhase?.startedAt) {
+          game.votePhase = initVotePhase();
+          game.votePhase.active = true;
+          game.votePhase.startedAt = now;
+          game.votePhase.endsAt = new Date(
+            Date.parse(now) + VOTE_TOTAL_SECONDS * 1000
+          ).toISOString();
+        }
+        game.round = roundsTotal;
+      } else {
+        game.round = nextRound;
       }
     }
 

@@ -915,6 +915,17 @@ function updateGameUI() {
     triggerBtn.classList.toggle("pressed", alreadyTriggered);
   }
 
+  const voteReadyHint = $("voteReadyHint");
+  if (voteReadyHint) {
+    const saved = getSaved(getRoomCode());
+    const myId = saved?.playerId || null;
+    const triggers = Array.isArray(votePhase?.triggers) ? votePhase.triggers : [];
+    const alreadyTriggered = myId ? triggers.includes(myId) : false;
+    voteReadyHint.textContent = alreadyTriggered
+      ? "Voting will start once enough players are ready."
+      : "Click if you are ready to vote early!";
+  }
+
   updateVoteTimer(votePhase);
 }
 
