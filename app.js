@@ -122,7 +122,8 @@ function flashCopied(id, durationMs = 2500) {
   }, durationMs);
 }
 
-const VOTE_TOTAL_SECONDS = 30;
+// const VOTE_TOTAL_SECONDS = 30; // Production
+const VOTE_TOTAL_SECONDS = 300;  // For testing
 const VOTE_FINAL_SECONDS = 5;
 
 /* ===== view helpers ===== */
@@ -288,29 +289,36 @@ function showGameOverOverlay(game) {
   const winner = String(game.winner || "");
   const endReason = String(game.endReason || "");
   const revealed = getRevealedWord();
+  const role = roleState?.role || null;
 
   let message = "Game over.";
   if (winner === "faker" && endReason === "faker_said_secret_word_on_turn") {
-    const word = revealed ? `\nHe guessed the word: ${revealed}` : "";
-    message = `Faker won!${word}`;
+    if (role === "faker") {
+      message = revealed
+        ? `Yes, the secret word was "${revealed}"\nYou won! 🎉🎉`
+        : "You won! 🎉🎉";
+    } else {
+      message = revealed
+        ? `Oh no, faker guessed "${revealed}" and won! 😢😢`
+        : "Oh no, faker won! 😢😢";
+    }
   } else if (endReason.startsWith("voting_")) {
-    message = winner === "legits"
-      ? "Votes are in — Legit players won!"
-      : "Votes are in — Faker won!";
+    if (winner === "faker") {
+      message = role === "faker"
+        ? "Votes are in — you won! 🎉🎉"
+        : "Votes are in — faker won! 😢😢";
+    } else if (winner === "legits") {
+      message = role === "faker"
+        ? "Votes are in — you lost! 😢😢"
+        : "Votes are in — we won! 🎉🎉";
+    }
   } else if (winner === "faker") {
     message = "Faker won!";
   } else if (winner === "legits") {
     message = "Legit players won!";
   }
 
-  showOverlayChoice(
-    message,
-    "OK",
-    () => hideOverlay(),
-    "Close",
-    () => hideOverlay(),
-    () => hideOverlay()
-  );
+  showOverlay(message, "Close", () => hideOverlay(), () => hideOverlay(), false);
 }
 
 function setMoveError(message = "") {

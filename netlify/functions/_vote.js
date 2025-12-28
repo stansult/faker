@@ -1,4 +1,5 @@
-export const VOTE_TOTAL_SECONDS = 30;
+// export const VOTE_TOTAL_SECONDS = 30; // Production
+export const VOTE_TOTAL_SECONDS = 300;  // For testing
 export const VOTE_FINAL_SECONDS = 5;
 
 export function initVotePhase() {
