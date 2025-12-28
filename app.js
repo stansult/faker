@@ -900,6 +900,12 @@ function updateGameUI() {
     }
   }
 
+  const voteDetails = $("voteDetails");
+  if (voteDetails) {
+    const showDetails = !!votePhase?.startedAt;
+    voteDetails.classList.toggle("hidden", !showDetails);
+  }
+
   if (triggerBtn) {
     const saved = getSaved(getRoomCode());
     const myId = saved?.playerId || null;
