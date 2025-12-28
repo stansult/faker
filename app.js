@@ -324,7 +324,7 @@ async function markWordsDone() {
   const ok = await new Promise(resolve => {
     showOverlayChoice(
       "Are you ready to lock your words?\nYou can’t change them later, even for typos.",
-      "Done!",
+      "Ready!",
       () => resolve(true),
       "Check again",
       () => resolve(false),
