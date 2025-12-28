@@ -394,6 +394,7 @@ let voteTriggerInFlight = false;
 let hasSeenRoomStatus = false;
 let lastSeenGameId = null;
 let startOverlay = null;
+let startOverlayPending = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -651,7 +652,8 @@ function renderRoomStatus(rs) {
     fetchGameState({ silent: true });
   }
 
-  if (shouldStartOverlay) {
+  if (shouldStartOverlay || (startOverlayPending && nextGameId && !ended)) {
+    startOverlayPending = false;
     showStartOverlay(nextGameId);
   }
 
@@ -1178,7 +1180,12 @@ function setOverlayTheme(role) {
 }
 
 function showStartOverlay(gameId) {
-  startOverlay = { gameId, startedAt: Date.now() };
+  if (!gameId) return;
+  if (!startOverlay || (startOverlay.gameId && startOverlay.gameId !== gameId)) {
+    startOverlay = { gameId, startedAt: Date.now() };
+  } else if (!startOverlay.gameId) {
+    startOverlay.gameId = gameId;
+  }
   setOverlayTheme(null);
   showOverlay("Starting game...", "", null, null, false);
   setTimeout(() => {
@@ -1193,6 +1200,7 @@ function maybeHideStartOverlay() {
   if (ready && elapsed >= 1000) {
     hideOverlay();
     startOverlay = null;
+    startOverlayPending = false;
   }
 }
 
@@ -1773,6 +1781,8 @@ async function startGame() {
 
   if (startInFlight) return;
   startInFlight = true;
+  startOverlayPending = true;
+  startOverlay = { gameId: null, startedAt: Date.now() };
   showOverlay("Starting game...", "", null, null, false);
 
   const { status, data } = await postJSON("/.netlify/functions/startGame", {
@@ -1781,11 +1791,12 @@ async function startGame() {
   });
   log({ status, ...data }, "startGame");
 
-  hideOverlay();
   startInFlight = false;
   applyRoomStatus(lastRoomStatus);
 
   if (status !== 200 && data?.error) {
+    startOverlayPending = false;
+    hideOverlay();
     showOverlayChoice(
       String(data.error),
       "OK",
@@ -1835,6 +1846,8 @@ async function startShortGame() {
 
   if (startInFlight) return;
   startInFlight = true;
+  startOverlayPending = true;
+  startOverlay = { gameId: null, startedAt: Date.now() };
   showOverlay("Starting game...", "", null, null, false);
 
   const { status, data } = await postJSON("/.netlify/functions/startGame", {
@@ -1844,11 +1857,12 @@ async function startShortGame() {
   });
   log({ status, ...data }, "startShortGame");
 
-  hideOverlay();
   startInFlight = false;
   applyRoomStatus(lastRoomStatus);
 
   if (status !== 200 && data?.error) {
+    startOverlayPending = false;
+    hideOverlay();
     showOverlayChoice(
       String(data.error),
       "OK",
