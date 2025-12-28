@@ -391,6 +391,9 @@ let lastGameOverKey = null;
 let startInFlight = false;
 let hasActiveGameSession = false;
 let voteTriggerInFlight = false;
+let hasSeenRoomStatus = false;
+let lastSeenGameId = null;
+let startOverlay = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -541,6 +544,15 @@ function applyRoomStatus(status) {
 
 function renderRoomStatus(rs) {
   lastRoomStatus = rs;
+  const nextGameId = rs?.game?.gameId || null;
+  const ended = !!rs?.game?.endedAt;
+  const shouldStartOverlay =
+    hasSeenRoomStatus &&
+    nextGameId &&
+    !ended &&
+    nextGameId !== lastSeenGameId;
+  lastSeenGameId = nextGameId;
+  hasSeenRoomStatus = true;
 
   setRoomCode(rs.roomCode || "");
 
@@ -639,6 +651,10 @@ function renderRoomStatus(rs) {
     fetchGameState({ silent: true });
   }
 
+  if (shouldStartOverlay) {
+    showStartOverlay(nextGameId);
+  }
+
   if (rs.game?.endedAt) {
     showGameOverOverlay(rs.game);
   }
@@ -712,6 +728,7 @@ function renderGameState(gs) {
   renderVoteTable();
 
   updateGameUI();
+  maybeHideStartOverlay();
   if (gs?.game?.endedAt) showGameOverOverlay(gs.game);
 }
 
@@ -1158,6 +1175,25 @@ function setOverlayTheme(role) {
   if (role === "faker") theme = "role-faker";
   else if (role === "player") theme = "role-legit";
   overlay.classList.add(theme);
+}
+
+function showStartOverlay(gameId) {
+  startOverlay = { gameId, startedAt: Date.now() };
+  setOverlayTheme(null);
+  showOverlay("Starting game...", "", null, null, false);
+  setTimeout(() => {
+    maybeHideStartOverlay();
+  }, 1000);
+}
+
+function maybeHideStartOverlay() {
+  if (!startOverlay) return;
+  const ready = lastGameState?.game?.gameId === startOverlay.gameId;
+  const elapsed = Date.now() - startOverlay.startedAt;
+  if (ready && elapsed >= 1000) {
+    hideOverlay();
+    startOverlay = null;
+  }
 }
 
 function showOverlay(
@@ -1864,6 +1900,8 @@ async function submitMove() {
     setMoveError(String(data.error));
   } else if (status === 200) {
     setMoveError("");
+    const input = $("moveWord");
+    if (input) input.value = "";
   }
 
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
