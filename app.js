@@ -1289,7 +1289,8 @@ function showOverlayChoice(
   primaryFn,
   secondaryLabel,
   secondaryFn,
-  dismissFn = null
+  dismissFn = null,
+  themeRole = null
 ) {
   const overlay = $("overlay");
   const msg = $("overlayMessage");
@@ -1298,6 +1299,7 @@ function showOverlayChoice(
   const choice = $("overlayChoice");
   const buttons = $("overlayButtons");
   if (!overlay || !msg || !primary || !secondary) return;
+  setOverlayTheme(themeRole);
   msg.textContent = message || "";
   overlay.classList.remove("hidden");
   overlayMode = "choice";
@@ -1978,7 +1980,8 @@ async function triggerVote() {
       () => resolve(true),
       "No",
       () => resolve(false),
-      () => resolve(false)
+      () => resolve(false),
+      roleState.role || null
     );
   });
   hideOverlay();
