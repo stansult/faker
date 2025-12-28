@@ -624,14 +624,16 @@ function renderRoomStatus(rs) {
 
   updateWordsProgress(rs);
   applyRoomStatus(rs);
+
+  if (rs.game?.gameId && roleState.gameId !== rs.game.gameId) {
+    roleState = { role: null, secretWord: null, gameId: rs.game.gameId };
+    updateGameUI();
+  }
+
   updateViewState(rs);
 
   if (rs.game?.gameId) {
-    if (roleState.gameId !== rs.game.gameId) {
-      roleState = { role: null, secretWord: null, gameId: rs.game.gameId };
-      updateGameUI();
-      fetchRole({ silent: true });
-    }
+    if (!roleState.role) fetchRole({ silent: true });
     fetchGameState({ silent: true });
   }
 
@@ -846,11 +848,12 @@ function applyRoleTheme() {
 
   const game = lastGameState?.game || lastRoomStatus?.game || null;
   const active = !!game?.gameId && !game?.endedAt;
+  const roleMatchesGame = !roleState.gameId || roleState.gameId === game?.gameId;
 
   let theme = "role-neutral";
-  if (active && roleState.role === "faker") {
+  if (active && roleMatchesGame && roleState.role === "faker") {
     theme = "role-faker";
-  } else if (active && roleState.role === "player") {
+  } else if (active && roleMatchesGame && roleState.role === "player") {
     theme = "role-legit";
   }
 
