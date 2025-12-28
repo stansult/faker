@@ -206,6 +206,36 @@
   height: 16px;
 }
 
+.word-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fffdf8;
+  margin: 0 6px 6px 0;
+  font-size: 12px;
+}
+
+.word-text {
+  font-family: "IBM Plex Mono", "Courier New", monospace;
+}
+
+.word-action {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.word-action:focus-visible {
+  outline: 2px solid #c6b49f;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
       .grid {
         display: grid;
         gap: 18px;

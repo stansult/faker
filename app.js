@@ -288,6 +288,33 @@ function getUsedWords() {
   return Array.isArray(used) ? used : [];
 }
 
+async function updateMyWords(words) {
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return;
+
+  const payload = {
+    roomCode,
+    playerId: saved.playerId,
+    words
+  };
+
+  const { status, data } = await postJSON("/.netlify/functions/updateWords", payload);
+  log({ status, ...data }, "updateWords");
+  if (status !== 200) {
+    const message = data?.error ? String(data.error) : `Update failed (${status})`;
+    setSubmitWordsError(message);
+    return;
+  }
+
+  if (Array.isArray(data.words)) {
+    setAcceptedWords(roomCode, data.words);
+  }
+
+  await roomStatus("roomStatus (after updateWords)", { silent: true });
+}
+
 function showGameOverOverlay(game) {
   if (!game?.endedAt || !game?.gameId) return;
   if (!hasActiveGameSession) return;
@@ -450,6 +477,32 @@ function renderAcceptedWords(roomCode) {
     return esc(word);
   });
   el.innerHTML = `Submitted words: ${rendered.join(", ")}`;
+}
+
+function renderEditableWords(roomCode) {
+  const container = $("submittedWordsEditor");
+  if (!container) return;
+  const words = getAcceptedWords(roomCode);
+  const gameActive = !!(lastRoomStatus?.game?.gameId && !lastRoomStatus?.game?.endedAt);
+  const gamesPlayed = Number.isInteger(lastRoomStatus?.gamesPlayed) ? lastRoomStatus.gamesPlayed : 0;
+
+  if (gameActive || gamesPlayed > 0 || !words.length) {
+    container.textContent = "";
+    return;
+  }
+
+  const chips = words.map(word => {
+    const safe = esc(word);
+    const raw = encodeURIComponent(word);
+    return `
+      <span class="word-chip">
+        <span class="word-text">${safe}</span>
+        <button type="button" class="word-action word-edit" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+      </span>
+    `;
+  });
+  container.innerHTML = chips.join("");
 }
 
 function makeClientId(length = 16) {
@@ -830,6 +883,7 @@ function updateWordsProgress(rs) {
   const panel = $("submitWordsPanel");
   if (panel) panel.classList.toggle("hidden", remaining === 0);
   renderAcceptedWords(rs.roomCode || getRoomCode());
+  renderEditableWords(rs.roomCode || getRoomCode());
   if (remaining === 0) setSubmitWordsError("");
 }
 
@@ -2454,6 +2508,34 @@ function wireUI() {
     e.preventDefault();
     submitWords();
   });
+
+  const submittedEditor = $("submittedWordsEditor");
+  if (submittedEditor) {
+    submittedEditor.addEventListener("click", async e => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const raw = btn.getAttribute("data-word");
+      if (!raw) return;
+      const word = decodeURIComponent(raw);
+      const roomCode = getRoomCode();
+      const current = getAcceptedWords(roomCode);
+      const next = current.filter(w => normalizeWord(w) !== normalizeWord(word));
+
+      if (btn.classList.contains("word-edit")) {
+        await updateMyWords(next);
+        const input = $("wordInput");
+        if (input) {
+          input.value = word;
+          input.focus();
+        }
+        return;
+      }
+
+      if (btn.classList.contains("word-delete")) {
+        await updateMyWords(next);
+      }
+    });
+  }
 
   $("wordInput")?.addEventListener("focus", () => setActionHint("btnSubmitWords"));
   $("wordInput")?.addEventListener("blur", clearActionHints);
