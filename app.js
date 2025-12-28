@@ -898,8 +898,6 @@ function updateWordsProgress(rs) {
   const doneWords = !!me?.doneWords;
   const gameActive = !!(rs?.game?.gameId && !rs?.game?.endedAt);
   const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
-  const gameActive = !!(rs?.game?.gameId && !rs?.game?.endedAt);
-  const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
 
   const progress = $("wordsProgress");
   if (!progress) return;

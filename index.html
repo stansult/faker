@@ -215,6 +215,17 @@
       </div>
     </div>
 
+  <script>
+    window.addEventListener("error", function (event) {
+      var badge = document.getElementById("buildVersion");
+      if (badge) {
+        badge.textContent = "build (js error)";
+        badge.style.opacity = "1";
+        badge.style.color = "#b00020";
+      }
+      console.error("App error:", event && event.error ? event.error : event);
+    });
+  </script>
   <script src="./app.js"></script>
 </body>
 
