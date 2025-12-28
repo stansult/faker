@@ -286,6 +286,7 @@ function showGameOverOverlay(game) {
   const key = `${game.gameId}:${game.endedAt}`;
   if (key === lastGameOverKey) return;
   lastGameOverKey = key;
+  gameOverOverlay = { gameId: game.gameId, shownAt: Date.now() };
 
   const winner = String(game.winner || "");
   const endReason = String(game.endReason || "");
@@ -320,7 +321,15 @@ function showGameOverOverlay(game) {
   }
 
   setOverlayTheme(role);
-  showOverlay(message, "Close", () => hideOverlay(), () => hideOverlay(), false);
+  const close = () => {
+    hideOverlay();
+    gameOverOverlay = null;
+    if (gameOverDismissTimer) {
+      clearTimeout(gameOverDismissTimer);
+      gameOverDismissTimer = null;
+    }
+  };
+  showOverlay(message, "Close", close, close, false);
   clearActiveGameSession();
 }
 
@@ -395,10 +404,14 @@ let hasSeenRoomStatus = false;
 let lastSeenGameId = null;
 let startOverlay = null;
 let startOverlayPending = false;
+let gameOverOverlay = null;
+let gameOverDismissTimer = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
 const ACTIVE_GAME_KEY = "faker:activeGameId";
+const START_OVERLAY_MIN_MS = 1000;
+const GAME_OVER_MIN_MS = 1000;
 
 function restoreActiveGameSession() {
   try {
@@ -658,7 +671,7 @@ function renderRoomStatus(rs) {
 
   if (shouldStartOverlay || (startOverlayPending && nextGameId && !ended)) {
     startOverlayPending = false;
-    showStartOverlay(nextGameId);
+    scheduleStartOverlayAfterGameOver(nextGameId);
   }
 
   if (rs.game?.endedAt) {
@@ -1200,18 +1213,36 @@ function showStartOverlay(gameId) {
   showOverlay("Starting game...", "", null, null, false);
   setTimeout(() => {
     maybeHideStartOverlay();
-  }, 1000);
+  }, START_OVERLAY_MIN_MS);
 }
 
 function maybeHideStartOverlay() {
   if (!startOverlay) return;
   const ready = lastGameState?.game?.gameId === startOverlay.gameId;
   const elapsed = Date.now() - startOverlay.startedAt;
-  if (ready && elapsed >= 1000) {
+  if (ready && elapsed >= START_OVERLAY_MIN_MS) {
     hideOverlay();
     startOverlay = null;
     startOverlayPending = false;
   }
+}
+
+function scheduleStartOverlayAfterGameOver(nextGameId) {
+  if (!gameOverOverlay) {
+    showStartOverlay(nextGameId);
+    return;
+  }
+  if (gameOverDismissTimer) clearTimeout(gameOverDismissTimer);
+  const elapsed = Date.now() - gameOverOverlay.shownAt;
+  const delay = Math.max(0, GAME_OVER_MIN_MS - elapsed);
+  gameOverDismissTimer = setTimeout(() => {
+    gameOverDismissTimer = null;
+    if (gameOverOverlay) {
+      hideOverlay();
+      gameOverOverlay = null;
+    }
+    showStartOverlay(nextGameId);
+  }, delay);
 }
 
 function showOverlay(
