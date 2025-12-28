@@ -545,6 +545,20 @@ button.pill:focus-visible {
   align-items: center;
   justify-content: center;
   z-index: 50;
+  --overlay-btn-bg-top: #fff3df;
+  --overlay-btn-bg-bottom: #f2dfc2;
+  --overlay-btn-border: #cbb89f;
+  --overlay-btn-color: #6b4a19;
+  --overlay-btn-secondary-bg-top: #e8f5f2;
+  --overlay-btn-secondary-bg-bottom: #d7ece7;
+  --overlay-btn-secondary-border: #b8d5cd;
+  --overlay-btn-secondary-color: #1d5c4e;
+  --overlay-btn-ghost-bg: #ffffff;
+  --overlay-btn-ghost-border: #ddd1bd;
+  --overlay-btn-ghost-color: #6d6357;
+  --overlay-btn-disabled-bg: #f0e6d5;
+  --overlay-btn-disabled-border: #d8cbb7;
+  --overlay-btn-disabled-color: #8a7a67;
 }
 
 .overlay.role-neutral {
@@ -559,6 +573,20 @@ button.pill:focus-visible {
   --overlay-card-bg: #f7fcf9;
   --overlay-card-border: #d4e5da;
   --overlay-shadow: 0 18px 40px rgba(22, 45, 34, 0.16);
+  --overlay-btn-bg-top: #eaf7ef;
+  --overlay-btn-bg-bottom: #cfead9;
+  --overlay-btn-border: #a8d0ba;
+  --overlay-btn-color: #205a3d;
+  --overlay-btn-secondary-bg-top: #e7f4f1;
+  --overlay-btn-secondary-bg-bottom: #d1ebe6;
+  --overlay-btn-secondary-border: #a9d4cc;
+  --overlay-btn-secondary-color: #1f5a4b;
+  --overlay-btn-ghost-bg: #ffffff;
+  --overlay-btn-ghost-border: #cfe7db;
+  --overlay-btn-ghost-color: #2b5a46;
+  --overlay-btn-disabled-bg: #dfeee6;
+  --overlay-btn-disabled-border: #c0d8ca;
+  --overlay-btn-disabled-color: #5b7a68;
 }
 
 .overlay.role-faker {
@@ -566,6 +594,20 @@ button.pill:focus-visible {
   --overlay-card-bg: #fff8f7;
   --overlay-card-border: #efcfc9;
   --overlay-shadow: 0 18px 40px rgba(56, 23, 19, 0.18);
+  --overlay-btn-bg-top: #fee9e7;
+  --overlay-btn-bg-bottom: #f7c9c3;
+  --overlay-btn-border: #e1a3a0;
+  --overlay-btn-color: #7a1f1a;
+  --overlay-btn-secondary-bg-top: #f9e3e0;
+  --overlay-btn-secondary-bg-bottom: #f1c4bd;
+  --overlay-btn-secondary-border: #dba5a0;
+  --overlay-btn-secondary-color: #7a1f1a;
+  --overlay-btn-ghost-bg: #ffffff;
+  --overlay-btn-ghost-border: #efcfc9;
+  --overlay-btn-ghost-color: #7a1f1a;
+  --overlay-btn-disabled-bg: #f3d9d6;
+  --overlay-btn-disabled-border: #e0b8b3;
+  --overlay-btn-disabled-color: #8b5a55;
 }
 
 .overlay-card {
@@ -584,6 +626,41 @@ button.pill:focus-visible {
 
 .overlay-card button {
   margin-top: 10px;
+}
+
+.overlay button {
+  background: linear-gradient(
+    180deg,
+    var(--overlay-btn-bg-top),
+    var(--overlay-btn-bg-bottom)
+  );
+  border-color: var(--overlay-btn-border);
+  color: var(--overlay-btn-color);
+}
+
+.overlay button.secondary {
+  background: linear-gradient(
+    180deg,
+    var(--overlay-btn-secondary-bg-top),
+    var(--overlay-btn-secondary-bg-bottom)
+  );
+  border-color: var(--overlay-btn-secondary-border);
+  color: var(--overlay-btn-secondary-color);
+}
+
+.overlay button.ghost {
+  background: var(--overlay-btn-ghost-bg);
+  border-color: var(--overlay-btn-ghost-border);
+  color: var(--overlay-btn-ghost-color);
+}
+
+.overlay button:disabled {
+  background: var(--overlay-btn-disabled-bg);
+  border-color: var(--overlay-btn-disabled-border);
+  color: var(--overlay-btn-disabled-color);
+  filter: grayscale(35%);
+  opacity: 0.55;
+  box-shadow: none;
 }
 
 #overlayChoice button {

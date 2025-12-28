@@ -1893,7 +1893,7 @@ async function triggerVote() {
 
   voteTriggerInFlight = true;
   updateGameUI();
-  showOverlay("Locking in your vote...", "", null, null, false);
+  showOverlay("Just a moment...", "", null, null, false);
   try {
     const { status, data } = await postJSON("/.netlify/functions/triggerVote", {
       roomCode,
