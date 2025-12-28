@@ -70,6 +70,9 @@
     </section>
 
     <section id="viewLobby" class="view">
+      <div class="row" style="justify-content: flex-end; margin-bottom: 10px;">
+        <div id="playerBadge" class="pill player-badge player-banner"></div>
+      </div>
       <div class="grid">
         <section class="panel">
           <div class="row room-header">
@@ -80,10 +83,7 @@
               </button>
               <span id="roomCodeCopied" class="mini copied-note" role="status">copied!</span>
             </div>
-            <div class="row" style="align-items: center; gap: 10px;">
-              <div id="playerBadge" class="pill player-badge"></div>
-              <button id="btnLeaveRoom" class="ghost">Leave</button>
-            </div>
+            <button id="btnLeaveRoom" class="ghost">Leave</button>
           </div>
           <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
           <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
@@ -112,7 +112,7 @@
 
       <section id="viewGame" class="view">
         <div class="row" style="justify-content: flex-end; margin-bottom: 10px; gap: 10px;">
-          <div id="playerBadgeGame" class="pill player-badge"></div>
+          <div id="playerBadgeGame" class="pill player-badge player-banner"></div>
           <div class="pill">
             <span class="mini">Room</span>
             <button id="roomCodePillGame" class="mono" type="button">
