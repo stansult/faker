@@ -823,6 +823,7 @@ function renderRoomStatus(rs) {
           <td>${esc(p.name || "")}</td>
           <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
           ${showWordsColumn ? `<td class="mono">${
+            p.doneWords &&
             Number.isInteger(p.wordsRequired) &&
             Number.isInteger(p.wordsSubmitted) &&
             p.wordsSubmitted >= p.wordsRequired
