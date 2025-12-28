@@ -649,6 +649,7 @@ let matchEndShown = false;
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
 const ACTIVE_GAME_KEY = "faker:activeGameId";
+const APP_VERSION = "1.0";
 const START_OVERLAY_MIN_MS = 1000;
 const GAME_OVER_MIN_MS = 1000;
 
@@ -2741,12 +2742,12 @@ function wireUI() {
 
   const build = $("buildVersion");
   if (build) {
-    build.textContent = "build (local)";
+    build.textContent = `v${APP_VERSION} • build (local)`;
     fetch("./build.txt", { cache: "no-store" })
       .then(res => (res.ok ? res.text() : null))
       .then(text => {
         if (!text) return;
-        build.textContent = `build ${text.trim()}`;
+        build.textContent = `v${APP_VERSION} • build ${text.trim()}`;
       })
       .catch(() => {});
   }
