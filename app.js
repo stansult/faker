@@ -1716,7 +1716,8 @@ async function joinRoom(options = {}) {
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
-    return;
+    setActionError(true, "Join already in progress. Please wait.");
+    return joinInFlight;
   }
 
   if (!skipLandingGate && landingMode !== "join") {
@@ -2511,6 +2512,7 @@ function wireUI() {
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnRejoinRoom")?.addEventListener("click", async () => {
+    if (joinInFlight) await joinInFlight;
     const lastRoom = getLastRoomCode();
     const saved = lastRoom ? getSaved(lastRoom) : null;
     if (!lastRoom || !saved) return;
