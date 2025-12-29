@@ -455,6 +455,11 @@ button.pill:focus-visible {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  flex: 1;
+}
+
+.room-code-wrap {
+  margin-left: auto;
 }
 
 .landing-actions {
