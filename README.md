@@ -17,8 +17,8 @@ npm run dev
 ```
 Then open `http://localhost:8888`.
 
-For other devices on your Wi-Fi:
+For other devices (share a public URL):
 ```
 npm run dev:lan
 ```
-Then open `http://<your-mac-ip>:8888`.
+It will print a public URL you can open on any device.
