@@ -628,6 +628,7 @@ let pollTimer = null;
 let pollInFlight = false;
 let nameTouched = false;
 let joinInFlight = null;
+let joinInFlightStartedAt = 0;
 let landingMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
@@ -1714,6 +1715,11 @@ async function joinRoom(options = {}) {
   const allowNameMismatch = !!options.allowNameMismatch;
   const ignoreExistingRoom = !!options.ignoreExistingRoom;
   const queueAfterJoin = !!options.queueAfterJoin;
+  const now = Date.now();
+  if (joinInFlight && joinInFlightStartedAt && now - joinInFlightStartedAt > 9000) {
+    joinInFlight = null;
+    joinInFlightStartedAt = 0;
+  }
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
@@ -1802,6 +1808,7 @@ async function joinRoom(options = {}) {
   }
   setActionError(false);
 
+  joinInFlightStartedAt = Date.now();
   joinInFlight = (async () => {
     try {
       const saved = ensureLocalIdentity(roomCode);
@@ -1817,6 +1824,8 @@ async function joinRoom(options = {}) {
             setLandingDisabled(false);
           }
           log({ error: "Name does not match saved player for this room" }, "joinRoom");
+          joinInFlight = null;
+          joinInFlightStartedAt = 0;
           return;
         }
         setLastRoomCode(roomCode);
@@ -1888,6 +1897,7 @@ async function joinRoom(options = {}) {
       }
     } finally {
       joinInFlight = null;
+      joinInFlightStartedAt = 0;
     }
   })();
 }
