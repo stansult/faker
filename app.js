@@ -215,7 +215,8 @@ function setRoomCode(code) {
 function getInviteUrl(roomCode) {
   const value = sanitizeRoomCode(roomCode || "");
   if (!value) return "";
-  return `https://faker-game.netlify.app/?room=${value}`;
+  const base = window.location.origin || "https://faker-game.netlify.app";
+  return `${base}/?room=${value}`;
 }
 
 function sanitizeRoomCode(raw) {
