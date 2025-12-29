@@ -1713,10 +1713,19 @@ async function joinRoom(options = {}) {
   const skipLandingGate = !!options.skipLandingGate;
   const allowNameMismatch = !!options.allowNameMismatch;
   const ignoreExistingRoom = !!options.ignoreExistingRoom;
+  const queueAfterJoin = !!options.queueAfterJoin;
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
     setActionError(true, "Join already in progress. Please wait.");
+    if (queueAfterJoin) {
+      try {
+        await joinInFlight;
+      } catch {
+        // Ignore join errors and retry
+      }
+      return joinRoom({ ...options, queueAfterJoin: false });
+    }
     return joinInFlight;
   }
 
@@ -2512,14 +2521,13 @@ function wireUI() {
   $("btnCreateRoom")?.addEventListener("click", createRoom);
   $("btnJoinRoom")?.addEventListener("click", joinRoom);
   $("btnRejoinRoom")?.addEventListener("click", async () => {
-    if (joinInFlight) await joinInFlight;
     const lastRoom = getLastRoomCode();
     const saved = lastRoom ? getSaved(lastRoom) : null;
     if (!lastRoom || !saved) return;
     setRoomCode(lastRoom);
     const nameInput = $("playerName");
     if (nameInput && saved.name) nameInput.value = saved.name;
-    await joinRoom({ skipLandingGate: true, allowNameMismatch: true });
+    await joinRoom({ skipLandingGate: true, allowNameMismatch: true, queueAfterJoin: true });
   });
   $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
