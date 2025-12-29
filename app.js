@@ -123,8 +123,9 @@ function flashCopied(id, message, durationMs = 2500) {
   }, durationMs);
 }
 
-// const VOTE_TOTAL_SECONDS = 30; // Production
-const VOTE_TOTAL_SECONDS = 300;  // For testing
+const VOTE_TOTAL_SECONDS = 30; // Production
+// const VOTE_TOTAL_SECONDS = 300;  // For testing
+
 const VOTE_FINAL_SECONDS = 5;
 
 /* ===== view helpers ===== */
