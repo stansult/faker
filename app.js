@@ -61,6 +61,13 @@ function log(obj, label = "log") {
   renderLogEntry(entry, out);
 }
 
+function cancelJoinInFlight() {
+  if (!joinInFlight) return;
+  joinAttemptId += 1;
+  joinInFlight = null;
+  joinInFlightStartedAt = 0;
+}
+
 async function postJSON(path, bodyObj) {
   let res;
   const controller = new AbortController();
@@ -629,6 +636,7 @@ let pollInFlight = false;
 let nameTouched = false;
 let joinInFlight = null;
 let joinInFlightStartedAt = 0;
+let joinAttemptId = 0;
 let landingMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
@@ -1808,15 +1816,18 @@ async function joinRoom(options = {}) {
   }
   setActionError(false);
 
+  const attemptId = ++joinAttemptId;
   joinInFlightStartedAt = Date.now();
   joinInFlight = (async () => {
     try {
+      const isStale = () => attemptId !== joinAttemptId;
       const saved = ensureLocalIdentity(roomCode);
 
       // If already joined on this browser profile, reuse (do not update name)
       if (saved.playerId && saved.playerNumber) {
         const savedName = normalizeName(saved.name || "");
         if (!allowNameMismatch && savedName && name && savedName !== name) {
+          if (isStale()) return;
           setNameError(true, "Name does not match saved player for this room.");
           $("playerName")?.focus();
           if (!skipLandingGate) {
@@ -1828,6 +1839,7 @@ async function joinRoom(options = {}) {
           joinInFlightStartedAt = 0;
           return;
         }
+        if (isStale()) return;
         setLastRoomCode(roomCode);
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         await roomStatus("roomStatus (already joined)");
@@ -1841,6 +1853,7 @@ async function joinRoom(options = {}) {
       }
 
       if (!name) {
+        if (isStale()) return;
         nameTouched = true;
         updateNameError();
         $("playerName")?.focus();
@@ -1866,6 +1879,7 @@ async function joinRoom(options = {}) {
   log({ status, ...data }, "joinRoom");
 
       if (status === 200 && data.playerId && data.playerNumber) {
+        if (isStale()) return;
         setActionError(false);
         setSaved(roomCode, {
           ...saved,
@@ -1883,6 +1897,7 @@ async function joinRoom(options = {}) {
           setLandingDisabled(false);
         }
       } else if (status !== 200) {
+        if (isStale()) return;
         setActionError(true, friendlyJoinError(data, status));
         if (!skipLandingGate) {
           hideOverlay();
@@ -1896,8 +1911,10 @@ async function joinRoom(options = {}) {
         setLandingDisabled(false);
       }
     } finally {
-      joinInFlight = null;
-      joinInFlightStartedAt = 0;
+      if (attemptId === joinAttemptId) {
+        joinInFlight = null;
+        joinInFlightStartedAt = 0;
+      }
     }
   })();
 }
@@ -2534,6 +2551,7 @@ function wireUI() {
     const lastRoom = getLastRoomCode();
     const saved = lastRoom ? getSaved(lastRoom) : null;
     if (!lastRoom || !saved) return;
+    cancelJoinInFlight();
     setRoomCode(lastRoom);
     const nameInput = $("playerName");
     if (nameInput && saved.name) nameInput.value = saved.name;
