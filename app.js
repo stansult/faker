@@ -8,7 +8,7 @@ function nowStamp() {
   return new Date().toLocaleTimeString();
 }
 
-function renderLogEntry(entry, out) {
+function renderLogEntry(entry, out, prepend = true) {
   const details = document.createElement("details");
   details.open = false;
 
@@ -31,7 +31,7 @@ function renderLogEntry(entry, out) {
   details.appendChild(summary);
   details.appendChild(pre);
 
-  if (out.firstChild) {
+  if (prepend && out.firstChild) {
     out.insertBefore(details, out.firstChild);
   } else {
     out.appendChild(details);
@@ -46,8 +46,8 @@ function renderLogBuffer() {
     out.textContent = "No logs yet.";
     return;
   }
-  for (let i = logBuffer.length - 1; i >= 0; i--) {
-    renderLogEntry(logBuffer[i], out);
+  for (let i = 0; i < logBuffer.length; i++) {
+    renderLogEntry(logBuffer[i], out, false);
   }
 }
 
