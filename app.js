@@ -646,6 +646,7 @@ let startOverlayPending = false;
 let gameOverOverlay = null;
 let gameOverDismissTimer = null;
 let matchEndShown = false;
+let submitWordsInFlight = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -2030,6 +2031,16 @@ async function submitWords() {
 
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWords");
+  if (submitWordsInFlight) return;
+
+  const required = Number.isInteger(lastRoomStatus?.wordsRequired)
+    ? lastRoomStatus.wordsRequired
+    : null;
+  const current = getAcceptedWords(roomCode);
+  if (required != null && current.length >= required) {
+    setSubmitWordsError("All words submitted.");
+    return;
+  }
 
   const words = getSingleWordSubmission();
   if (!words.length) {
@@ -2042,6 +2053,12 @@ async function submitWords() {
 
   setSubmitWordsError("");
 
+  submitWordsInFlight = true;
+  const input = $("wordInput");
+  const btn = $("btnSubmitWords");
+  if (input) input.disabled = true;
+  if (btn) btn.disabled = true;
+
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
@@ -2050,14 +2067,14 @@ async function submitWords() {
   log({ status, ...data }, "submitWords");
 
   if (status === 200) {
-    const input = $("wordInput");
     if (input && data.accepted?.length) input.value = "";
-    const current = getAcceptedWords(roomCode);
-    const merged = [...current];
+    const existing = getAcceptedWords(roomCode);
+    const merged = [...existing];
     for (const w of data.accepted || []) {
       if (!merged.includes(w)) merged.push(w);
     }
-    setAcceptedWords(roomCode, merged);
+    const capped = Number.isInteger(data.required) ? merged.slice(0, data.required) : merged;
+    setAcceptedWords(roomCode, capped);
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
         invalid_format: "invalid format",
@@ -2073,9 +2090,13 @@ async function submitWords() {
       setSubmitWordsError(`Not accepted: ${message}.`);
     }
     await roomStatus("roomStatus (after submitWords)");
-    return;
+  } else if (data?.error) {
+    setSubmitWordsError(String(data.error));
   }
-  if (data?.error) setSubmitWordsError(String(data.error));
+
+  submitWordsInFlight = false;
+  if (input) input.disabled = false;
+  if (btn) btn.disabled = false;
 }
 
 async function submitWordsBulk() {
@@ -2084,6 +2105,7 @@ async function submitWordsBulk() {
 
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWordsBulk");
+  if (submitWordsInFlight) return;
 
   const words = getBulkWordSubmission();
   if (!words.length) {
@@ -2101,6 +2123,7 @@ async function submitWordsBulk() {
     return;
   }
 
+  submitWordsInFlight = true;
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
     playerId: saved.playerId,
@@ -2116,7 +2139,8 @@ async function submitWordsBulk() {
     for (const w of data.accepted || []) {
       if (!merged.includes(w)) merged.push(w);
     }
-    setAcceptedWords(roomCode, merged);
+    const capped = Number.isInteger(data.required) ? merged.slice(0, data.required) : merged;
+    setAcceptedWords(roomCode, capped);
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
         invalid_format: "invalid format",
@@ -2132,9 +2156,10 @@ async function submitWordsBulk() {
       setSubmitWordsError(`Not accepted: ${message}.`);
     }
     await roomStatus("roomStatus (after submitWordsBulk)");
-    return;
+  } else if (data?.error) {
+    setSubmitWordsError(String(data.error));
   }
-  if (data?.error) setSubmitWordsError(String(data.error));
+  submitWordsInFlight = false;
 }
 
 async function startGame() {
