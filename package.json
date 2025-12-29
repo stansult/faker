@@ -1,6 +1,10 @@
 {
   "name": "faker",
   "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "dev:lan": "netlify dev --host 0.0.0.0"
+  },
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
   }

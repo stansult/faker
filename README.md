@@ -9,3 +9,16 @@ Small party word game with Netlify Functions backend and a real UI in `index.htm
 - Move flow: turn order is join order; non-fakers cannot submit the secret word.
 - Voting phase: players can trigger a forced vote, vote live, and the timer resolves the game.
 - Scores: winners gain +1; scores persist across games in a room and show in the lobby list.
+
+## Local dev
+Run the site + functions locally:
+```
+npm run dev
+```
+Then open `http://localhost:8888`.
+
+For other devices on your Wi-Fi:
+```
+npm run dev:lan
+```
+Then open `http://<your-mac-ip>:8888`.

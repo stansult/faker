@@ -2648,6 +2648,13 @@ function wireUI() {
       const roomCode = getRoomCode();
       const current = getAcceptedWords(roomCode);
       const next = current.filter(w => normalizeWord(w) !== normalizeWord(word));
+      const required = Number.isInteger(lastRoomStatus?.wordsRequired)
+        ? lastRoomStatus.wordsRequired
+        : null;
+      if (required != null && next.length < required) {
+        const doneBtn = $("btnDoneWords");
+        if (doneBtn) doneBtn.classList.add("hidden");
+      }
 
       if (btn.classList.contains("word-edit")) {
         await updateMyWords(next);
