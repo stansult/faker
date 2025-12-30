@@ -895,6 +895,24 @@ function renderRoomStatus(rs) {
   if (roundsPerGame) metaParts.push(`Rounds per game: ${roundsPerGame}`);
   setText("roomMeta", metaParts.join(" • "));
 
+  const roomSubtitle = $("roomSubtitle");
+  if (roomSubtitle) {
+    if (gamesPlayed === 0 && !gameActive) {
+      let text =
+        "You are in the room where you will play. Submit your words that will be used for the games. Once all players submitted their words, anyone can start the first game!";
+      if (isHost) {
+        text += " As a host, you can start the game without waiting for those who are not ready, and even kick the players (be fair).";
+      }
+      roomSubtitle.textContent = text;
+    } else {
+      let text = "The game is on! Try to get the highest score!";
+      if (isHost) {
+        text += " As a host, you can kick the players (be fair).";
+      }
+      roomSubtitle.textContent = text;
+    }
+  }
+
   const el = $("playersList");
   if (el) {
     const showWordsColumn = !(gamesPlayed > 0 || gameActive);
