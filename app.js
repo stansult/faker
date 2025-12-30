@@ -380,6 +380,26 @@ async function updateMyWords(words) {
   await roomStatus("roomStatus (after updateWords)", { silent: true });
 }
 
+async function kickPlayer(playerId) {
+  if (kickInFlight) return;
+  const roomCode = getRoomCode();
+  if (!roomCode) return;
+  const saved = getSaved(roomCode);
+  if (!saved?.playerId) return;
+  kickInFlight = true;
+  const { status, data } = await postJSON("/.netlify/functions/kickPlayer", {
+    roomCode,
+    hostPlayerId: saved.playerId,
+    targetPlayerId: playerId
+  });
+  log({ status, ...data }, "kickPlayer");
+  if (status !== 200) {
+    setActionError(true, data?.error ? String(data.error) : `Kick failed (${status})`);
+  }
+  await roomStatus("roomStatus (after kick)", { silent: true });
+  kickInFlight = false;
+}
+
 async function markWordsDone() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
@@ -658,6 +678,7 @@ let gameOverOverlay = null;
 let gameOverDismissTimer = null;
 let matchEndShown = false;
 let submitWordsInFlight = false;
+let kickInFlight = false;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -842,6 +863,7 @@ function renderRoomStatus(rs) {
     players.length;
 
   const saved = getSaved(rs.roomCode || getRoomCode());
+  const isHost = !!saved && saved.playerNumber === 1;
   if (saved?.playerId) {
     const me = players.find(p => p.playerId === saved.playerId);
     if (me && me.playerNumber && me.playerNumber !== saved.playerNumber) {
@@ -884,9 +906,11 @@ function renderRoomStatus(rs) {
           <td class="mono">-</td>
           ${showWordsColumn ? '<td class="mono">-</td>' : ""}
           <td class="mini">Not joined</td>
+          ${isHost ? "<td></td>" : ""}
         </tr>
       `;
         }
+        const canKick = isHost && p.playerNumber !== 1;
         return `
         <tr>
           <td class="mono">${p.playerNumber}</td>
@@ -901,12 +925,18 @@ function renderRoomStatus(rs) {
               : `${p.wordsSubmitted}/${p.wordsRequired}`
           }</td>` : ""}
           <td>${p.ready ? "Ready" : "Not ready"}</td>
+          ${isHost ? `<td class="mini">${
+            canKick
+              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(p.name || "")}" type="button" aria-label="Kick player">❌</button>`
+              : ""
+          }</td>` : ""}
         </tr>
       `;
       })
       .join("");
 
     const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
+    const kickHeader = isHost ? "<th></th>" : "";
     el.innerHTML = `
       <table class="status-table">
         <thead>
@@ -916,6 +946,7 @@ function renderRoomStatus(rs) {
             <th>Score</th>
             ${wordHeader}
             <th>Status</th>
+            ${kickHeader}
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -2818,6 +2849,32 @@ function wireUI() {
       }
       lastTapTarget = targetId;
       lastTapAt = now;
+    });
+  }
+
+  const playersList = $("playersList");
+  if (playersList) {
+    playersList.addEventListener("click", async e => {
+      const btn = e.target.closest?.(".kick-player");
+      if (!btn) return;
+      const playerId = btn.getAttribute("data-player-id");
+      const playerNumber = btn.getAttribute("data-player-number");
+      const playerName = btn.getAttribute("data-player-name");
+      if (!playerId) return;
+      const label = playerName ? `${playerNumber}. ${playerName}` : `Player #${playerNumber}`;
+      const choice = await new Promise(resolve => {
+        showOverlayChoice(
+          `Remove ${label} from the room?`,
+          "Kick player",
+          () => resolve(true),
+          "Cancel",
+          () => resolve(false),
+          () => resolve(false)
+        );
+      });
+      hideOverlay();
+      if (!choice) return;
+      await kickPlayer(playerId);
     });
   }
 
