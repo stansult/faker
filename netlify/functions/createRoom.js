@@ -145,6 +145,7 @@ export async function handler(event) {
       wordsPerPlayer,
       locked: false,
       matchEnded: false,
+      matchEndReason: null,
 
       players: [],
       wordPool: [],

@@ -113,6 +113,10 @@ export async function handler(event) {
   }
   if (room.locked) {
     room.effectiveMaxPlayers = renumbered.length;
+    if (renumbered.length < 3) {
+      room.matchEnded = true;
+      room.matchEndReason = "insufficient_players";
+    }
   }
 
   await store.setJSON(roomCode, room);

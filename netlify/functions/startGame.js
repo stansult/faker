@@ -119,6 +119,14 @@ export async function handler(event) {
 
     if (!effectiveMaxPlayers) return json(500, { error: "Room is missing player count" });
 
+    if (room.locked && room.players.length < 3) {
+      room.matchEnded = true;
+      room.matchEndReason = "insufficient_players";
+      room.updatedAt = new Date().toISOString();
+      await store.setJSON(roomCode, room);
+      return json(409, { error: "Not enough players to continue match" });
+    }
+
     if (room.players.length < effectiveMaxPlayers) {
       if (!startShort) {
         return json(409, { error: `Need ${effectiveMaxPlayers} players to start` });

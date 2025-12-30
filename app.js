@@ -564,6 +564,11 @@ function buildMatchSummaryHtml() {
     })
     .join("");
 
+  let reasonNote = "";
+  if (lastRoomStatus?.matchEndReason === "insufficient_players") {
+    reasonNote = `<div class="mini match-note">Match ended early - not enough players to continue.</div>`;
+  }
+
   return `
     <div class="overlay-title">Match over.</div>
     <table class="status-table match-table">
@@ -578,6 +583,7 @@ function buildMatchSummaryHtml() {
         ${bodyRows}
       </tbody>
     </table>
+    ${reasonNote}
     <div class="mini match-total">Total games: ${gamesTotal != null ? gamesTotal : "?"}</div>
   `;
 }

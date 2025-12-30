@@ -55,6 +55,7 @@ export async function handler(event) {
   const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
   const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
   const matchEnded = !!room.matchEnded;
+  const matchEndReason = room.matchEndReason || null;
   const currentPlayers = players.length;
 
   const me = playerId ? players.find(p => p.playerId === playerId) : null;
@@ -120,6 +121,7 @@ export async function handler(event) {
       gamesTotal,
       gamesPlayed,
       matchEnded,
+      matchEndReason,
 
       movesThisRound,
       lastMoves,
@@ -164,6 +166,8 @@ export async function handler(event) {
     maxPlayers,
     effectiveMaxPlayers,
     currentPlayers,
+    matchEnded,
+    matchEndReason,
 
     you: me
       ? {
