@@ -602,6 +602,11 @@ button.pill:focus-visible {
         font-weight: 700;
       }
 
+      .room-table th,
+      .room-table td {
+        border-bottom: 0.5px solid #efe4d2;
+      }
+
       #output {
         border: 1px solid var(--line);
         border-radius: 12px;

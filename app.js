@@ -970,7 +970,7 @@ function renderRoomStatus(rs) {
     const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
     const kickHeader = "<th></th>";
     el.innerHTML = `
-      <table class="status-table">
+      <table class="status-table room-table">
         <thead>
           <tr>
             <th>#</th>
@@ -1153,7 +1153,7 @@ function renderRoundsTable() {
   }
 
   container.innerHTML = `
-    <table class="status-table">
+    <table class="status-table room-table">
       <thead>
         <tr>
           <th>Round</th>
@@ -1225,7 +1225,7 @@ function renderVoteTable() {
     .join("");
 
   container.innerHTML = `
-    <table class="status-table">
+    <table class="status-table room-table">
       <thead>
         <tr>
           <th>Player</th>
