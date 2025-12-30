@@ -862,8 +862,7 @@ function renderRoomStatus(rs) {
     (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
     players.length;
 
-  const saved = getSaved(rs.roomCode || getRoomCode());
-  const isHost = !!saved && saved.playerNumber === 1;
+  let saved = getSaved(rs.roomCode || getRoomCode());
   if (saved?.playerId) {
     const me = players.find(p => p.playerId === saved.playerId);
     if (me && me.playerNumber && me.playerNumber !== saved.playerNumber) {
@@ -872,8 +871,10 @@ function renderRoomStatus(rs) {
         playerNumber: me.playerNumber,
         name: me.name || saved.name
       });
+      saved = getSaved(rs.roomCode || getRoomCode());
     }
   }
+  const isHost = !!saved && saved.playerNumber === 1;
 
   const metaParts = [];
   metaParts.push(`Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}`);
