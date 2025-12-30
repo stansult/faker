@@ -604,6 +604,7 @@ button.pill:focus-visible {
       #output summary {
         cursor: pointer;
         font-weight: 700;
+        font-size: 12px;
         list-style: none;
       }
 
@@ -614,6 +615,7 @@ button.pill:focus-visible {
 #output pre {
   cursor: copy;
   margin: 8px 0 0 0;
+  font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
 }

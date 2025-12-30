@@ -5,7 +5,7 @@ function $(id) {
 /* ===== logging + fetch ===== */
 
 function nowStamp() {
-  return new Date().toLocaleTimeString();
+  return new Date().toLocaleString();
 }
 
 function renderLogEntry(entry, out, prepend = true) {
@@ -46,7 +46,7 @@ function renderLogBuffer() {
     out.textContent = "No logs yet.";
     return;
   }
-  for (let i = 0; i < logBuffer.length; i++) {
+  for (let i = logBuffer.length - 1; i >= 0; i--) {
     renderLogEntry(logBuffer[i], out, false);
   }
 }
@@ -1823,31 +1823,25 @@ async function joinRoom(options = {}) {
   }
   setActionError(false);
 
-  const attemptId = ++joinAttemptId;
-  joinInFlightStartedAt = Date.now();
-  joinInFlight = (async () => {
-    try {
-      const isStale = () => attemptId !== joinAttemptId;
-      const saved = ensureLocalIdentity(roomCode);
+  const saved = ensureLocalIdentity(roomCode);
+  if (saved.playerId && saved.playerNumber) {
+    const savedName = normalizeName(saved.name || "");
+    if (!allowNameMismatch && savedName && name && savedName !== name) {
+      setNameError(true, "Name does not match saved player for this room.");
+      $("playerName")?.focus();
+      lastJoinError = "name_mismatch";
+      if (!skipLandingGate) {
+        hideOverlay();
+        setLandingDisabled(false);
+      }
+      log({ error: "Name does not match saved player for this room" }, "joinRoom");
+      return;
+    }
 
-      // If already joined on this browser profile, reuse (do not update name)
-      if (saved.playerId && saved.playerNumber) {
-        const savedName = normalizeName(saved.name || "");
-        if (!allowNameMismatch && savedName && name && savedName !== name) {
-          if (isStale()) return;
-          setNameError(true, "Name does not match saved player for this room.");
-          $("playerName")?.focus();
-          lastJoinError = "name_mismatch";
-          if (!skipLandingGate) {
-            hideOverlay();
-            setLandingDisabled(false);
-          }
-          log({ error: "Name does not match saved player for this room" }, "joinRoom");
-          joinInFlight = null;
-          joinInFlightStartedAt = 0;
-          return;
-        }
-        if (isStale()) return;
+    const attemptId = ++joinAttemptId;
+    joinInFlightStartedAt = Date.now();
+    joinInFlight = (async () => {
+      try {
         setLastRoomCode(roomCode);
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
         lastJoinError = null;
@@ -1858,8 +1852,21 @@ async function joinRoom(options = {}) {
           hideOverlay();
           setLandingDisabled(false);
         }
-        return;
+      } finally {
+        if (attemptId === joinAttemptId) {
+          joinInFlight = null;
+          joinInFlightStartedAt = 0;
+        }
       }
+    })();
+    return joinInFlight;
+  }
+
+  const attemptId = ++joinAttemptId;
+  joinInFlightStartedAt = Date.now();
+  joinInFlight = (async () => {
+    try {
+      const isStale = () => attemptId !== joinAttemptId;
 
       if (!name) {
         if (isStale()) return;
@@ -2621,6 +2628,7 @@ function wireUI() {
 
   $("playerName")?.addEventListener("input", () => {
     if (lastJoinError === "name_mismatch") {
+      cancelJoinInFlight();
       lastJoinError = null;
       setNameError(false);
       setActionError(false);
