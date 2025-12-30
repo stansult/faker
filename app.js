@@ -906,15 +906,15 @@ function renderRoomStatus(rs) {
   if (subheading && currentView === "viewRoom") {
     if (gamesPlayed === 0 && !gameActive) {
       let text =
-        "You are in the room where you will play. Submit your words that will be used for the games. Once all players submitted their words, anyone can start the first game!";
+        "You are in the room where you are going to play. Submit your words to the pool that will be used for the games. Once all players submitted their words, anyone can start the first game!";
       if (isHost) {
-        text += " As a host, you can start the game without waiting for those who are not ready, and even kick the players (be fair).";
+        text += "\n\n As a host, you can start the game without waiting for those who are not ready, and even kick the players (be fair).";
       }
       subheading.textContent = text;
     } else {
       let text = "The game is on! Try to get the highest score!";
       if (isHost) {
-        text += " As a host, you can kick the players (be fair).";
+        text += "\n\n As a host, you can kick the players (be fair).";
       }
       subheading.textContent = text;
     }
