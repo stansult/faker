@@ -863,6 +863,7 @@ function renderRoomStatus(rs) {
     players.length;
 
   let saved = getSaved(rs.roomCode || getRoomCode());
+  const myPlayerId = saved?.playerId || null;
   if (saved?.playerId) {
     const me = players.find(p => p.playerId === saved.playerId);
     if (me && me.playerNumber && me.playerNumber !== saved.playerNumber) {
@@ -912,6 +913,7 @@ function renderRoomStatus(rs) {
       `;
         }
         const canKick = isHost && p.playerNumber !== 1;
+        const isMe = myPlayerId && p.playerId === myPlayerId;
         return `
         <tr>
           <td class="mono">${p.playerNumber}</td>
@@ -926,18 +928,18 @@ function renderRoomStatus(rs) {
               : `${p.wordsSubmitted}/${p.wordsRequired}`
           }</td>` : ""}
           <td>${p.ready ? "Ready" : "Not ready"}</td>
-          ${isHost ? `<td class="mini">${
+          <td class="mini">${
             canKick
               ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(p.name || "")}" type="button" aria-label="Kick player">❌</button>`
-              : ""
-          }</td>` : ""}
+              : (isMe ? "← you" : "")
+          }</td>
         </tr>
       `;
       })
       .join("");
 
     const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
-    const kickHeader = isHost ? "<th></th>" : "";
+    const kickHeader = "<th></th>";
     el.innerHTML = `
       <table class="status-table">
         <thead>
@@ -2862,10 +2864,12 @@ function wireUI() {
       const playerNumber = btn.getAttribute("data-player-number");
       const playerName = btn.getAttribute("data-player-name");
       if (!playerId) return;
-      const label = playerName ? `${playerNumber}. ${playerName}` : `Player #${playerNumber}`;
+      const numberLabel = playerNumber ? `player #${playerNumber}` : "this player";
+      const nameLabel = playerName ? ` (${playerName})` : "";
+      const label = `Remove ${numberLabel}${nameLabel} from the room?`;
       const choice = await new Promise(resolve => {
         showOverlayChoice(
-          `Remove ${label} from the room?`,
+          label,
           "Kick player",
           () => resolve(true),
           "Cancel",
