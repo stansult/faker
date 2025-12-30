@@ -566,8 +566,15 @@ function buildMatchSummaryHtml() {
 
   let reasonNote = "";
   if (lastRoomStatus?.matchEndReason === "insufficient_players") {
-    reasonNote = `<div class="mini match-note">Match ended early - not enough players to continue.</div>`;
+    reasonNote = `<div class="mini match-note">Match ended early: not enough players to continue.</div>`;
   }
+
+  const totalText =
+    gamesTotal != null && Number.isInteger(lastRoomStatus?.gamesPlayed)
+      ? (lastRoomStatus.gamesPlayed >= gamesTotal
+          ? `Total games: ${gamesTotal}`
+          : `Played ${lastRoomStatus.gamesPlayed} / ${gamesTotal} games`)
+      : `Total games: ${gamesTotal != null ? gamesTotal : "?"}`;
 
   return `
     <div class="overlay-title">Match over.</div>
@@ -584,7 +591,7 @@ function buildMatchSummaryHtml() {
       </tbody>
     </table>
     ${reasonNote}
-    <div class="mini match-total">Total games: ${gamesTotal != null ? gamesTotal : "?"}</div>
+    <div class="mini match-total">${totalText}</div>
   `;
 }
 
