@@ -169,6 +169,7 @@ function updateTitle() {
   const game = lastGameState?.game || rs?.game || null;
   const matchEnded = !!rs?.matchEnded;
   const roomCode = rs?.roomCode || getRoomCode();
+  const locked = !!rs?.locked;
 
   if (currentView === "viewLobby") {
     document.title = `${base} — Lobby`;
@@ -181,7 +182,10 @@ function updateTitle() {
   }
 
   if (currentView === "viewRoom") {
-    document.title = roomCode ? `${base} — Room ${roomCode}` : `${base} — Room`;
+    const prefix = locked ? "🔒 " : "";
+    document.title = roomCode
+      ? `${base} — ${prefix}Room ${roomCode}`
+      : `${base} — ${prefix}Room`;
     return;
   }
 
@@ -210,6 +214,17 @@ function updateTitle() {
 function setText(id, text) {
   const el = $(id);
   if (el) el.textContent = text || "";
+}
+
+function showLockTooltip() {
+  const icon = $("roomLockIcon");
+  if (!icon || icon.classList.contains("hidden")) return;
+  icon.classList.add("show-tip");
+  if (lockTipTimer) clearTimeout(lockTipTimer);
+  lockTipTimer = setTimeout(() => {
+    icon.classList.remove("show-tip");
+    lockTipTimer = null;
+  }, 1500);
 }
 
 /* ===== room code ===== */
@@ -687,6 +702,7 @@ let matchEndShown = false;
 let submitWordsInFlight = false;
 let submitMoveInFlight = false;
 let kickInFlight = false;
+let lockTipTimer = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -866,6 +882,12 @@ function renderRoomStatus(rs) {
   const gamesPlayed = Number.isInteger(rs.gamesPlayed) ? rs.gamesPlayed : 0;
   const gameActive = !!(rs.game && rs.game.gameId && !rs.game.endedAt);
   const locked = !!rs.locked;
+  const lockIcon = $("roomLockIcon");
+  if (lockIcon) {
+    lockIcon.textContent = locked ? "🔒" : "";
+    lockIcon.title = locked ? "Room locked" : "";
+    lockIcon.classList.toggle("hidden", !locked);
+  }
   const totalSlots =
     locked
       ? players.length
@@ -2856,6 +2878,8 @@ function wireUI() {
 
   $("moveWord")?.addEventListener("focus", () => setActionHint("btnSubmitMove"));
   $("moveWord")?.addEventListener("blur", clearActionHints);
+
+  $("roomLockIcon")?.addEventListener("click", showLockTooltip);
 
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
