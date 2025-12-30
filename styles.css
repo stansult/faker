@@ -517,10 +517,18 @@ button.pill:focus-visible {
   font-size: 10px;
 }
 
-.is-me {
+.is-me-row td {
   background: #f6efe3;
-  border-radius: 999px;
-  padding: 2px 8px;
+}
+
+.is-me-row td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.is-me-row td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .icon-btn:focus-visible {

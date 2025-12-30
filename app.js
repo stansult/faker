@@ -919,7 +919,7 @@ function renderRoomStatus(rs) {
         const canKick = isHost && p.playerNumber !== 1;
         const isMe = myPlayerId && p.playerId === myPlayerId;
         return `
-        <tr>
+        <tr${isMe ? ' class="is-me-row"' : ""}>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(p.name || "")}</td>
           <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
@@ -932,7 +932,7 @@ function renderRoomStatus(rs) {
               : `${p.wordsSubmitted}/${p.wordsRequired}`
           }</td>` : ""}
           <td>${p.ready ? "Ready" : "Not ready"}</td>
-          <td class="mini${isMe ? " is-me" : ""}">${
+          <td class="mini">${
             canKick
               ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(p.name || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "← you" : "")
