@@ -462,23 +462,23 @@ button.pill:focus-visible {
   margin-left: auto;
 }
 
-.landing-actions {
+.lobby-actions {
   align-items: center;
 }
 
-.landing-actions {
+.lobby-actions {
   justify-content: space-between;
   width: 100%;
 }
 
-.landing-actions-left {
+.lobby-actions-left {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
 }
 
-.landing-actions #btnRejoinRoom {
+.lobby-actions #btnRejoinRoom {
   margin-left: auto;
 }
 

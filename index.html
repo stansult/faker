@@ -22,7 +22,7 @@
       </div>
     </header>
 
-    <section id="viewLanding" class="view active">
+    <section id="viewLobby" class="view active">
       <div class="grid">
         <section class="panel">
           <h3>Lobby</h3>
@@ -33,11 +33,11 @@
               <div id="nameError">Name is required to join.</div>
             </div>
           </div>
-            <div class="row landing-actions" style="margin-top: 12px">
-              <div class="row landing-actions-left">
+            <div class="row lobby-actions" style="margin-top: 12px">
+              <div class="row lobby-actions-left">
                 <button id="btnCreateRoom">Create room</button>
                 <button id="btnJoinRoom">Join room</button>
-                <button id="btnBackLanding" class="ghost hidden">Back</button>
+                <button id="btnBackLobby" class="ghost hidden">Back</button>
               </div>
               <button id="btnRejoinRoom" class="secondary hidden">Re-join last room</button>
             </div>
@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <section id="viewLobby" class="view">
+    <section id="viewRoom" class="view">
       <div class="row" style="justify-content: flex-end; margin-bottom: 10px;">
         <div id="playerBadge" class="pill player-badge player-banner"></div>
       </div>
@@ -91,7 +91,6 @@
             <button id="btnLeaveRoom" class="ghost">Leave</button>
           </div>
           <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
-          <div class="mini" id="roomSubtitle" style="margin-top: 6px"></div>
           <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
           <div id="playersList" class="players mini" style="margin-top: 12px"></div>
         </section>

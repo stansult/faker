@@ -137,8 +137,10 @@ const VOTE_FINAL_SECONDS = 5;
 
 /* ===== view helpers ===== */
 
-const views = ["viewLanding", "viewLobby", "viewGame"];
-let currentView = "viewLanding";
+const views = ["viewLobby", "viewRoom", "viewGame"];
+let currentView = "viewLobby";
+const LOBBY_SUBTITLE =
+  "Join a room, submit your words, and try to spot the faker. Legit players share the secret word, the faker must bluff their way through.";
 
 function setView(activeId) {
   currentView = activeId;
@@ -149,7 +151,12 @@ function setView(activeId) {
     else el.classList.remove("active");
   }
   const subheading = $("subheading");
-  if (subheading) subheading.classList.toggle("hidden", activeId !== "viewLanding");
+  if (subheading) {
+    subheading.classList.toggle("hidden", activeId === "viewGame");
+    if (activeId === "viewLobby") {
+      subheading.textContent = LOBBY_SUBTITLE;
+    }
+  }
   updatePlayerBadge();
   const gameBadge = $("playerBadgeGame");
   if (gameBadge) gameBadge.classList.toggle("hidden", activeId === "viewGame");
@@ -163,7 +170,7 @@ function updateTitle() {
   const matchEnded = !!rs?.matchEnded;
   const roomCode = rs?.roomCode || getRoomCode();
 
-  if (currentView === "viewLanding") {
+  if (currentView === "viewLobby") {
     document.title = `${base} — Lobby`;
     return;
   }
@@ -173,7 +180,7 @@ function updateTitle() {
     return;
   }
 
-  if (currentView === "viewLobby") {
+  if (currentView === "viewRoom") {
     document.title = roomCode ? `${base} — Room ${roomCode}` : `${base} — Room`;
     return;
   }
@@ -567,17 +574,17 @@ function showMatchEndOverlay() {
   showOverlay("", "", null, null, false);
   const msg = $("overlayMessage");
   if (msg) msg.innerHTML = buildMatchSummaryHtml();
-  const waitForLobby = () => {
-    const lobby = $("viewLobby");
-    if (lobby && lobby.classList.contains("active")) {
+  const waitForRoom = () => {
+    const room = $("viewRoom");
+    if (room && room.classList.contains("active")) {
       showOverlay("", "Leave room", leaveRoomAfterMatchEnd, null, false);
       const refreshed = $("overlayMessage");
       if (refreshed) refreshed.innerHTML = buildMatchSummaryHtml();
       return;
     }
-    setTimeout(waitForLobby, 200);
+    setTimeout(waitForRoom, 200);
   };
-  setTimeout(waitForLobby, 200);
+  setTimeout(waitForRoom, 200);
 }
 
 function renderAcceptedWords(roomCode) {
@@ -658,7 +665,7 @@ let joinInFlight = null;
 let joinInFlightStartedAt = 0;
 let joinAttemptId = 0;
 let lastJoinError = null;
-let landingMode = null;
+let lobbyMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
 let createInFlight = false;
@@ -895,21 +902,21 @@ function renderRoomStatus(rs) {
   if (roundsPerGame) metaParts.push(`Rounds per game: ${roundsPerGame}`);
   setText("roomMeta", metaParts.join(" • "));
 
-  const roomSubtitle = $("roomSubtitle");
-  if (roomSubtitle) {
+  const subheading = $("subheading");
+  if (subheading && currentView === "viewRoom") {
     if (gamesPlayed === 0 && !gameActive) {
       let text =
         "You are in the room where you will play. Submit your words that will be used for the games. Once all players submitted their words, anyone can start the first game!";
       if (isHost) {
         text += " As a host, you can start the game without waiting for those who are not ready, and even kick the players (be fair).";
       }
-      roomSubtitle.textContent = text;
+      subheading.textContent = text;
     } else {
       let text = "The game is on! Try to get the highest score!";
       if (isHost) {
         text += " As a host, you can kick the players (be fair).";
       }
-      roomSubtitle.textContent = text;
+      subheading.textContent = text;
     }
   }
 
@@ -1062,7 +1069,7 @@ function updateViewState(rs) {
   const saved = roomCode ? getSaved(roomCode) : null;
 
   if (!saved?.playerId) {
-    setView("viewLanding");
+    setView("viewLobby");
     return;
   }
 
@@ -1078,10 +1085,10 @@ function updateViewState(rs) {
     setActiveGameSession(currentGameId);
     setView("viewGame");
   } else {
-    setView("viewLobby");
+    setView("viewRoom");
   }
 
-  updateLandingMode(null);
+  updateLobbyMode(null);
   applyRoleTheme();
 }
 
@@ -1548,24 +1555,24 @@ function updateRejoinButton() {
   btn.classList.toggle("hidden", !canRejoin);
 }
 
-function updateLandingMode(nextMode = null) {
-  if (nextMode !== null) landingMode = nextMode;
-  if (nextMode === null) landingMode = null;
+function updateLobbyMode(nextMode = null) {
+  if (nextMode !== null) lobbyMode = nextMode;
+  if (nextMode === null) lobbyMode = null;
 
-  const isCreate = landingMode === "create";
-  const isJoin = landingMode === "join";
+  const isCreate = lobbyMode === "create";
+  const isJoin = lobbyMode === "join";
 
   const btnCreate = $("btnCreateRoom");
   const btnJoin = $("btnJoinRoom");
-  const btnBack = $("btnBackLanding");
+  const btnBack = $("btnBackLobby");
   const btnRejoin = $("btnRejoinRoom");
   const createPanel = $("createSettings");
   const joinPanel = $("joinRoomCode");
 
   if (btnCreate) btnCreate.classList.toggle("hidden", isJoin);
   if (btnJoin) btnJoin.classList.toggle("hidden", isCreate);
-  if (btnBack) btnBack.classList.toggle("hidden", !landingMode);
-  if (btnRejoin) btnRejoin.classList.toggle("hidden", !!landingMode);
+  if (btnBack) btnBack.classList.toggle("hidden", !lobbyMode);
+  if (btnRejoin) btnRejoin.classList.toggle("hidden", !!lobbyMode);
 
   if (createPanel) createPanel.classList.toggle("hidden", !isCreate);
   if (joinPanel) joinPanel.classList.toggle("hidden", !isJoin);
@@ -1573,8 +1580,8 @@ function updateLandingMode(nextMode = null) {
   setActionError(false);
 }
 
-function setLandingDisabled(disabled) {
-  const ids = ["btnCreateRoom", "btnJoinRoom", "btnBackLanding", "btnRejoinRoom"];
+function setLobbyDisabled(disabled) {
+  const ids = ["btnCreateRoom", "btnJoinRoom", "btnBackLobby", "btnRejoinRoom"];
   for (const id of ids) {
     const el = $(id);
     if (el) el.disabled = disabled;
@@ -1757,7 +1764,7 @@ function initOverlayDismissal() {
 function cancelCreate() {
   createAbort = true;
   createInFlight = false;
-  setLandingDisabled(false);
+  setLobbyDisabled(false);
   hideOverlay();
   createState = { roomCode: null, retries: 0 };
 }
@@ -1776,7 +1783,7 @@ async function waitForVoteTrigger(roomCode, playerId, timeoutMs = 4000) {
 async function joinRoom(options = {}) {
   const roomCode = getRoomCode();
   const name = normalizeName($("playerName")?.value || "");
-  const skipLandingGate = !!options.skipLandingGate;
+  const skipLobbyGate = !!options.skipLobbyGate;
   const allowNameMismatch = !!options.allowNameMismatch;
   const ignoreExistingRoom = !!options.ignoreExistingRoom;
   const queueAfterJoin = !!options.queueAfterJoin;
@@ -1806,8 +1813,8 @@ async function joinRoom(options = {}) {
     return joinInFlight;
   }
 
-  if (!skipLandingGate && landingMode !== "join") {
-    updateLandingMode("join");
+  if (!skipLobbyGate && lobbyMode !== "join") {
+    updateLobbyMode("join");
     $("roomCode")?.focus();
     return;
   }
@@ -1818,7 +1825,7 @@ async function joinRoom(options = {}) {
     return;
   }
 
-  if (!skipLandingGate && !name) {
+  if (!skipLobbyGate && !name) {
     nameTouched = true;
     updateNameError();
     setActionError(true, "Enter your name to join.");
@@ -1826,7 +1833,7 @@ async function joinRoom(options = {}) {
     return;
   }
 
-  if (!skipLandingGate && !ignoreExistingRoom) {
+  if (!skipLobbyGate && !ignoreExistingRoom) {
     const lastRoom = getLastRoomCode();
     const savedLast = lastRoom ? getSaved(lastRoom) : null;
     if (lastRoom && lastRoom !== roomCode && savedLast?.playerId) {
@@ -1854,7 +1861,7 @@ async function joinRoom(options = {}) {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
       } else if (choice === "old") {
         setRoomCode(lastRoom);
-        await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        await joinRoom({ skipLobbyGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
         return;
       } else {
         return;
@@ -1862,17 +1869,17 @@ async function joinRoom(options = {}) {
     }
   }
 
-  if (!skipLandingGate) {
-    setLandingDisabled(true);
+  if (!skipLobbyGate) {
+    setLobbyDisabled(true);
     showOverlay("Joining room...");
   }
 
   const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
   if (precheck.status === 404) {
     setActionError(true, "Room not found.");
-    if (!skipLandingGate) {
+    if (!skipLobbyGate) {
       hideOverlay();
-      setLandingDisabled(false);
+      setLobbyDisabled(false);
     }
     log({ status: precheck.status, ...precheck.data }, "joinRoom");
     return;
@@ -1886,9 +1893,9 @@ async function joinRoom(options = {}) {
       setNameError(true, "Name does not match saved player for this room.");
       $("playerName")?.focus();
       lastJoinError = "name_mismatch";
-      if (!skipLandingGate) {
+      if (!skipLobbyGate) {
         hideOverlay();
-        setLandingDisabled(false);
+        setLobbyDisabled(false);
       }
       log({ error: "Name does not match saved player for this room" }, "joinRoom");
       return;
@@ -1903,10 +1910,10 @@ async function joinRoom(options = {}) {
         lastJoinError = null;
         await roomStatus("roomStatus (already joined)");
         startPolling();
-        if (!skipLandingGate) {
-          setView("viewLobby");
+        if (!skipLobbyGate) {
+          setView("viewRoom");
           hideOverlay();
-          setLandingDisabled(false);
+          setLobbyDisabled(false);
         }
       } finally {
         if (attemptId === joinAttemptId) {
@@ -1929,9 +1936,9 @@ async function joinRoom(options = {}) {
         nameTouched = true;
         updateNameError();
         $("playerName")?.focus();
-        if (!skipLandingGate) {
+        if (!skipLobbyGate) {
           hideOverlay();
-          setLandingDisabled(false);
+          setLobbyDisabled(false);
         }
         log({ error: "Name is required" }, "joinRoom");
         return;
@@ -1964,25 +1971,25 @@ async function joinRoom(options = {}) {
 
         await roomStatus("roomStatus (after join)");
         startPolling();
-        if (!skipLandingGate) {
-          setView("viewLobby");
+        if (!skipLobbyGate) {
+          setView("viewRoom");
           hideOverlay();
-          setLandingDisabled(false);
+          setLobbyDisabled(false);
         }
       } else if (status !== 200) {
         if (isStale()) return;
         setActionError(true, friendlyJoinError(data, status));
         lastJoinError = "other";
-        if (!skipLandingGate) {
+        if (!skipLobbyGate) {
           hideOverlay();
-          setLandingDisabled(false);
+          setLobbyDisabled(false);
         }
       }
     } catch (err) {
       log({ error: String(err), stack: err?.stack || null }, "joinRoom (exception)");
-      if (!skipLandingGate) {
+      if (!skipLobbyGate) {
         hideOverlay();
-        setLandingDisabled(false);
+        setLobbyDisabled(false);
       }
     } finally {
       if (attemptId === joinAttemptId) {
@@ -2004,8 +2011,8 @@ async function createRoom(options = {}) {
     return;
   }
 
-  if (landingMode !== "create") {
-    updateLandingMode("create");
+  if (lobbyMode !== "create") {
+    updateLobbyMode("create");
     return;
   }
 
@@ -2036,7 +2043,7 @@ async function createRoom(options = {}) {
         await leaveRoomByCode(lastRoom, savedLast.playerId);
       } else if (choice === "old") {
         setRoomCode(lastRoom);
-        await joinRoom({ skipLandingGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
+        await joinRoom({ skipLobbyGate: true, allowNameMismatch: true, ignoreExistingRoom: true });
         return;
       } else {
         return;
@@ -2047,7 +2054,7 @@ async function createRoom(options = {}) {
   if (createInFlight) return;
   createInFlight = true;
   createAbort = false;
-  setLandingDisabled(true);
+  setLobbyDisabled(true);
   showOverlay("Creating room...");
 
   const waitForRoom = async roomCode => {
@@ -2075,7 +2082,7 @@ async function createRoom(options = {}) {
 
       if (!data.roomCode) {
         hideOverlay();
-        setLandingDisabled(false);
+        setLobbyDisabled(false);
         createInFlight = false;
         return false;
       }
@@ -2089,15 +2096,15 @@ async function createRoom(options = {}) {
     if (visible) {
       if (createAbort) return false;
       if (!getSaved(createState.roomCode)?.playerId) {
-        await joinRoom({ skipLandingGate: true });
+        await joinRoom({ skipLobbyGate: true });
       } else {
         await roomStatus("roomStatus (after create)");
         startPolling();
       }
 
-      setView("viewLobby");
+      setView("viewRoom");
       hideOverlay();
-      setLandingDisabled(false);
+      setLobbyDisabled(false);
       createInFlight = false;
       createState = { roomCode: null, retries: 0 };
       return true;
@@ -2531,7 +2538,7 @@ async function leaveRoom() {
   matchEndShown = false;
   stopPolling();
 
-  setView("viewLanding");
+  setView("viewLobby");
 }
 
 function handleKicked(roomCode) {
@@ -2547,7 +2554,7 @@ function handleKicked(roomCode) {
   lastGameOverKey = null;
   matchEndShown = false;
   stopPolling();
-  setView("viewLanding");
+  setView("viewLobby");
 }
 
 async function leaveRoomAfterMatchEnd() {
@@ -2577,7 +2584,7 @@ async function leaveRoomAfterMatchEnd() {
   stopPolling();
   hideOverlay();
 
-  setView("viewLanding");
+  setView("viewLobby");
 }
 
 async function leaveRoomByCode(roomCode, playerId) {
@@ -2653,9 +2660,9 @@ function wireUI() {
     setRoomCode(lastRoom);
     const nameInput = $("playerName");
     if (nameInput && saved.name) nameInput.value = saved.name;
-    await joinRoom({ skipLandingGate: true, allowNameMismatch: true, queueAfterJoin: true });
+    await joinRoom({ skipLobbyGate: true, allowNameMismatch: true, queueAfterJoin: true });
   });
-  $("btnBackLanding")?.addEventListener("click", () => updateLandingMode(null));
+  $("btnBackLobby")?.addEventListener("click", () => updateLobbyMode(null));
   $("btnLeaveRoom")?.addEventListener("click", leaveRoom);
   $("btnSubmitWords")?.addEventListener("click", submitWords);
   $("btnDoneWords")?.addEventListener("click", markWordsDone);
@@ -2930,12 +2937,12 @@ function wireUI() {
   }
 
   renderLocal(getRoomCode());
-  setView("viewLanding");
-  updateLandingMode(null);
+  setView("viewLobby");
+  updateLobbyMode(null);
   const roomParam = params.get("room");
   if (roomParam) {
     setRoomCode(roomParam);
-    updateLandingMode("join");
+    updateLobbyMode("join");
   }
   updateNameError();
   updateRejoinButton();
