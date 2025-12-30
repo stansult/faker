@@ -1345,19 +1345,24 @@ function updateGameUI() {
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
   if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
 
-  const canMove =
+  const isYourTurn =
     !!role &&
     !ended &&
     !voteActive &&
-    !submitMoveInFlight &&
     nextPlayerNumber != null &&
     playerNumber != null &&
     nextPlayerNumber === playerNumber;
 
+  if (submitMoveInFlight && !isYourTurn) {
+    submitMoveInFlight = false;
+  }
+
+  const canMove = isYourTurn && !submitMoveInFlight;
+
   if (input) input.disabled = !canMove;
   if (btn) btn.disabled = !canMove;
   if (moveHeader) {
-    if (canMove) {
+    if (isYourTurn) {
       moveHeader.textContent = "Your move!";
     } else if (nextPlayerNumber != null) {
       const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
@@ -2450,10 +2455,7 @@ async function submitMove() {
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after submitMove)");
 
-  if (success) {
-    submitMoveInFlight = false;
-    updateGameUI();
-  }
+  if (success) updateGameUI();
 }
 
 async function triggerVote() {
