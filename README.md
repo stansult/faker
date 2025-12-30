@@ -1,5 +1,7 @@
 # Faker
-Small party word game with Netlify Functions backend and a real UI in `index.html`.
+Party word game where one player is the faker. Everyone else shares a secret word and tries to blend in with believable one‑word clues, while the faker guesses and survives.
+
+The game runs as a series of games inside a match. Each game picks a secret word from the shared pool, assigns roles, runs turn‑based moves, and ends with voting. Scores persist across games until the match ends.
 
 ## Current state
 - Real UI lives at `/index.html` and shows only production-ready controls.
