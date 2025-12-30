@@ -182,10 +182,10 @@ function updateTitle() {
   }
 
   if (currentView === "viewRoom") {
-    const prefix = locked ? "🔒 " : "";
+    const suffix = locked ? " (locked)" : "";
     document.title = roomCode
-      ? `${base} — ${prefix}Room ${roomCode}`
-      : `${base} — ${prefix}Room`;
+      ? `${base} — Room ${roomCode}${suffix}`
+      : `${base} — Room${suffix}`;
     return;
   }
 
