@@ -637,6 +637,7 @@ let nameTouched = false;
 let joinInFlight = null;
 let joinInFlightStartedAt = 0;
 let joinAttemptId = 0;
+let lastJoinError = null;
 let landingMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
@@ -1723,6 +1724,12 @@ async function joinRoom(options = {}) {
   const allowNameMismatch = !!options.allowNameMismatch;
   const ignoreExistingRoom = !!options.ignoreExistingRoom;
   const queueAfterJoin = !!options.queueAfterJoin;
+  if (lastJoinError === "name_mismatch") {
+    cancelJoinInFlight();
+    lastJoinError = null;
+    setNameError(false);
+    setActionError(false);
+  }
   const now = Date.now();
   if (joinInFlight && joinInFlightStartedAt && now - joinInFlightStartedAt > 9000) {
     joinInFlight = null;
@@ -1830,6 +1837,7 @@ async function joinRoom(options = {}) {
           if (isStale()) return;
           setNameError(true, "Name does not match saved player for this room.");
           $("playerName")?.focus();
+          lastJoinError = "name_mismatch";
           if (!skipLandingGate) {
             hideOverlay();
             setLandingDisabled(false);
@@ -1842,6 +1850,7 @@ async function joinRoom(options = {}) {
         if (isStale()) return;
         setLastRoomCode(roomCode);
         log({ roomCode, ...getSaved(roomCode) }, "joinRoom (reused local identity)");
+        lastJoinError = null;
         await roomStatus("roomStatus (already joined)");
         startPolling();
         if (!skipLandingGate) {
@@ -1881,6 +1890,7 @@ async function joinRoom(options = {}) {
       if (status === 200 && data.playerId && data.playerNumber) {
         if (isStale()) return;
         setActionError(false);
+        lastJoinError = null;
         setSaved(roomCode, {
           ...saved,
           playerId: data.playerId,
@@ -1899,6 +1909,7 @@ async function joinRoom(options = {}) {
       } else if (status !== 200) {
         if (isStale()) return;
         setActionError(true, friendlyJoinError(data, status));
+        lastJoinError = "other";
         if (!skipLandingGate) {
           hideOverlay();
           setLandingDisabled(false);
@@ -2609,6 +2620,11 @@ function wireUI() {
   }
 
   $("playerName")?.addEventListener("input", () => {
+    if (lastJoinError === "name_mismatch") {
+      lastJoinError = null;
+      setNameError(false);
+      setActionError(false);
+    }
     nameTouched = true;
     updateNameError();
   });
