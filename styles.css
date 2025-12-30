@@ -156,6 +156,7 @@
         color: var(--muted);
         font-size: 14px;
         max-width: 520px;
+        white-space: pre-line;
       }
 
       .tag {
