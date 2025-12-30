@@ -865,10 +865,13 @@ function renderRoomStatus(rs) {
   const gamesTotal = Number.isInteger(rs.gamesTotal) ? rs.gamesTotal : null;
   const gamesPlayed = Number.isInteger(rs.gamesPlayed) ? rs.gamesPlayed : 0;
   const gameActive = !!(rs.game && rs.game.gameId && !rs.game.endedAt);
+  const locked = !!rs.locked;
   const totalSlots =
-    maxPlayers ??
-    (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
-    players.length;
+    locked
+      ? players.length
+      : maxPlayers ??
+        (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
+        players.length;
 
   let saved = getSaved(rs.roomCode || getRoomCode());
   const myPlayerId = saved?.playerId || null;
