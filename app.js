@@ -2147,11 +2147,15 @@ async function submitWords() {
 
   setSubmitWordsError("");
 
-  submitWordsInFlight = true;
   const input = $("wordInput");
   const btn = $("btnSubmitWords");
+  const shouldDisableAfterSubmit =
+    required != null && current.length + words.length >= required;
+
+  submitWordsInFlight = true;
   if (input) input.disabled = true;
   if (btn) btn.disabled = true;
+  if (shouldDisableAfterSubmit && input) input.value = "";
 
   const { status, data } = await postJSON("/.netlify/functions/submitWords", {
     roomCode,
@@ -2161,7 +2165,7 @@ async function submitWords() {
   log({ status, ...data }, "submitWords");
 
   if (status === 200) {
-    if (input && data.accepted?.length) input.value = "";
+    if (input && data.accepted?.length && !shouldDisableAfterSubmit) input.value = "";
     const existing = getAcceptedWords(roomCode);
     const merged = [...existing];
     for (const w of data.accepted || []) {
@@ -2184,13 +2188,17 @@ async function submitWords() {
       setSubmitWordsError(`Not accepted: ${message}.`);
     }
     await roomStatus("roomStatus (after submitWords)");
+    if (Number.isInteger(data?.remaining) && data.remaining > 0) {
+      if (input) input.disabled = false;
+      if (btn) btn.disabled = false;
+    }
   } else if (data?.error) {
     setSubmitWordsError(String(data.error));
+    if (input) input.disabled = false;
+    if (btn) btn.disabled = false;
   }
 
   submitWordsInFlight = false;
-  if (input) input.disabled = false;
-  if (btn) btn.disabled = false;
 }
 
 async function submitWordsBulk() {
