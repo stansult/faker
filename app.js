@@ -685,6 +685,7 @@ let gameOverOverlay = null;
 let gameOverDismissTimer = null;
 let matchEndShown = false;
 let submitWordsInFlight = false;
+let submitMoveInFlight = false;
 let kickInFlight = false;
 
 const CREATE_TIMEOUT_MS = 12000;
@@ -1348,6 +1349,7 @@ function updateGameUI() {
     !!role &&
     !ended &&
     !voteActive &&
+    !submitMoveInFlight &&
     nextPlayerNumber != null &&
     playerNumber != null &&
     nextPlayerNumber === playerNumber;
@@ -2401,6 +2403,7 @@ async function submitMove() {
 
   const saved = getSaved(roomCode);
   if (!saved?.playerId) return log({ error: "Not joined" }, "submitMove");
+  if (submitMoveInFlight) return;
 
   const raw = String($("moveWord")?.value || "");
   const word = normalizeWord(raw);
@@ -2419,6 +2422,12 @@ async function submitMove() {
     }
   }
 
+  submitMoveInFlight = true;
+  const input = $("moveWord");
+  const btn = $("btnSubmitMove");
+  if (input) input.disabled = true;
+  if (btn) btn.disabled = true;
+
   const { status, data } = await postJSON("/.netlify/functions/submitMove", {
     roomCode,
     playerId: saved.playerId,
@@ -2431,9 +2440,11 @@ async function submitMove() {
     setMoveError(String(data.error));
   } else if (status === 200) {
     setMoveError("");
-    const input = $("moveWord");
     if (input) input.value = "";
   }
+
+  submitMoveInFlight = false;
+  updateGameUI();
 
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after submitMove)");
