@@ -319,13 +319,13 @@ function renderLocal(roomCode) {
   const roomInput = $("roomCode");
   if (roomInput) {
     const locked = !!(saved && saved.playerId && saved.playerNumber);
-    roomInput.readOnly = locked;
+    roomInput.readOnly = locked && currentView !== "viewLobby";
   }
 
   const nameInput = $("playerName");
   if (nameInput) {
     const locked = !!(saved && saved.playerId && saved.playerNumber);
-    nameInput.disabled = locked;
+    nameInput.disabled = locked && currentView !== "viewLobby";
     if (locked) {
       nameTouched = false;
       setNameError(false);
@@ -2806,13 +2806,6 @@ function wireUI() {
     const input = e.currentTarget;
     if (!input) return;
     input.select();
-    const value = String(input.value || "").trim();
-    if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // Ignore clipboard failures (e.g., permissions)
-    }
   });
 
   $("roomCode")?.addEventListener("input", e => {
