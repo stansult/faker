@@ -60,6 +60,9 @@ export async function handler(event) {
   const matchEnded = !!room.matchEnded;
 
   const players = Array.isArray(room.players) ? room.players : [];
+  const effectiveMaxPlayers = Number.isInteger(room.effectiveMaxPlayers)
+    ? room.effectiveMaxPlayers
+    : (room.locked ? players.length : maxPlayers);
 
   // Normalize words defensively so counts match what submitWords expects.
   for (const p of players) {
@@ -100,13 +103,13 @@ export async function handler(event) {
   // Missing join slots (if room expects a fixed roster)
   const joinedNums = new Set(playersView.map(p => p.playerNumber));
   const missingJoinNumbers = [];
-  if (maxPlayers > 0) {
-    for (let n = 1; n <= maxPlayers; n++) {
+  if (effectiveMaxPlayers > 0) {
+    for (let n = 1; n <= effectiveMaxPlayers; n++) {
       if (!joinedNums.has(n)) missingJoinNumbers.push(n);
     }
   }
 
-  const allJoined = maxPlayers > 0 && currentPlayers === maxPlayers;
+  const allJoined = effectiveMaxPlayers > 0 && currentPlayers === effectiveMaxPlayers;
   const allReady = allJoined && missingWordsPlayers.length === 0;
   const allJoinedReady = currentPlayers > 0 && missingWordsPlayers.length === 0;
 
@@ -128,6 +131,7 @@ export async function handler(event) {
     roomCode,
     locked: !!room.locked,
     maxPlayers,
+    effectiveMaxPlayers,
     currentPlayers,
     roundsPerGame,
     wordsRequired,

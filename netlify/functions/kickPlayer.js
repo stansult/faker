@@ -111,6 +111,9 @@ export async function handler(event) {
   if (!Number.isInteger(room.playerCount)) {
     room.playerCount = renumbered.length;
   }
+  if (room.locked) {
+    room.effectiveMaxPlayers = renumbered.length;
+  }
 
   await store.setJSON(roomCode, room);
 

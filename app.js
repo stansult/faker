@@ -832,10 +832,12 @@ function applyRoomStatus(status) {
   const gameStarted = !!status?.game?.gameId;
   const gameActive = gameStarted && !gameEnded;
   const locked = !!status?.locked && !gameEnded;
+  const gamesPlayed = Number.isInteger(status?.gamesPlayed) ? status.gamesPlayed : 0;
+  const preMatch = gamesPlayed === 0 && !gameActive;
 
   const isHost = !!saved && saved.playerNumber === 1;
   const canStart =
-    !gameActive && !locked && !matchEnded && allJoined && allReady;
+    !gameActive && !matchEnded && allJoined && allReady;
   const currentPlayers =
     status?.currentPlayers ??
     (Array.isArray(status?.players) ? status.players.length : 0);
@@ -846,7 +848,8 @@ function applyRoomStatus(status) {
     allJoinedReady &&
     isHost &&
     currentPlayers >= 3 &&
-    !matchEnded;
+    !matchEnded &&
+    preMatch;
 
   btnStart.disabled = startInFlight || !canStart;
 
@@ -854,7 +857,7 @@ function applyRoomStatus(status) {
     btnStartShort.disabled = startInFlight || !canStartShort;
     btnStartShort.classList.toggle(
       "hidden",
-      !isHost || allJoined || currentPlayers < 3 || matchEnded
+      !isHost || allJoined || currentPlayers < 3 || matchEnded || locked || !preMatch
     );
   }
 }
@@ -876,6 +879,9 @@ function renderRoomStatus(rs) {
 
   const players = Array.isArray(rs.players) ? rs.players : [];
   const maxPlayers = Number.isInteger(rs.maxPlayers) ? rs.maxPlayers : null;
+  const effectiveMaxPlayers = Number.isInteger(rs.effectiveMaxPlayers)
+    ? rs.effectiveMaxPlayers
+    : maxPlayers;
   const wordsRequired = Number.isInteger(rs.wordsRequired) ? rs.wordsRequired : null;
   const roundsPerGame = Number.isInteger(rs.roundsPerGame) ? rs.roundsPerGame : null;
   const gamesTotal = Number.isInteger(rs.gamesTotal) ? rs.gamesTotal : null;
@@ -889,11 +895,9 @@ function renderRoomStatus(rs) {
     lockIcon.classList.toggle("hidden", !locked);
   }
   const totalSlots =
-    locked
-      ? players.length
-      : maxPlayers ??
-        (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
-        players.length;
+    effectiveMaxPlayers ??
+    (Number.isInteger(rs.playerCount) ? rs.playerCount : null) ??
+    players.length;
 
   let saved = getSaved(rs.roomCode || getRoomCode());
   const myPlayerId = saved?.playerId || null;
@@ -914,8 +918,9 @@ function renderRoomStatus(rs) {
   }
   const isHost = !!saved && saved.playerNumber === 1;
 
+  const displayMaxPlayers = effectiveMaxPlayers;
   const metaParts = [];
-  metaParts.push(`Players: ${players.length}${maxPlayers ? " / " + maxPlayers : ""}`);
+  metaParts.push(`Players: ${players.length}${displayMaxPlayers ? " / " + displayMaxPlayers : ""}`);
   if (gamesTotal != null) {
     const currentGameNumber = gameActive ? gamesPlayed + 1 : gamesPlayed;
     if (gamesPlayed === 0 && !gameActive) {
@@ -2371,7 +2376,10 @@ async function startShortGame() {
   const currentPlayers =
     lastRoomStatus?.currentPlayers ??
     (Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players.length : null);
-  const maxPlayers = lastRoomStatus?.maxPlayers ?? null;
+  const maxPlayers =
+    lastRoomStatus?.effectiveMaxPlayers ??
+    lastRoomStatus?.maxPlayers ??
+    null;
 
   let counts = "";
   if (currentPlayers != null || maxPlayers != null) {

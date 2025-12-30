@@ -138,6 +138,7 @@ export async function handler(event) {
       updatedAt: now,
 
       playerCount,
+      effectiveMaxPlayers: playerCount,
       gamesTotal,
       gamesPlayed: 0,
       roundsPerGame,

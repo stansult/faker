@@ -49,6 +49,9 @@ export async function handler(event) {
 
   const players = Array.isArray(room.players) ? room.players : [];
   const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : null;
+  const effectiveMaxPlayers = Number.isInteger(room.effectiveMaxPlayers)
+    ? room.effectiveMaxPlayers
+    : (room.locked ? players.length : maxPlayers);
   const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
   const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
   const matchEnded = !!room.matchEnded;
@@ -159,6 +162,7 @@ export async function handler(event) {
     roomCode,
     locked: !!room.locked,
     maxPlayers,
+    effectiveMaxPlayers,
     currentPlayers,
 
     you: me

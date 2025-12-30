@@ -113,20 +113,22 @@ export async function handler(event) {
     const maxPlayers = Number.isInteger(room.maxPlayers)
       ? room.maxPlayers
       : (Number.isInteger(room.playerCount) ? room.playerCount : null);
+    const effectiveMaxPlayers = Number.isInteger(room.effectiveMaxPlayers)
+      ? room.effectiveMaxPlayers
+      : (room.locked ? room.players.length : maxPlayers);
 
-    if (!maxPlayers) return json(500, { error: "Room is missing player count" });
+    if (!effectiveMaxPlayers) return json(500, { error: "Room is missing player count" });
 
-    if (room.players.length < maxPlayers) {
+    if (room.players.length < effectiveMaxPlayers) {
       if (!startShort) {
-        return json(409, { error: `Need ${maxPlayers} players to start` });
+        return json(409, { error: `Need ${effectiveMaxPlayers} players to start` });
       }
 
       // Short start: host-only, lock roster to current players
       if (starter.playerNumber !== 1) {
         return json(403, { error: "Only host (player 1) can start short" });
       }
-
-      room.playerCount = room.players.length;
+      room.effectiveMaxPlayers = room.players.length;
     }
 
     // Require all players have submitted required words
@@ -165,6 +167,7 @@ export async function handler(event) {
     if (gamesTotal != null && gamesPlayed >= gamesTotal) {
       room.matchEnded = true;
       room.locked = true;
+      room.effectiveMaxPlayers = room.players.length;
       room.updatedAt = new Date().toISOString();
       await store.setJSON(roomCode, room);
       return json(409, { error: "Match already ended" });
@@ -202,6 +205,7 @@ export async function handler(event) {
     };
 
     room.locked = true;
+    room.effectiveMaxPlayers = room.players.length;
     room.updatedAt = now;
 
     await store.setJSON(roomCode, room);
