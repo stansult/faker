@@ -928,7 +928,7 @@ function renderRoomStatus(rs) {
               : `${p.wordsSubmitted}/${p.wordsRequired}`
           }</td>` : ""}
           <td>${p.ready ? "Ready" : "Not ready"}</td>
-          <td class="mini">${
+          <td class="mini${isMe ? " is-me" : ""}">${
             canKick
               ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(p.name || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "← you" : "")

@@ -514,7 +514,13 @@ button.pill:focus-visible {
 }
 
 .kick-player {
-  font-size: 12px;
+  font-size: 10px;
+}
+
+.is-me {
+  background: #f6efe3;
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 
 .icon-btn:focus-visible {
