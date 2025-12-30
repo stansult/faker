@@ -2436,18 +2436,24 @@ async function submitMove() {
 
   log({ status, ...data }, "submitMove");
 
-  if (status !== 200 && data?.error) {
+  const success = status === 200;
+
+  if (!success && data?.error) {
     setMoveError(String(data.error));
-  } else if (status === 200) {
+    submitMoveInFlight = false;
+    updateGameUI();
+  } else if (success) {
     setMoveError("");
     if (input) input.value = "";
   }
 
-  submitMoveInFlight = false;
-  updateGameUI();
-
   await new Promise(r => setTimeout(r, POST_ACTION_DELAY_MS));
   await roomStatus("roomStatus (after submitMove)");
+
+  if (success) {
+    submitMoveInFlight = false;
+    updateGameUI();
+  }
 }
 
 async function triggerVote() {
