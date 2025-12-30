@@ -866,6 +866,10 @@ function renderRoomStatus(rs) {
   const myPlayerId = saved?.playerId || null;
   if (saved?.playerId) {
     const me = players.find(p => p.playerId === saved.playerId);
+    if (!me) {
+      handleKicked(rs.roomCode || getRoomCode());
+      return;
+    }
     if (me && me.playerNumber && me.playerNumber !== saved.playerNumber) {
       setSaved(rs.roomCode || getRoomCode(), {
         ...saved,
@@ -2501,6 +2505,22 @@ async function leaveRoom() {
   matchEndShown = false;
   stopPolling();
 
+  setView("viewLanding");
+}
+
+function handleKicked(roomCode) {
+  clearSaved(roomCode);
+  clearLastRoomCode();
+  setRoomCode("");
+  renderAcceptedWords(roomCode);
+  setSubmitWordsError("");
+  roleState = { role: null, secretWord: null, gameId: null };
+  lastRoomStatus = null;
+  lastGameState = null;
+  clearActiveGameSession();
+  lastGameOverKey = null;
+  matchEndShown = false;
+  stopPolling();
   setView("viewLanding");
 }
 
