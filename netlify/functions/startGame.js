@@ -200,6 +200,19 @@ export async function handler(event) {
     room.usedWords = updatedUsed;
     room.wordPool = room.wordPool.filter(w => w !== secretWord);
 
+    const sortedPlayers = room.players
+      .slice()
+      .sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0));
+    const nextStarterNumber = Number.isInteger(room.nextStarterNumber)
+      ? room.nextStarterNumber
+      : 1;
+    const starterIndex = sortedPlayers.findIndex(p => p.playerNumber === nextStarterNumber);
+    const turnIndex = starterIndex >= 0 ? starterIndex : 0;
+    const nextStarter =
+      sortedPlayers.length > 0
+        ? sortedPlayers[(turnIndex + 1) % sortedPlayers.length]
+        : null;
+
     room.game = {
       gameId: makeId(16),
       startedAt: now,
@@ -207,13 +220,14 @@ export async function handler(event) {
       roundsTotal,
       secretWord,
       fakerPlayerId: faker,
-      turnIndex: 0,
+      turnIndex,
       moves: [],
       votePhase: initVotePhase()
     };
 
     room.locked = true;
     room.effectiveMaxPlayers = room.players.length;
+    room.nextStarterNumber = nextStarter?.playerNumber ?? 1;
     room.updatedAt = now;
 
     await store.setJSON(roomCode, room);

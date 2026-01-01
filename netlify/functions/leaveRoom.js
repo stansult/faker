@@ -74,6 +74,11 @@ export async function handler(event) {
       room.matchEndReason = "insufficient_players";
     }
   }
+  if (Number.isInteger(room.nextStarterNumber) && renumbered.length > 0) {
+    if (room.nextStarterNumber > renumbered.length) {
+      room.nextStarterNumber = 1;
+    }
+  }
 
   await store.setJSON(roomCode, room);
 

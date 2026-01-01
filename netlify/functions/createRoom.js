@@ -146,6 +146,7 @@ export async function handler(event) {
       locked: false,
       matchEnded: false,
       matchEndReason: null,
+      nextStarterNumber: 1,
 
       players: [],
       wordPool: [],
