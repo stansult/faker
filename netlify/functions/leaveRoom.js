@@ -13,24 +13,6 @@ function json(statusCode, obj) {
   };
 }
 
-function normalizeWord(w) {
-  return String(w || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
-
-function uniqPreserve(arr) {
-  const seen = new Set();
-  const out = [];
-  for (const x of arr) {
-    if (seen.has(x)) continue;
-    seen.add(x);
-    out.push(x);
-  }
-  return out;
-}
-
 export async function handler(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -80,23 +62,7 @@ export async function handler(event) {
     .sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0))
     .map((p, i) => ({ ...p, playerNumber: i + 1 }));
 
-  // Rebuild word pool from remaining players.
-  const allWords = [];
-  for (const p of renumbered) {
-    const ws = Array.isArray(p.words) ? p.words : [];
-    for (const w of ws) {
-      const nw = normalizeWord(w);
-      if (nw) allWords.push(nw);
-    }
-  }
-
-  const usedWords = Array.isArray(room.usedWords)
-    ? room.usedWords.map(normalizeWord).filter(Boolean)
-    : [];
-  const usedSet = new Set(usedWords);
-
   room.players = renumbered;
-  room.wordPool = uniqPreserve(allWords).filter(w => !usedSet.has(w));
   room.updatedAt = new Date().toISOString();
   if (!Number.isInteger(room.playerCount)) {
     room.playerCount = players.length;
