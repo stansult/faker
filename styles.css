@@ -857,3 +857,24 @@ button.pill:focus-visible {
           align-items: flex-start;
         }
       }
+.panel.your-turn {
+  border-color: #c89b56;
+  box-shadow: 0 0 0 2px rgba(200, 155, 86, 0.25), 0 12px 30px rgba(200, 155, 86, 0.12);
+  background: linear-gradient(180deg, rgba(255, 249, 236, 0.95), rgba(255, 244, 226, 0.9));
+}
+
+body.role-faker .panel.your-turn {
+  border-color: #b45a5a;
+  box-shadow: 0 0 0 2px rgba(180, 90, 90, 0.25), 0 12px 30px rgba(180, 90, 90, 0.15);
+  background: linear-gradient(180deg, rgba(255, 241, 241, 0.95), rgba(255, 231, 231, 0.9));
+}
+
+@keyframes pulse-turn {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+.panel.your-turn.your-turn-alert {
+  animation: pulse-turn 0.8s ease-in-out infinite;
+}

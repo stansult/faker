@@ -130,10 +130,10 @@ function flashCopied(id, message, durationMs = 2500) {
   }, durationMs);
 }
 
-const VOTE_TOTAL_SECONDS = 30; // Production
-// const VOTE_TOTAL_SECONDS = 300;  // For testing
-
+const VOTE_TOTAL_SECONDS = 30;
 const VOTE_FINAL_SECONDS = 5;
+const MOVE_ALERT_SECONDS = 30;
+const MOVE_VIBRATE_INTERVAL_SECONDS = 10;
 
 /* ===== view helpers ===== */
 
@@ -225,6 +225,55 @@ function showLockTooltip() {
     icon.classList.remove("show-tip");
     lockTipTimer = null;
   }, 1500);
+}
+
+function clearMoveAlerts(panel) {
+  if (moveAlertTimer) {
+    clearTimeout(moveAlertTimer);
+    moveAlertTimer = null;
+  }
+  if (moveVibrateTimer) {
+    clearInterval(moveVibrateTimer);
+    moveVibrateTimer = null;
+  }
+  if (panel) panel.classList.remove("your-turn-alert");
+}
+
+function triggerMoveVibration() {
+  if (navigator.vibrate) {
+    navigator.vibrate([120, 60, 120]);
+  }
+}
+
+function setMoveTurnActive(panel, active) {
+  if (!panel) return;
+  if (!active) {
+    moveTurnActive = false;
+    moveTurnStartedAt = null;
+    clearMoveAlerts(panel);
+    panel.classList.remove("your-turn");
+    return;
+  }
+
+  panel.classList.add("your-turn");
+  if (!moveTurnActive) {
+    moveTurnActive = true;
+    moveTurnStartedAt = Date.now();
+  }
+
+  if (moveAlertTimer || panel.classList.contains("your-turn-alert")) return;
+
+  const elapsed = Date.now() - (moveTurnStartedAt ?? Date.now());
+  const remaining = Math.max(0, MOVE_ALERT_SECONDS * 1000 - elapsed);
+  moveAlertTimer = setTimeout(() => {
+    panel.classList.add("your-turn-alert");
+    triggerMoveVibration();
+    if (!moveVibrateTimer) {
+      moveVibrateTimer = setInterval(() => {
+        triggerMoveVibration();
+      }, MOVE_VIBRATE_INTERVAL_SECONDS * 1000);
+    }
+  }, remaining);
 }
 
 /* ===== room code ===== */
@@ -716,6 +765,10 @@ let submitWordsInFlight = false;
 let submitMoveInFlight = false;
 let kickInFlight = false;
 let lockTipTimer = null;
+let moveTurnActive = false;
+let moveTurnStartedAt = null;
+let moveAlertTimer = null;
+let moveVibrateTimer = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -1318,6 +1371,7 @@ function updateGameUI() {
   const input = $("moveWord");
   const btn = $("btnSubmitMove");
   const movePanel = $("movePanel");
+  const moveEntryPanel = $("moveEntryPanel");
   const gameHeader = $("gameHeader");
   const voteStatus = $("voteStatus");
   const voteTimer = $("voteTimer");
@@ -1401,6 +1455,7 @@ function updateGameUI() {
   }
 
   const canMove = isYourTurn && !submitMoveInFlight;
+  setMoveTurnActive(moveEntryPanel, isYourTurn);
 
   if (input) input.disabled = !canMove;
   if (btn) btn.disabled = !canMove;
