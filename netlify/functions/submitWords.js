@@ -32,8 +32,16 @@ function uniqPreserve(arr) {
   return out;
 }
 
-function isAllowedWord(word) {
-  return /^[a-z'-]+$/.test(String(word || ""));
+function getRoomLanguage(room) {
+  return room?.language === "ru" ? "ru" : "en";
+}
+
+function isAllowedWord(word, language) {
+  const value = String(word || "");
+  if (language === "ru") {
+    return /^[а-яё'-]+$/i.test(value);
+  }
+  return /^[a-z'-]+$/i.test(value);
 }
 
 export async function handler(event) {
@@ -77,9 +85,11 @@ export async function handler(event) {
     return json(409, { error: "Match ended" });
   }
 
+  const language = getRoomLanguage(room);
+
   const invalid = [];
   const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
-    if (!isAllowedWord(word)) {
+    if (!isAllowedWord(word, language)) {
       invalid.push(word);
       return false;
     }

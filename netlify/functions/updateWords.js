@@ -32,8 +32,22 @@ function uniqPreserve(arr) {
   return out;
 }
 
-function isAllowedWord(word) {
-  return /^[a-z'-]+$/.test(String(word || ""));
+function getRoomLanguage(room) {
+  return room?.language === "ru" ? "ru" : "en";
+}
+
+function isAllowedWord(word, language) {
+  const value = String(word || "");
+  if (language === "ru") {
+    return /^[а-яё'-]+$/i.test(value);
+  }
+  return /^[a-z'-]+$/i.test(value);
+}
+
+function getWordRuleHint(language) {
+  return language === "ru"
+    ? "Use Russian letters only (including ё), hyphens, apostrophes."
+    : "Use English letters only (a-z), hyphens, apostrophes.";
 }
 
 export async function handler(event) {
@@ -76,6 +90,8 @@ export async function handler(event) {
     return json(409, { error: "Match ended" });
   }
 
+  const language = getRoomLanguage(room);
+
   // Once game started, no edits allowed.
   if (room.locked || (room.game && room.game.gameId)) {
     return json(409, { error: "Room is locked" });
@@ -93,7 +109,7 @@ export async function handler(event) {
 
   const invalid = [];
   const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
-    if (!isAllowedWord(word)) {
+    if (!isAllowedWord(word, language)) {
       invalid.push(word);
       return false;
     }
@@ -101,7 +117,7 @@ export async function handler(event) {
   });
 
   if (invalid.length) {
-    return json(400, { error: `Invalid word(s): ${invalid.join(", ")}` });
+    return json(400, { error: getWordRuleHint(language) });
   }
 
   if (submitted.length > required) {

@@ -52,6 +52,13 @@
               <input id="playerCount" type="number" min="3" max="20" value="4" />
             </div>
             <div>
+              <label>Language</label>
+              <select id="roomLanguage">
+                <option value="en" selected>English</option>
+                <option value="ru">Russian</option>
+              </select>
+            </div>
+            <div>
               <label>Games</label>
               <input id="gamesTotal" type="number" min="1" max="20" value="4" />
             </div>
@@ -98,6 +105,7 @@
         <section id="submitWordsPanel" class="panel">
           <h3>Submit words</h3>
           <label>One word at a time</label>
+          <div class="mini" id="wordLanguageHint" style="margin-top: 4px"></div>
           <div class="row">
             <input id="wordInput" placeholder="One word only" />
             <button id="btnSubmitWords">Submit word</button>
@@ -151,6 +159,7 @@
                 <input id="moveWord" placeholder="One word only" />
                 <button id="btnSubmitMove">Submit move</button>
               </div>
+              <div class="mini" id="moveLanguageHint" style="margin-top: 6px"></div>
               <div class="mini error-text" id="moveError" style="margin-top: 6px"></div>
             <div class="mini" id="moveHint" style="margin-top: 8px"></div>
           </section>

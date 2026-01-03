@@ -57,6 +57,7 @@ export async function handler(event) {
   const matchEnded = !!room.matchEnded;
   const matchEndReason = room.matchEndReason || null;
   const currentPlayers = players.length;
+  const language = room.language === "ru" ? "ru" : "en";
 
   const me = playerId ? players.find(p => p.playerId === playerId) : null;
 
@@ -174,6 +175,7 @@ export async function handler(event) {
     currentPlayers,
     matchEnded,
     matchEndReason,
+    language,
 
     you: me
       ? {

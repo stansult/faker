@@ -22,6 +22,7 @@ const MIN_ROUNDS_PER_GAME = 1;
 const MAX_ROUNDS_PER_GAME = 20;
 const MIN_WORDS_PER_PLAYER = 1;
 const MAX_WORDS_PER_PLAYER = 20;
+const SUPPORTED_LANGUAGES = new Set(["en", "ru"]);
 
 function computeWordsPerPlayer(totalGames, totalPlayers) {
   // We require MORE total words than total games to avoid predictable end-game
@@ -89,6 +90,8 @@ export async function handler(event) {
     roundsRaw == null || roundsRaw === ""
       ? 3
       : Number(roundsRaw);
+  const languageRaw = payload.language;
+  const language = String(languageRaw || "").trim().toLowerCase() || "en";
 
   if (
     !Number.isInteger(playerCount) ||
@@ -112,6 +115,9 @@ export async function handler(event) {
     return json(400, {
       error: `roundsPerGame must be an integer between ${MIN_ROUNDS_PER_GAME} and ${MAX_ROUNDS_PER_GAME}`
     });
+  }
+  if (!SUPPORTED_LANGUAGES.has(language)) {
+    return json(400, { error: "language must be 'en' or 'ru'" });
   }
 
   const wordsPerPlayer = computeWordsPerPlayer(gamesTotal, playerCount);
@@ -143,6 +149,7 @@ export async function handler(event) {
       gamesPlayed: 0,
       roundsPerGame,
       wordsPerPlayer,
+      language,
       locked: false,
       matchEnded: false,
       matchEndReason: null,
@@ -172,7 +179,8 @@ export async function handler(event) {
       pending: !visible,
       wordsPerPlayer,
       gamesTotal,
-      roundsPerGame
+      roundsPerGame,
+      language
     });
   }
 

@@ -114,8 +114,28 @@ function normalizeName(raw) {
     .toLowerCase();
 }
 
+function getRoomLanguage() {
+  return lastRoomStatus?.language === "ru" ? "ru" : "en";
+}
+
+function getLanguageLabel(language) {
+  return language === "ru" ? "Russian" : "English";
+}
+
 function isAllowedWord(word) {
-  return /^[a-z'-]+$/.test(String(word || ""));
+  const language = getRoomLanguage();
+  const value = String(word || "");
+  if (language === "ru") {
+    return /^[а-яё'-]+$/i.test(value);
+  }
+  return /^[a-z'-]+$/i.test(value);
+}
+
+function getWordRuleHint() {
+  const language = getRoomLanguage();
+  return language === "ru"
+    ? "Use Russian letters only (including ё), hyphens, apostrophes."
+    : "Use English letters only, hyphens, apostrophes.";
 }
 
 const copiedTimers = {};
@@ -1101,6 +1121,8 @@ function renderRoomStatus(rs) {
   }
 
   updateWordsProgress(rs);
+  const languageLabel = getLanguageLabel(getRoomLanguage());
+  setText("wordLanguageHint", `Language: ${languageLabel}`);
   applyRoomStatus(rs);
   updatePlayerBadge();
 
@@ -1441,6 +1463,10 @@ function updateGameUI() {
     } else {
       moveInstruction.textContent = "One word only.";
     }
+  }
+  const moveLanguage = $("moveLanguageHint");
+  if (moveLanguage) {
+    moveLanguage.textContent = `Language: ${getLanguageLabel(getRoomLanguage())}`;
   }
 
   const game = lastGameState?.game || lastRoomStatus?.game || null;
@@ -2206,10 +2232,11 @@ async function createRoom(options = {}) {
     if (createAbort) return false;
     if (!reuseExisting || !createState.roomCode) {
       const playerCount = Number($("playerCount")?.value);
+      const language = String($("roomLanguage")?.value || "en");
       const gamesTotal = Number($("gamesTotal")?.value);
       const roundsPerGame = Number($("roundsPerGame")?.value);
 
-      const payload = { playerCount, gamesTotal, roundsPerGame };
+      const payload = { playerCount, language, gamesTotal, roundsPerGame };
 
       const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
       log({ status, ...data }, "createRoom");
@@ -2300,7 +2327,7 @@ async function submitWords() {
     return log({ error: "Enter a word" }, "submitWords");
   }
   if (!isAllowedWord(words[0])) {
-    setSubmitWordsError("One word only - letters, hyphens, apostrophes.");
+    setSubmitWordsError(getWordRuleHint());
     return;
   }
 
@@ -2544,8 +2571,9 @@ async function submitMove() {
   const word = normalizeWord(raw);
   if (!word) return log({ error: "Enter a word" }, "submitMove");
   if (!isAllowedWord(word)) {
-    setMoveError("One word only - letters, hyphens, apostrophes.");
-    return log({ error: "One word only - letters, hyphens, apostrophes." }, "submitMove");
+    const hint = getWordRuleHint();
+    setMoveError(hint);
+    return log({ error: hint }, "submitMove");
   }
   setMoveError("");
 

@@ -44,8 +44,22 @@ function normalizeWord(w) {
     .replace(/\s+/g, " ");
 }
 
-function isAllowedWord(word) {
-  return /^[a-z'-]+$/.test(String(word || ""));
+function getRoomLanguage(room) {
+  return room?.language === "ru" ? "ru" : "en";
+}
+
+function isAllowedWord(word, language) {
+  const value = String(word || "");
+  if (language === "ru") {
+    return /^[а-яё'-]+$/i.test(value);
+  }
+  return /^[a-z'-]+$/i.test(value);
+}
+
+function getWordRuleHint(language) {
+  return language === "ru"
+    ? "Use Russian letters only (including ё), hyphens, apostrophes."
+    : "Use English letters only (a-z), hyphens, apostrophes.";
 }
 
 export async function handler(event) {
@@ -77,9 +91,6 @@ export async function handler(event) {
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!word) return json(400, { error: "word is required" });
-  if (!isAllowedWord(word)) {
-    return json(400, { error: "One word only - letters, hyphens, apostrophes." });
-  }
   if (word.length > MAX_WORD_LENGTH) {
     return json(400, { error: `Word too long (max ${MAX_WORD_LENGTH} chars)` });
   }
@@ -98,6 +109,11 @@ export async function handler(event) {
 
     room.players = Array.isArray(room.players) ? room.players : [];
     room.game = room.game || null;
+    const language = getRoomLanguage(room);
+
+    if (!isAllowedWord(word, language)) {
+      return json(400, { error: getWordRuleHint(language) });
+    }
 
     if (!room.game || !room.game.gameId) {
       return json(409, { error: "Game has not started" });
