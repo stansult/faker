@@ -2711,6 +2711,10 @@ function esc(s) {
 function wireUI() {
   restoreLogs();
   restoreActiveGameSession();
+  const moveWord = $("moveWord");
+  if (moveWord) {
+    moveWord.name = `moveWord-${Math.random().toString(36).slice(2, 8)}`;
+  }
   const params = new URLSearchParams(window.location.search);
   if (params.get("debug") === "1") {
     document.body.classList.add("debug");
