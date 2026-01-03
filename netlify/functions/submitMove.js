@@ -216,7 +216,11 @@ export async function handler(event) {
 
     // Advance turn
     const nextTurnIndex = (turnIndex + 1) % players.length;
-    const wrapped = nextTurnIndex === 0;
+    const starterNumber = Number.isInteger(game.starterPlayerNumber)
+      ? game.starterPlayerNumber
+      : players[0]?.playerNumber ?? null;
+    const nextPlayerNumber = players[nextTurnIndex]?.playerNumber ?? null;
+    const wrapped = starterNumber != null && nextPlayerNumber === starterNumber;
 
     if (wrapped) {
       const nextRound = Number.isInteger(game.round) ? game.round + 1 : 2;

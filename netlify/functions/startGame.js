@@ -203,10 +203,13 @@ export async function handler(event) {
     const sortedPlayers = room.players
       .slice()
       .sort((a, b) => (a.playerNumber || 0) - (b.playerNumber || 0));
-    const nextStarterNumber = Number.isInteger(room.nextStarterNumber)
+    let starterNumber = Number.isInteger(room.nextStarterNumber)
       ? room.nextStarterNumber
-      : 1;
-    const starterIndex = sortedPlayers.findIndex(p => p.playerNumber === nextStarterNumber);
+      : null;
+    if (!starterNumber || gamesPlayed === 0) {
+      starterNumber = pick(sortedPlayers)?.playerNumber ?? 1;
+    }
+    const starterIndex = sortedPlayers.findIndex(p => p.playerNumber === starterNumber);
     const turnIndex = starterIndex >= 0 ? starterIndex : 0;
     const nextStarter =
       sortedPlayers.length > 0
@@ -220,6 +223,7 @@ export async function handler(event) {
       roundsTotal,
       secretWord,
       fakerPlayerId: faker,
+      starterPlayerNumber: sortedPlayers[turnIndex]?.playerNumber ?? starterNumber ?? 1,
       turnIndex,
       moves: [],
       votePhase: initVotePhase()
