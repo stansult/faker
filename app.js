@@ -1033,6 +1033,7 @@ function renderRoomStatus(rs) {
       metaParts.push(`Games: ${currentGameNumber} / ${gamesTotal}`);
     }
   }
+  metaParts.push(`Language: ${getLanguageLabel(getRoomLanguage())}`);
   if (roundsPerGame) metaParts.push(`Rounds per game: ${roundsPerGame}`);
   setText("roomMeta", metaParts.join(" • "));
 
