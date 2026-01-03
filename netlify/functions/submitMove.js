@@ -219,8 +219,8 @@ export async function handler(event) {
     const starterNumber = Number.isInteger(game.starterPlayerNumber)
       ? game.starterPlayerNumber
       : players[0]?.playerNumber ?? null;
-    const nextPlayerNumber = players[nextTurnIndex]?.playerNumber ?? null;
-    const wrapped = starterNumber != null && nextPlayerNumber === starterNumber;
+    const nextTurnPlayerNumber = players[nextTurnIndex]?.playerNumber ?? null;
+    const wrapped = starterNumber != null && nextTurnPlayerNumber === starterNumber;
 
     if (wrapped) {
       const nextRound = Number.isInteger(game.round) ? game.round + 1 : 2;
