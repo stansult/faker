@@ -517,6 +517,11 @@ function showGameOverOverlay(game) {
   const endReason = String(game.endReason || "");
   const revealed = getRevealedWord();
   const role = roleState?.role || null;
+  const fakerName = game.fakerName || null;
+  const fakerNumber = game.fakerPlayerNumber || null;
+  const fakerLabel = fakerName
+    ? `player #${fakerNumber != null ? fakerNumber : "?"} (${fakerName})`
+    : (fakerNumber != null ? `player #${fakerNumber}` : "the faker");
 
   let message = "Game over.";
   if (winner === "faker" && endReason === "faker_said_secret_word_on_turn") {
@@ -526,23 +531,29 @@ function showGameOverOverlay(game) {
         : "You won! 🎉🎉";
     } else {
       message = revealed
-        ? `Oh no, faker guessed "${revealed}" and won! 😢😢`
-        : "Oh no, faker won! 😢😢";
+        ? `Oh no, ${fakerLabel} guessed "${revealed}" and won! 😢😢`
+        : `Oh no, ${fakerLabel} won! 😢😢`;
     }
   } else if (endReason.startsWith("voting_")) {
     if (winner === "faker") {
       message = role === "faker"
         ? "Votes are in — you won! 🎉🎉"
-        : "Votes are in — faker won! 😢😢";
+        : `Votes are in — ${fakerLabel} won! 😢😢`;
     } else if (winner === "legits") {
       message = role === "faker"
         ? "Votes are in — you lost! 😢😢"
-        : "Votes are in — we won! 🎉🎉";
+        : `Votes are in — we won! ${fakerLabel} was caught. 🎉🎉`;
     }
   } else if (winner === "faker") {
-    message = "Faker won!";
+    message = role === "faker" ? "You won!" : `${fakerLabel} won!`;
   } else if (winner === "legits") {
-    message = "Legit players won!";
+    message = role === "faker"
+      ? "Legit players won!"
+      : `Legit players won! ${fakerLabel} was caught.`;
+  }
+
+  if (role === "faker" && revealed) {
+    message = `The secret word was "${revealed}".\n${message}`;
   }
 
   setOverlayTheme(role);

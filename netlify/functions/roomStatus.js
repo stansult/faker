@@ -124,7 +124,13 @@ export async function handler(event) {
           endedAt: room.game.endedAt || null,
           winner: room.game.winner || null,
           endReason: room.game.endReason || null,
-          revealedWord: room.game.endedAt ? room.game.secretWord || null : null
+          revealedWord: room.game.endedAt ? room.game.secretWord || null : null,
+          fakerName: room.game.endedAt
+            ? (players.find(p => p.playerId === room.game.fakerPlayerId)?.name || null)
+            : null,
+          fakerPlayerNumber: room.game.endedAt
+            ? (players.find(p => p.playerId === room.game.fakerPlayerId)?.playerNumber || null)
+            : null
         }
       : null;
 
