@@ -538,11 +538,11 @@ function showGameOverOverlay(game) {
     if (winner === "faker") {
       message = role === "faker"
         ? "Votes are in — you won! 🎉🎉"
-        : `Votes are in — ${fakerLabel} won! 😢😢`;
+        : `Votes are in — ${fakerLabel} was the faker and won! 😢😢`;
     } else if (winner === "legits") {
       message = role === "faker"
         ? "Votes are in — you lost! 😢😢"
-        : `Votes are in — we won! ${fakerLabel} was caught. 🎉🎉`;
+        : `Votes are in — we won!\n${fakerLabel} was caught. 🎉🎉`;
     }
   } else if (winner === "faker") {
     message = role === "faker" ? "You won!" : `${fakerLabel} won!`;
