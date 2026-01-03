@@ -110,7 +110,8 @@ function normalizeWord(raw) {
 function normalizeName(raw) {
   return String(raw || "")
     .trim()
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 function isAllowedWord(word) {
@@ -517,7 +518,7 @@ function showGameOverOverlay(game) {
   const endReason = String(game.endReason || "");
   const revealed = getRevealedWord();
   const role = roleState?.role || null;
-  const fakerName = game.fakerName || null;
+  const fakerName = formatName(game.fakerName) || null;
   const fakerNumber = game.fakerPlayerNumber || null;
   const fakerLabel = fakerName
     ? `player #${fakerNumber != null ? fakerNumber : "?"} (${fakerName})`
@@ -608,7 +609,8 @@ function buildMatchSummaryHtml() {
       lastScore = score;
     }
     placeCounts.set(place, (placeCounts.get(place) || 0) + 1);
-    rows.push({ place, name: p.name || "Unknown", score });
+    const name = formatName(p.name) || "Unknown";
+    rows.push({ place, name, score });
   }
 
   const bodyRows = rows
@@ -1054,7 +1056,7 @@ function renderRoomStatus(rs) {
         return `
         <tr${isMe ? ' class="is-me-row"' : ""}>
           <td class="mono">${p.playerNumber}</td>
-          <td>${esc(p.name || "")}</td>
+          <td>${esc(formatName(p.name) || "")}</td>
           <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
           ${showWordsColumn ? `<td class="mono">${
             p.doneWords &&
@@ -1067,7 +1069,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(p.name || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "← you" : "")
           }</td>
         </tr>
@@ -1245,7 +1247,7 @@ function renderRoundsTable() {
   }
 
   const headerCells = sortedPlayers
-    .map(p => `<th class="mono">${p.playerNumber}<span class="mini"> ${esc(p.name || "")}</span></th>`)
+    .map(p => `<th class="mono">${p.playerNumber}<span class="mini"> ${esc(formatName(p.name) || "")}</span></th>`)
     .join("");
 
   const rows = [];
@@ -1304,7 +1306,7 @@ function renderVoteTable() {
       const showVote = votedForId || (votePhase.endedAt && votePhase.startedAt);
       const votedText = showVote ? "voted for" : "";
       const targetText = votedFor
-        ? `${votedFor.playerNumber}. ${esc(votedFor.name || "")}`
+        ? `${votedFor.playerNumber}. ${esc(formatName(votedFor.name) || "")}`
         : (showVote ? "-" : "");
 
       const isSelf = myId && p.playerId === myId;
@@ -1322,7 +1324,7 @@ function renderVoteTable() {
           <td class="vote-player">
             ${checkbox}
             <span class="${targetClass}" data-target="${p.playerId}">
-              ${p.playerNumber}. ${esc(p.name || "")}
+              ${p.playerNumber}. ${esc(formatName(p.name) || "")}
             </span>
           </td>
           <td class="vote-status">${votedText}</td>
@@ -1396,7 +1398,7 @@ function updateGameUI() {
   const secret = roleState.secretWord;
 
   if (playerLabel) {
-    const name = saved?.name || "Unknown";
+    const name = formatName(saved?.name) || "Unknown";
     const num = playerNumber != null ? `#${playerNumber}` : "?";
     playerLabel.textContent = `Player ${num}: ${name}`;
   }
@@ -1476,7 +1478,7 @@ function updateGameUI() {
     } else if (nextPlayerNumber != null) {
       const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
       const next = players.find(p => p.playerNumber === nextPlayerNumber);
-      const name = next?.name ? ` ${next.name}` : "";
+      const name = next?.name ? ` ${formatName(next.name)}` : "";
       moveHeader.textContent = `Waiting for player #${nextPlayerNumber}${name}`;
     } else {
       moveHeader.textContent = "Your move";
@@ -1648,7 +1650,7 @@ function updateNameError() {
 function updatePlayerBadge() {
   const roomCode = getRoomCode();
   const saved = roomCode ? getSaved(roomCode) : null;
-  const name = saved?.name ? String(saved.name) : "";
+  const name = formatName(saved?.name);
   const number = Number.isInteger(saved?.playerNumber) ? saved.playerNumber : null;
   const text = name
     ? (number != null ? `Player #${number}: ${name}` : `Player: ${name}`)
@@ -2772,6 +2774,12 @@ function esc(s) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function formatName(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function wireUI() {
