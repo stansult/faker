@@ -299,6 +299,11 @@
         border-radius: 10px;
         background: #fffdf8;
       }
+      
+      select {
+        height: 40px;
+        line-height: 1.2;
+      }
 
       input:read-only,
       input:disabled,
