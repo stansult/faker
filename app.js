@@ -1266,6 +1266,18 @@ function renderRoundsTable() {
     rows.push(`<tr><td class="mono">${r}</td>${cells}</tr>`);
   }
 
+  const triggers = Array.isArray(lastGameState?.game?.votePhase?.triggers)
+    ? lastGameState.game.votePhase.triggers
+    : [];
+  if (triggers.length) {
+    const triggerSet = new Set(triggers.map(String));
+    const cells = sortedPlayers
+      .map(p => (triggerSet.has(String(p.playerId)) ? "👍" : ""))
+      .map(cell => `<td>${cell}</td>`)
+      .join("");
+    rows.push(`<tr><td class="mono"><strong>Vote?</strong></td>${cells}</tr>`);
+  }
+
   container.innerHTML = `
     <table class="status-table room-table">
       <thead>
