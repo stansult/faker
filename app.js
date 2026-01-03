@@ -528,7 +528,7 @@ function showGameOverOverlay(game) {
   if (winner === "faker" && endReason === "faker_said_secret_word_on_turn") {
     if (role === "faker") {
       message = revealed
-        ? `Yes, the secret word was "${revealed}"\nYou won! 🎉🎉`
+        ? `Yes, the secret word was "${revealed}".\nYou won! 🎉🎉`
         : "You won! 🎉🎉";
     } else {
       message = revealed
@@ -554,7 +554,11 @@ function showGameOverOverlay(game) {
   }
 
   if (role === "faker" && revealed) {
-    message = `The secret word was "${revealed}".\n${message}`;
+    if (endReason === "faker_said_secret_word_on_turn") {
+      message = `Yes, the secret word was "${revealed}".\nYou won! 🎉🎉`;
+    } else if (endReason.startsWith("voting_")) {
+      message = `The secret word was "${revealed}".\n${message}`;
+    }
   }
 
   setOverlayTheme(role);
