@@ -533,25 +533,66 @@ button.pill:focus-visible {
   cursor: pointer;
 }
 
-.room-lock.show-tip::after,
-.icon-btn.show-tip::after {
+.room-lock::after,
+.icon-btn::after,
+.wait-tip::after {
   content: attr(data-tip);
   position: absolute;
   top: 130%;
   left: 50%;
   transform: translateX(-50%);
-  background: #f4efe6;
-  color: #5a4634;
-  font-size: 11px;
+  background: #fff8ec;
+  color: #3f3327;
+  font-size: 12px;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
   padding: 4px 6px;
   border-radius: 6px;
   white-space: nowrap;
   box-shadow: 0 6px 18px rgba(90, 70, 52, 0.18);
   z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.room-lock::before,
+.icon-btn::before,
+.wait-tip::before {
+  content: "";
+  position: absolute;
+  top: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: #fff8ec;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
 
 .icon-btn {
   position: relative;
+}
+
+.wait-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.room-lock.show-tip::after,
+.room-lock.show-tip::before,
+.icon-btn.show-tip::after,
+.icon-btn.show-tip::before,
+.wait-tip.show-tip::after,
+.wait-tip.show-tip::before,
+.room-lock:hover::after,
+.room-lock:hover::before,
+.icon-btn:hover::after,
+.icon-btn:hover::before,
+.wait-tip:hover::after,
+.wait-tip:hover::before {
+  opacity: 1;
 }
 .room-code-wrap {
   margin-left: auto;

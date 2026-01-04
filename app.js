@@ -248,17 +248,20 @@ function showLockTooltip() {
   showTip(icon, "Room locked");
 }
 
-function showTip(el, message, durationMs = 1500) {
+function showTip(el, message, durationMs = 2200) {
   if (!el) return;
+  if (activeTooltip?.el && activeTooltip.el !== el) {
+    activeTooltip.el.classList.remove("show-tip");
+    if (activeTooltip.timer) clearTimeout(activeTooltip.timer);
+  }
   el.dataset.tip = message;
   el.classList.add("show-tip");
-  const existing = el.dataset.tipTimer;
-  if (existing) clearTimeout(Number(existing));
+  if (activeTooltip?.timer) clearTimeout(activeTooltip.timer);
   const timer = setTimeout(() => {
     el.classList.remove("show-tip");
-    delete el.dataset.tipTimer;
+    if (activeTooltip?.el === el) activeTooltip = null;
   }, durationMs);
-  el.dataset.tipTimer = String(timer);
+  activeTooltip = { el, timer };
 }
 
 function clearMoveAlerts(panel) {
@@ -822,6 +825,7 @@ let moveTurnActive = false;
 let moveTurnStartedAt = null;
 let moveAlertTimer = null;
 let moveVibrateTimer = null;
+let activeTooltip = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -1324,7 +1328,10 @@ function renderRoundsTable() {
           !word &&
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
-        return `<td>${showHourglass ? "⏳" : esc(word)}</td>`;
+        if (showHourglass) {
+          return `<td><span class="wait-tip" data-tip="Waiting for a player to make a move">⏳</span></td>`;
+        }
+        return `<td>${esc(word)}</td>`;
       })
       .join("");
     rows.push(`<tr><td class="mono">${r}</td>${cells}</tr>`);
@@ -1336,7 +1343,11 @@ function renderRoundsTable() {
   if (triggers.length) {
     const triggerSet = new Set(triggers.map(String));
     const cells = sortedPlayers
-      .map(p => (triggerSet.has(String(p.playerId)) ? "👍" : ""))
+      .map(p =>
+        triggerSet.has(String(p.playerId))
+          ? `<span class="wait-tip" data-tip="This player is ready to vote!">👍</span>`
+          : ""
+      )
       .map(cell => `<td>${cell}</td>`)
       .join("");
     rows.push(`<tr><td class="mono"><strong>Vote?</strong></td>${cells}</tr>`);
@@ -3179,6 +3190,17 @@ function wireUI() {
       hideOverlay();
       if (!choice) return;
       await kickPlayer(playerId);
+    });
+  }
+
+  const roundsTable = $("roundsTable");
+  if (roundsTable) {
+    roundsTable.addEventListener("click", e => {
+      const target = e.target;
+      if (!target) return;
+      const tip = target.closest?.(".wait-tip");
+      if (!tip) return;
+      showTip(tip, tip.dataset.tip || "Waiting for a player to make a move");
     });
   }
 
