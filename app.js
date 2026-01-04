@@ -180,7 +180,7 @@ function setView(activeId) {
   }
   updatePlayerBadge();
   const gameBadge = $("playerBadgeGame");
-  if (gameBadge) gameBadge.classList.toggle("hidden", activeId === "viewGame");
+  if (gameBadge) gameBadge.classList.toggle("hidden", activeId !== "viewGame");
   updateTitle();
 }
 
@@ -559,7 +559,9 @@ function showGameOverOverlay(game) {
     if (winner === "faker") {
       message = role === "faker"
         ? "Votes are in — you won! 🎉🎉"
-        : `Votes are in — ${fakerLabel} was the faker and won! 😢😢`;
+        : `${fakerLabel.startsWith("player ")
+            ? `Player ${fakerLabel.slice("player ".length)} was the faker.`
+            : "The faker was revealed."}\nVotes are in — the faker won! 😢😢`;
     } else if (winner === "legits") {
       message = role === "faker"
         ? "Votes are in — you lost! 😢😢"
@@ -1496,6 +1498,7 @@ function updateGameUI() {
   const voteStarted = !!votePhase?.startedAt;
 
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
+  if (moveEntryPanel) moveEntryPanel.classList.toggle("hidden", voteStarted);
   if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
 
   const isYourTurn =
