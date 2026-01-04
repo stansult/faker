@@ -243,6 +243,20 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.room-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);

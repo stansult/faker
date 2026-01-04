@@ -82,25 +82,33 @@
         <div id="playerBadge" class="pill player-badge player-banner"></div>
       </div>
       <div class="grid">
-        <section class="panel">
-          <div class="row room-header">
-            <div class="room-title">
-              <h3>Room <span id="roomLockIcon" class="room-lock" aria-hidden="true"></span></h3>
-              <div class="room-code-wrap">
-                <div id="roomCodePill" class="pill mono room-code-pill">
-                  <span id="roomCodeDisplay" class="mono"></span>
-                  <button id="btnCopyRoomCode" class="icon-btn" type="button" aria-label="Copy room code">📋</button>
-                  <button id="btnCopyRoomLink" class="icon-btn" type="button" aria-label="Copy invite link">🔗</button>
+        <div class="room-column">
+          <section class="panel">
+            <div class="row room-header">
+              <div class="room-title">
+                <h3>Room <span id="roomLockIcon" class="room-lock" aria-hidden="true"></span></h3>
+                <div class="room-code-wrap">
+                  <div id="roomCodePill" class="pill mono room-code-pill">
+                    <span id="roomCodeDisplay" class="mono"></span>
+                    <button id="btnCopyRoomCode" class="icon-btn" type="button" aria-label="Copy room code">📋</button>
+                    <button id="btnCopyRoomLink" class="icon-btn" type="button" aria-label="Copy invite link">🔗</button>
+                  </div>
+                  <div id="roomCodeCopied" class="mini copied-note room-copy-note" role="status"></div>
                 </div>
-                <div id="roomCodeCopied" class="mini copied-note room-copy-note" role="status"></div>
               </div>
+            </div>
+            <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
+            <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
+            <div id="playersList" class="players mini" style="margin-top: 12px"></div>
+          </section>
+          <div class="room-actions">
+            <div class="row">
+              <button id="btnStartGame">Start game</button>
+              <button id="btnStartShortGame" class="secondary">Start with current players</button>
             </div>
             <button id="btnLeaveRoom" class="ghost">Leave</button>
           </div>
-          <div class="mini" id="roomMeta" style="margin-top: 8px"></div>
-          <div class="mini" id="submittedWordsLine" style="margin-top: 6px"></div>
-          <div id="playersList" class="players mini" style="margin-top: 12px"></div>
-        </section>
+        </div>
 
         <section id="submitWordsPanel" class="panel">
           <h3>Submit words</h3>
@@ -118,10 +126,6 @@
           <div class="mini error-text" id="submitWordsError" style="margin-top: 6px"></div>
         </section>
 
-        <div class="row" style="margin-top: 10px;">
-          <button id="btnStartGame">Start game</button>
-          <button id="btnStartShortGame" class="secondary">Start with current players</button>
-        </div>
       </div>
     </section>
 
