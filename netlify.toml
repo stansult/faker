@@ -1,2 +1,10 @@
 [blobs]
 enabled = true
+
+[functions]
+directory = "netlify/functions"
+
+[dev]
+publish = "."
+functions = "netlify/functions"
+port = 3999
