@@ -2107,8 +2107,8 @@ async function joinRoom(options = {}) {
         lastJoinError = null;
         await roomStatus("roomStatus (already joined)");
         startPolling();
+        setView("viewRoom");
         if (!skipLobbyGate) {
-          setView("viewRoom");
           hideOverlay();
           setLobbyDisabled(false);
         }
@@ -2168,8 +2168,8 @@ async function joinRoom(options = {}) {
 
         await roomStatus("roomStatus (after join)");
         startPolling();
+        setView("viewRoom");
         if (!skipLobbyGate) {
-          setView("viewRoom");
           hideOverlay();
           setLobbyDisabled(false);
         }
