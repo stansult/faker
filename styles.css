@@ -441,6 +441,7 @@ button:disabled {
 .move-instruction {
   font-weight: 400;
   color: var(--muted);
+  margin-bottom: 12px;
 }
 
 .pill {

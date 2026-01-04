@@ -220,7 +220,7 @@ function updateTitle() {
     const myNumber = saved?.playerNumber ?? null;
     const nextPlayer = game?.nextPlayerNumber ?? null;
     const isYourTurn = myNumber != null && nextPlayer != null && myNumber === nextPlayer;
-    const turnSuffix = isYourTurn ? " — Your turn!" : "";
+    const turnSuffix = isYourTurn ? " — Your move!" : "";
     const gamesTotal = Number.isInteger(rs?.gamesTotal) ? rs.gamesTotal : null;
     const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
     const ended = !!game?.endedAt;
