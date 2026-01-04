@@ -872,6 +872,12 @@ async function roomStatus(label = "roomStatus", opts = {}) {
   if (!opts.silent) log({ status, ...data }, label);
 
   if (status === 200) renderRoomStatus(data);
+  if (status === 200) {
+    const saved = getSaved(data?.roomCode || roomCode);
+    if (saved?.playerId && currentView === "viewLobby") {
+      setView("viewRoom");
+    }
+  }
   return { status, data };
 }
 
