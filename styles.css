@@ -254,11 +254,16 @@ p {
 }
 
 .room-actions {
-  display: flex;
+  margin-top: 10px;
+}
+
+.room-actions .row {
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   flex-wrap: wrap;
+}
+
+.room-actions #btnLeaveRoom {
+  margin-left: auto;
 }
 
 .panel {
@@ -902,23 +907,6 @@ body.debug .debug-only {
 @media (max-width: 520px) {
   #viewRoom .grid {
     grid-template-columns: 1fr;
-  }
-
-  .room-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .room-actions .row {
-    width: 100%;
-  }
-
-  .room-actions .row button {
-    flex: 1 1 auto;
-  }
-
-  .room-actions #btnLeaveRoom {
-    align-self: flex-end;
   }
 
   .room-code-wrap {
