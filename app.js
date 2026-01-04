@@ -245,7 +245,7 @@ function setText(id, text) {
 function showLockTooltip() {
   const icon = $("roomLockIcon");
   if (!icon || icon.classList.contains("hidden")) return;
-  showTip(icon, "Room locked");
+  showTip(icon, TOOLTIP_ROOM_LOCKED);
 }
 
 function showTip(el, message, durationMs = 2200) {
@@ -758,8 +758,8 @@ function renderEditableWords(roomCode) {
     return `
       <span class="word-chip">
         <span class="word-text">${safe}</span>
-        <button type="button" class="word-action word-edit" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
-        <button type="button" class="word-action word-delete" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+        <button type="button" class="word-action word-edit icon-btn" data-tip="Edit word" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete icon-btn" data-tip="Delete word" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
       </span>
     `;
   });
@@ -833,6 +833,13 @@ const ACTIVE_GAME_KEY = "faker:activeGameId";
 const APP_VERSION = "1.0";
 const START_OVERLAY_MIN_MS = 1000;
 const GAME_OVER_MIN_MS = 1000;
+const TOOLTIP_COPY_CODE = "Copy room code";
+const TOOLTIP_COPY_LINK = "Copy invite link";
+const TOOLTIP_CODE_COPIED = "Code copied!";
+const TOOLTIP_LINK_COPIED = "Link copied!";
+const TOOLTIP_ROOM_LOCKED = "Room locked";
+const TOOLTIP_WAITING_MOVE = "Waiting for a player to make a move";
+const TOOLTIP_READY_VOTE = "This player is ready to vote!";
 
 function restoreActiveGameSession() {
   try {
@@ -1020,7 +1027,12 @@ function renderRoomStatus(rs) {
   const lockIcon = $("roomLockIcon");
   if (lockIcon) {
     lockIcon.textContent = locked ? "🔒" : "";
-    lockIcon.title = locked ? "Room locked" : "";
+    lockIcon.title = locked ? TOOLTIP_ROOM_LOCKED : "";
+    if (locked) {
+      lockIcon.dataset.tip = TOOLTIP_ROOM_LOCKED;
+    } else {
+      delete lockIcon.dataset.tip;
+    }
     lockIcon.classList.toggle("hidden", !locked);
   }
   const totalSlots =
@@ -1329,7 +1341,7 @@ function renderRoundsTable() {
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
         if (showHourglass) {
-          return `<td><span class="wait-tip" data-tip="Waiting for a player to make a move">⏳</span></td>`;
+          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
         }
         return `<td>${esc(word)}</td>`;
       })
@@ -1345,7 +1357,7 @@ function renderRoundsTable() {
     const cells = sortedPlayers
       .map(p =>
         triggerSet.has(String(p.playerId))
-          ? `<span class="wait-tip" data-tip="This player is ready to vote!">👍</span>`
+          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
           : ""
       )
       .map(cell => `<td>${cell}</td>`)
@@ -3092,12 +3104,21 @@ function wireUI() {
 
   $("roomLockIcon")?.addEventListener("click", showLockTooltip);
 
+  const btnCopyRoomCode = $("btnCopyRoomCode");
+  if (btnCopyRoomCode) btnCopyRoomCode.dataset.tip = TOOLTIP_COPY_CODE;
+  const btnCopyRoomLink = $("btnCopyRoomLink");
+  if (btnCopyRoomLink) btnCopyRoomLink.dataset.tip = TOOLTIP_COPY_LINK;
+  const btnCopyRoomCodeGame = $("btnCopyRoomCodeGame");
+  if (btnCopyRoomCodeGame) btnCopyRoomCodeGame.dataset.tip = TOOLTIP_COPY_CODE;
+  const btnCopyRoomLinkGame = $("btnCopyRoomLinkGame");
+  if (btnCopyRoomLinkGame) btnCopyRoomLinkGame.dataset.tip = TOOLTIP_COPY_LINK;
+
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      showTip($("btnCopyRoomCode"), "Code copied!");
+      showTip($("btnCopyRoomCode"), TOOLTIP_CODE_COPIED);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3110,7 +3131,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      showTip($("btnCopyRoomLink"), "Link copied!");
+      showTip($("btnCopyRoomLink"), TOOLTIP_LINK_COPIED);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3121,7 +3142,7 @@ function wireUI() {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      showTip($("btnCopyRoomCodeGame"), "Code copied!");
+      showTip($("btnCopyRoomCodeGame"), TOOLTIP_CODE_COPIED);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3134,7 +3155,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      showTip($("btnCopyRoomLinkGame"), "Link copied!");
+      showTip($("btnCopyRoomLinkGame"), TOOLTIP_LINK_COPIED);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }

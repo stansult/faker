@@ -578,6 +578,7 @@ button.pill:focus-visible {
 .wait-tip {
   position: relative;
   display: inline-flex;
+  cursor: pointer;
 }
 
 .room-lock.show-tip::after,
@@ -719,6 +720,11 @@ body.debug .debug-only {
   border-radius: 12px;
   padding: 8px;
   background: #fffdfa;
+}
+
+#roundsTable.players {
+  max-height: none;
+  overflow: visible;
 }
 
 .status-table {
