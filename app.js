@@ -723,7 +723,7 @@ function renderAcceptedWords(roomCode) {
     }
     return esc(word);
   });
-  el.innerHTML = `Submitted words: ${rendered.join(", ")}`;
+  el.innerHTML = `<span class="meta-label">Submitted words:</span> <span class="meta-value">${rendered.join(", ")}</span>`;
 }
 
 function renderEditableWords(roomCode) {
@@ -1030,19 +1030,26 @@ function renderRoomStatus(rs) {
 
   const displayMaxPlayers = effectiveMaxPlayers;
   const metaParts = [];
-  metaParts.push(`Players: ${players.length}${displayMaxPlayers ? " / " + displayMaxPlayers : ""}`);
+  const formatMeta = (label, value) =>
+    `<span class="meta-label">${esc(label)}</span> <span class="meta-value">${esc(value)}</span>`;
+  const joinMeta = parts => parts.join('<span class="meta-sep"> • </span>');
+  metaParts.push(formatMeta(
+    "Players:",
+    `${players.length}${displayMaxPlayers ? " / " + displayMaxPlayers : ""}`
+  ));
   if (gamesTotal != null) {
     const currentGameNumber = gameActive ? gamesPlayed + 1 : gamesPlayed;
     if (gamesPlayed === 0 && !gameActive) {
-      metaParts.push(`Games: ${gamesTotal}`);
-      if (wordsRequired) metaParts.push(`Words each: ${wordsRequired}`);
+      metaParts.push(formatMeta("Games:", String(gamesTotal)));
+      if (wordsRequired) metaParts.push(formatMeta("Words each:", String(wordsRequired)));
     } else {
-      metaParts.push(`Games: ${currentGameNumber} / ${gamesTotal}`);
+      metaParts.push(formatMeta("Games:", `${currentGameNumber} / ${gamesTotal}`));
     }
   }
-  metaParts.push(`Language: ${getLanguageLabel(getRoomLanguage())}`);
-  if (roundsPerGame) metaParts.push(`Rounds per game: ${roundsPerGame}`);
-  setText("roomMeta", metaParts.join(" • "));
+  metaParts.push(formatMeta("Language:", getLanguageLabel(getRoomLanguage())));
+  if (roundsPerGame) metaParts.push(formatMeta("Rounds per game:", String(roundsPerGame)));
+  const roomMeta = $("roomMeta");
+  if (roomMeta) roomMeta.innerHTML = joinMeta(metaParts);
 
   const subheading = $("subheading");
   if (subheading && currentView === "viewRoom") {
