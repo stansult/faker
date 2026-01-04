@@ -277,6 +277,10 @@ p {
   animation: lift 500ms ease both;
 }
 
+#votePanel {
+  overflow: visible;
+}
+
 .panel::before {
   content: "";
   position: absolute;
