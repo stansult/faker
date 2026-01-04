@@ -543,6 +543,7 @@ button.pill:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   background: #fff8ec;
+  border: 1px solid #ead8c2;
   color: #3f3327;
   font-size: 12px;
   font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -561,11 +562,11 @@ button.pill:focus-visible {
 .wait-tip::before {
   content: "";
   position: absolute;
-  top: 120%;
+  top: 118%;
   left: 50%;
   transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-bottom-color: #fff8ec;
+  border: 7px solid transparent;
+  border-bottom-color: #f0dfc7;
   z-index: 5;
   opacity: 0;
   pointer-events: none;
@@ -591,7 +592,7 @@ button.pill:focus-visible {
   opacity: 1;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .room-lock:hover::after,
   .room-lock:hover::before,
   .icon-btn:hover::after,
@@ -600,6 +601,15 @@ button.pill:focus-visible {
   .wait-tip:hover::before {
     opacity: 1;
   }
+}
+
+.touch .room-lock:hover::after,
+.touch .room-lock:hover::before,
+.touch .icon-btn:hover::after,
+.touch .icon-btn:hover::before,
+.touch .wait-tip:hover::after,
+.touch .wait-tip:hover::before {
+  opacity: 0 !important;
 }
 
 .room-lock.tip-align-right::after,
@@ -616,6 +626,22 @@ button.pill:focus-visible {
   left: auto;
   right: 12px;
   transform: translateX(0);
+}
+
+.room-lock.tip-up::after,
+.icon-btn.tip-up::after,
+.wait-tip.tip-up::after {
+  top: auto;
+  bottom: 130%;
+}
+
+.room-lock.tip-up::before,
+.icon-btn.tip-up::before,
+.wait-tip.tip-up::before {
+  top: auto;
+  bottom: 120%;
+  border-bottom-color: transparent;
+  border-top-color: #f0dfc7;
 }
 
 .room-lock.tip-align-left::after,

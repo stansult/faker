@@ -273,7 +273,7 @@ function updateTipAlignment(el, message) {
   const width = getTooltipWidth(message || el.dataset.tip || "");
   if (!width) return;
   const margin = 8;
-  const container = el.closest(".panel");
+  const container = el.closest(".players") || el.closest(".panel");
   const bounds = container
     ? container.getBoundingClientRect()
     : { left: 0, right: window.innerWidth };
@@ -1194,7 +1194,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-base-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn tip-up kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-base-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "←&nbsp;you" : "")
           }</td>
         </tr>
@@ -3304,6 +3304,14 @@ function wireUI() {
     }
     updateTipAlignment(tip, tip.dataset.tip || "");
   });
+
+  document.addEventListener(
+    "touchstart",
+    () => {
+      document.body.classList.add("touch");
+    },
+    { passive: true, once: true }
+  );
 
   renderLocal(getRoomCode());
   setView("viewLobby");
