@@ -384,6 +384,25 @@ button:disabled {
         font-family: "IBM Plex Mono", "Courier New", monospace;
       }
 
+.label-inline {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--muted);
+}
+
+.secret-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.secret-plain {
+  font-weight: 700;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;

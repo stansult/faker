@@ -118,12 +118,10 @@
           <div class="mini error-text" id="submitWordsError" style="margin-top: 6px"></div>
         </section>
 
-        <section class="panel">
-          <div class="row">
-            <button id="btnStartGame">Start game</button>
-            <button id="btnStartShortGame" class="secondary">Start with current players</button>
-          </div>
-        </section>
+        <div class="row" style="margin-top: 10px;">
+          <button id="btnStartGame">Start game</button>
+          <button id="btnStartShortGame" class="secondary">Start with current players</button>
+        </div>
       </div>
     </section>
 
@@ -143,12 +141,11 @@
         <h2 id="gameHeader" style="margin: 0 0 12px 0;"></h2>
         <div class="grid">
           <section class="panel" id="movePanel">
-            <h3 id="playerLabel">Player</h3>
-            <div class="pill" id="roleLabel">Waiting for role...</div>
-            <div style="margin-top: 12px">
-              <label>Secret word</label>
-            <div id="secretWord" class="mono"></div>
-          </div>
+            <h3 id="roleLabel">Waiting for role...</h3>
+            <div id="secretWordRow" class="secret-row">
+              <span id="secretWordLabel" class="label-inline">Secret word:</span>
+              <span id="secretWord" class="pill mono"></span>
+            </div>
           <div class="mini" id="turnStatus" style="margin-top: 10px"></div>
         </section>
 
@@ -164,7 +161,7 @@
             <div class="mini" id="moveHint" style="margin-top: 8px"></div>
           </section>
 
-          <section class="panel">
+          <section class="panel" id="votePanel">
             <h3>What everyone said</h3>
             <div id="roundsTable" class="players mini"></div>
           </section>

@@ -1416,8 +1416,9 @@ function applyRoleTheme() {
 
 function updateGameUI() {
   const roleEl = $("roleLabel");
-  const playerLabel = $("playerLabel");
   const secretEl = $("secretWord");
+  const secretRow = $("secretWordRow");
+  const secretLabel = $("secretWordLabel");
   const turnEl = $("turnStatus");
   const moveHeader = $("moveHeader");
   const moveInstruction = $("moveInstruction");
@@ -1431,18 +1432,13 @@ function updateGameUI() {
   const voteTimer = $("voteTimer");
   const triggerBtn = $("btnTriggerVote");
   const voteReadyPanel = $("voteReadyPanel");
+  const votePanel = $("votePanel");
 
   const saved = getSaved(getRoomCode());
   const playerNumber = saved?.playerNumber ?? null;
 
   const role = roleState.role;
   const secret = roleState.secretWord;
-
-  if (playerLabel) {
-    const name = formatName(saved?.name) || "Unknown";
-    const num = playerNumber != null ? `#${playerNumber}` : "?";
-    playerLabel.textContent = `Player ${num}: ${name}`;
-  }
 
   if (roleEl) {
     if (!role) roleEl.textContent = "Waiting for role...";
@@ -1451,9 +1447,25 @@ function updateGameUI() {
   }
 
   if (secretEl) {
-    if (!role) secretEl.textContent = "";
-    else if (role === "faker") secretEl.textContent = "You do not know the word.";
-    else secretEl.textContent = secret || "(waiting for secret word)";
+    if (!role) {
+      if (secretRow) secretRow.classList.add("hidden");
+      secretEl.textContent = "";
+      secretEl.classList.remove("secret-plain");
+      secretEl.classList.add("pill", "mono");
+      if (secretLabel) secretLabel.textContent = "Secret word:";
+    } else if (role === "faker") {
+      if (secretRow) secretRow.classList.remove("hidden");
+      if (secretLabel) secretLabel.textContent = "";
+      secretEl.textContent = "You do not know the word.";
+      secretEl.classList.add("secret-plain");
+      secretEl.classList.remove("pill", "mono");
+    } else {
+      if (secretRow) secretRow.classList.remove("hidden");
+      if (secretLabel) secretLabel.textContent = "Secret word:";
+      secretEl.textContent = secret || "(waiting for secret word)";
+      secretEl.classList.remove("secret-plain");
+      secretEl.classList.add("pill", "mono");
+    }
   }
 
   if (moveInstruction) {
@@ -1496,10 +1508,15 @@ function updateGameUI() {
 
   const voteActive = !!votePhase?.active;
   const voteStarted = !!votePhase?.startedAt;
+  const voteLive = voteStarted && !votePhase?.endedAt;
 
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
   if (moveEntryPanel) moveEntryPanel.classList.toggle("hidden", voteStarted);
   if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
+  if (votePanel) {
+    votePanel.classList.toggle("your-turn", voteLive);
+    votePanel.classList.toggle("your-turn-alert", voteLive);
+  }
 
   const isYourTurn =
     !!role &&
