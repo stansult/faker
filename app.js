@@ -216,16 +216,21 @@ function updateTitle() {
       document.title = `${base} — Voting`;
       return;
     }
+    const saved = getSaved(getRoomCode());
+    const myNumber = saved?.playerNumber ?? null;
+    const nextPlayer = game?.nextPlayerNumber ?? null;
+    const isYourTurn = myNumber != null && nextPlayer != null && myNumber === nextPlayer;
+    const turnSuffix = isYourTurn ? " — Your turn!" : "";
     const gamesTotal = Number.isInteger(rs?.gamesTotal) ? rs.gamesTotal : null;
     const gamesPlayed = Number.isInteger(rs?.gamesPlayed) ? rs.gamesPlayed : 0;
     const ended = !!game?.endedAt;
     const gameActive = !!(game?.gameId && !ended);
     if (gamesTotal) {
       const current = gameActive ? gamesPlayed + 1 : Math.max(1, gamesPlayed);
-      document.title = `${base} — Game ${current}/${gamesTotal}`;
+      document.title = `${base} — Game ${current}/${gamesTotal}${turnSuffix}`;
       return;
     }
-    document.title = `${base} — Game`;
+    document.title = `${base} — Game${turnSuffix}`;
     return;
   }
 
