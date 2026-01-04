@@ -245,7 +245,20 @@ function setText(id, text) {
 function showLockTooltip() {
   const icon = $("roomLockIcon");
   if (!icon || icon.classList.contains("hidden")) return;
-  flashCopied("roomCodeCopied", "Room locked");
+  showTip(icon, "Room locked");
+}
+
+function showTip(el, message, durationMs = 1500) {
+  if (!el) return;
+  el.dataset.tip = message;
+  el.classList.add("show-tip");
+  const existing = el.dataset.tipTimer;
+  if (existing) clearTimeout(Number(existing));
+  const timer = setTimeout(() => {
+    el.classList.remove("show-tip");
+    delete el.dataset.tipTimer;
+  }, durationMs);
+  el.dataset.tipTimer = String(timer);
 }
 
 function clearMoveAlerts(panel) {
@@ -3065,7 +3078,7 @@ function wireUI() {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      flashCopied("roomCodeCopied", "Code copied!");
+      showTip($("btnCopyRoomCode"), "Code copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3078,7 +3091,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      flashCopied("roomCodeCopied", "Link copied!");
+      showTip($("btnCopyRoomLink"), "Link copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3089,7 +3102,7 @@ function wireUI() {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      flashCopied("roomCodeCopiedGame", "Code copied!");
+      showTip($("btnCopyRoomCodeGame"), "Code copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3102,7 +3115,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      flashCopied("roomCodeCopiedGame", "Link copied!");
+      showTip($("btnCopyRoomLinkGame"), "Link copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
