@@ -590,14 +590,49 @@ button.pill:focus-visible {
 .icon-btn.show-tip::after,
 .icon-btn.show-tip::before,
 .wait-tip.show-tip::after,
-.wait-tip.show-tip::before,
-.room-lock:hover::after,
-.room-lock:hover::before,
-.icon-btn:hover::after,
-.icon-btn:hover::before,
-.wait-tip:hover::after,
-.wait-tip:hover::before {
+.wait-tip.show-tip::before {
   opacity: 1;
+}
+
+@media (hover: hover) {
+  .room-lock:hover::after,
+  .room-lock:hover::before,
+  .icon-btn:hover::after,
+  .icon-btn:hover::before,
+  .wait-tip:hover::after,
+  .wait-tip:hover::before {
+    opacity: 1;
+  }
+}
+
+.room-lock.tip-align-right::after,
+.icon-btn.tip-align-right::after,
+.wait-tip.tip-align-right::after {
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+}
+
+.room-lock.tip-align-right::before,
+.icon-btn.tip-align-right::before,
+.wait-tip.tip-align-right::before {
+  left: auto;
+  right: 12px;
+  transform: translateX(0);
+}
+
+.room-lock.tip-align-left::after,
+.icon-btn.tip-align-left::after,
+.wait-tip.tip-align-left::after {
+  left: 0;
+  transform: translateX(0);
+}
+
+.room-lock.tip-align-left::before,
+.icon-btn.tip-align-left::before,
+.wait-tip.tip-align-left::before {
+  left: 12px;
+  transform: translateX(0);
 }
 .room-code-wrap {
   margin-left: auto;

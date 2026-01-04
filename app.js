@@ -248,6 +248,41 @@ function showLockTooltip() {
   showTip(icon, TOOLTIP_ROOM_LOCKED);
 }
 
+let tooltipMeasureEl = null;
+
+function getTooltipWidth(message) {
+  if (!message) return 0;
+  if (!tooltipMeasureEl) {
+    tooltipMeasureEl = document.createElement("span");
+    tooltipMeasureEl.style.position = "absolute";
+    tooltipMeasureEl.style.visibility = "hidden";
+    tooltipMeasureEl.style.whiteSpace = "nowrap";
+    tooltipMeasureEl.style.fontSize = "12px";
+    tooltipMeasureEl.style.fontFamily = '"Inter", "Helvetica Neue", Arial, sans-serif';
+    tooltipMeasureEl.style.padding = "4px 6px";
+    document.body.appendChild(tooltipMeasureEl);
+  }
+  tooltipMeasureEl.textContent = message;
+  return tooltipMeasureEl.getBoundingClientRect().width;
+}
+
+function updateTipAlignment(el, message) {
+  if (!el) return;
+  el.classList.remove("tip-align-left", "tip-align-right");
+  const rect = el.getBoundingClientRect();
+  const width = getTooltipWidth(message || el.dataset.tip || "");
+  if (!width) return;
+  const margin = 8;
+  const desiredLeft = rect.left + rect.width / 2 - width / 2;
+  if (desiredLeft < margin) {
+    el.classList.add("tip-align-left");
+    return;
+  }
+  if (desiredLeft + width > window.innerWidth - margin) {
+    el.classList.add("tip-align-right");
+  }
+}
+
 function showTip(el, message, durationMs = 2200) {
   if (!el) return;
   if (activeTooltip?.el && activeTooltip.el !== el) {
@@ -263,6 +298,7 @@ function showTip(el, message, durationMs = 2200) {
   }
   const originalTip = el.dataset.tip;
   el.dataset.tip = message;
+  updateTipAlignment(el, message);
   el.classList.add("show-tip");
   if (activeTooltip?.timer) clearTimeout(activeTooltip.timer);
   const timer = setTimeout(() => {
@@ -855,6 +891,7 @@ const TOOLTIP_LINK_COPIED = "Link copied!";
 const TOOLTIP_ROOM_LOCKED = "Room locked";
 const TOOLTIP_WAITING_MOVE = "Waiting for a player to make a move";
 const TOOLTIP_READY_VOTE = "This player is ready to vote!";
+const TOOLTIP_KICK_PLAYER = "Remove player";
 const TOOLTIP_EDIT_WORD = "Edit word";
 const TOOLTIP_DELETE_WORD = "Delete word";
 
@@ -1151,7 +1188,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "←&nbsp;you" : "")
           }</td>
         </tr>
@@ -3240,6 +3277,12 @@ function wireUI() {
       showTip(tip, tip.dataset.tip || "Waiting for a player to make a move");
     });
   }
+
+  document.addEventListener("mouseover", event => {
+    const tip = event.target?.closest?.("[data-tip]");
+    if (!tip) return;
+    updateTipAlignment(tip, tip.dataset.tip || "");
+  });
 
   renderLocal(getRoomCode());
   setView("viewLobby");
