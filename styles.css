@@ -243,6 +243,10 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+#viewRoom .grid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
 .room-column {
   display: flex;
   flex-direction: column;
@@ -404,12 +408,12 @@ button:disabled {
 }
 
 .meta-label {
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 400;
+  color: #9a8b7a;
 }
 
 .meta-value {
-  color: #4f3f2e;
+  color: #3f3327;
 }
 
 .meta-sep {
@@ -516,22 +520,6 @@ button.pill:focus-visible {
   font-size: 0.9em;
   position: relative;
   cursor: pointer;
-}
-
-.room-lock.show-tip::after {
-  content: "Room locked";
-  position: absolute;
-  top: 130%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #2b2b2b;
-  color: #fff;
-  font-size: 11px;
-  padding: 4px 6px;
-  border-radius: 6px;
-  white-space: nowrap;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  z-index: 5;
 }
 
 .room-code-wrap {

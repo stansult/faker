@@ -245,12 +245,7 @@ function setText(id, text) {
 function showLockTooltip() {
   const icon = $("roomLockIcon");
   if (!icon || icon.classList.contains("hidden")) return;
-  icon.classList.add("show-tip");
-  if (lockTipTimer) clearTimeout(lockTipTimer);
-  lockTipTimer = setTimeout(() => {
-    icon.classList.remove("show-tip");
-    lockTipTimer = null;
-  }, 1500);
+  flashCopied("roomCodeCopied", "Room locked");
 }
 
 function clearMoveAlerts(panel) {
@@ -808,7 +803,6 @@ let matchEndShown = false;
 let submitWordsInFlight = false;
 let submitMoveInFlight = false;
 let kickInFlight = false;
-let lockTipTimer = null;
 let moveTurnActive = false;
 let moveTurnStartedAt = null;
 let moveAlertTimer = null;
@@ -1072,6 +1066,7 @@ function renderRoomStatus(rs) {
   const el = $("playersList");
   if (el) {
     const showWordsColumn = !(gamesPlayed > 0 || gameActive);
+    const showScoreColumn = gamesPlayed > 0 || gameActive;
     const byNumber = new Map(
       players.map(p => [p.playerNumber, p])
     );
@@ -1083,7 +1078,7 @@ function renderRoomStatus(rs) {
         <tr class="row-muted">
           <td class="mono">${n}</td>
           <td></td>
-          <td class="mono">-</td>
+          ${showScoreColumn ? '<td class="mono">-</td>' : ""}
           ${showWordsColumn ? '<td class="mono">-</td>' : ""}
           <td class="mini">Not joined</td>
           ${isHost ? "<td></td>" : ""}
@@ -1096,7 +1091,7 @@ function renderRoomStatus(rs) {
         <tr${isMe ? ' class="is-me-row"' : ""}>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(formatName(p.name) || "")}</td>
-          <td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>
+          ${showScoreColumn ? `<td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>` : ""}
           ${showWordsColumn ? `<td class="mono">${
             p.doneWords &&
             Number.isInteger(p.wordsRequired) &&
@@ -1116,6 +1111,7 @@ function renderRoomStatus(rs) {
       })
       .join("");
 
+    const scoreHeader = showScoreColumn ? "<th>Score</th>" : "";
     const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
     const kickHeader = "<th></th>";
     el.innerHTML = `
@@ -1124,7 +1120,7 @@ function renderRoomStatus(rs) {
           <tr>
             <th>#</th>
             <th>Name</th>
-            <th>Score</th>
+            ${scoreHeader}
             ${wordHeader}
             <th>Status</th>
             ${kickHeader}
@@ -1137,7 +1133,10 @@ function renderRoomStatus(rs) {
 
   updateWordsProgress(rs);
   const languageLabel = getLanguageLabel(getRoomLanguage());
-  setText("wordLanguageHint", `Language: ${languageLabel}`);
+  const wordLanguageHint = $("wordLanguageHint");
+  if (wordLanguageHint) {
+    wordLanguageHint.innerHTML = `<span class="meta-label">Language:</span> <span class="meta-value">${esc(languageLabel)}</span>`;
+  }
   applyRoomStatus(rs);
   updatePlayerBadge();
 
@@ -1493,7 +1492,7 @@ function updateGameUI() {
   }
   const moveLanguage = $("moveLanguageHint");
   if (moveLanguage) {
-    moveLanguage.textContent = `Language: ${getLanguageLabel(getRoomLanguage())}`;
+    moveLanguage.innerHTML = `<span class="meta-label">Language:</span> <span class="meta-value">${esc(getLanguageLabel(getRoomLanguage()))}</span>`;
   }
 
   const game = lastGameState?.game || lastRoomStatus?.game || null;
