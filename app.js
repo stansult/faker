@@ -1305,18 +1305,26 @@ function renderRoundsTable() {
     if (!m || m.round == null || m.playerNumber == null) continue;
     cellMap.set(`${m.round}:${m.playerNumber}`, m.word || "");
   }
-
   const headerCells = sortedPlayers
     .map(p => `<th class="mono">${p.playerNumber}<span class="mini"> ${esc(formatName(p.name) || "")}</span></th>`)
     .join("");
 
+  const gameActive = !!(lastGameState?.game?.gameId && !lastGameState?.game?.endedAt);
+  const voteActive = !!lastGameState?.game?.votePhase?.active;
+  const activePlayerNumber = lastGameState?.game?.nextPlayerNumber ?? null;
+  const canShowHourglass = gameActive && !voteActive;
   const rows = [];
   for (let r = 1; r <= roundsTotal; r++) {
     const cells = sortedPlayers
       .map(p => {
         const key = `${r}:${p.playerNumber}`;
         const word = cellMap.get(key) || "";
-        return `<td>${esc(word)}</td>`;
+        const showHourglass =
+          canShowHourglass &&
+          !word &&
+          activePlayerNumber === p.playerNumber &&
+          lastGameState?.game?.round === r;
+        return `<td>${showHourglass ? "⏳" : esc(word)}</td>`;
       })
       .join("");
     rows.push(`<tr><td class="mono">${r}</td>${cells}</tr>`);
