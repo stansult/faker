@@ -758,8 +758,8 @@ function renderEditableWords(roomCode) {
     return `
       <span class="word-chip">
         <span class="word-text">${safe}</span>
-        <button type="button" class="word-action word-edit icon-btn" data-tip="Edit word" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
-        <button type="button" class="word-action word-delete icon-btn" data-tip="Delete word" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+        <button type="button" class="word-action word-edit icon-btn" data-tip="${TOOLTIP_EDIT_WORD}" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete icon-btn" data-tip="${TOOLTIP_DELETE_WORD}" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
       </span>
     `;
   });
@@ -840,6 +840,8 @@ const TOOLTIP_LINK_COPIED = "Link copied!";
 const TOOLTIP_ROOM_LOCKED = "Room locked";
 const TOOLTIP_WAITING_MOVE = "Waiting for a player to make a move";
 const TOOLTIP_READY_VOTE = "This player is ready to vote!";
+const TOOLTIP_EDIT_WORD = "Edit word";
+const TOOLTIP_DELETE_WORD = "Delete word";
 
 function restoreActiveGameSession() {
   try {
