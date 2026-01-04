@@ -1035,12 +1035,10 @@ function renderRoomStatus(rs) {
     const currentGameNumber = gameActive ? gamesPlayed + 1 : gamesPlayed;
     if (gamesPlayed === 0 && !gameActive) {
       metaParts.push(formatMeta("Games:", String(gamesTotal)));
-      if (wordsRequired) metaParts.push(formatMeta("Words each:", String(wordsRequired)));
     } else {
       metaParts.push(formatMeta("Games:", `${currentGameNumber} / ${gamesTotal}`));
     }
   }
-  metaParts.push(formatMeta("Language:", getLanguageLabel(getRoomLanguage())));
   if (roundsPerGame) metaParts.push(formatMeta("Rounds per game:", String(roundsPerGame)));
   const roomMeta = $("roomMeta");
   if (roomMeta) roomMeta.innerHTML = joinMeta(metaParts);
@@ -1136,6 +1134,13 @@ function renderRoomStatus(rs) {
   const wordLanguageHint = $("wordLanguageHint");
   if (wordLanguageHint) {
     wordLanguageHint.innerHTML = `<span class="meta-label">Language:</span> <span class="meta-value">${esc(languageLabel)}</span>`;
+  }
+  const wordsRequiredLine = $("wordsRequiredLine");
+  if (wordsRequiredLine) {
+    wordsRequiredLine.innerHTML =
+      required != null
+        ? `<span class="meta-label">Words required:</span> <span class="meta-value">${esc(String(required))}</span>`
+        : "";
   }
   applyRoomStatus(rs);
   updatePlayerBadge();
