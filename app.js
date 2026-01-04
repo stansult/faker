@@ -1030,24 +1030,21 @@ function renderRoomStatus(rs) {
 
   const displayMaxPlayers = effectiveMaxPlayers;
   const metaParts = [];
-  const formatMeta = (label, value) =>
-    `<span class="meta-label">${esc(label)}</span> <span class="meta-value">${esc(value)}</span>`;
-  const joinMeta = parts => parts.join('<span class="meta-sep"> • </span>');
-  metaParts.push(formatMeta(
+  metaParts.push(metaPair(
     "Players:",
     `${players.length}${displayMaxPlayers ? " / " + displayMaxPlayers : ""}`
   ));
   if (gamesTotal != null) {
     const currentGameNumber = gameActive ? gamesPlayed + 1 : gamesPlayed;
     if (gamesPlayed === 0 && !gameActive) {
-      metaParts.push(formatMeta("Games:", String(gamesTotal)));
+      metaParts.push(metaPair("Games:", String(gamesTotal)));
     } else {
-      metaParts.push(formatMeta("Games:", `${currentGameNumber} / ${gamesTotal}`));
+      metaParts.push(metaPair("Games:", `${currentGameNumber} / ${gamesTotal}`));
     }
   }
-  if (roundsPerGame) metaParts.push(formatMeta("Rounds per game:", String(roundsPerGame)));
+  if (roundsPerGame) metaParts.push(metaPair("Rounds per game:", String(roundsPerGame)));
   const roomMeta = $("roomMeta");
-  if (roomMeta) roomMeta.innerHTML = joinMeta(metaParts);
+  if (roomMeta) roomMeta.innerHTML = metaJoin(metaParts);
 
   const subheading = $("subheading");
   if (subheading && currentView === "viewRoom") {
@@ -1139,14 +1136,11 @@ function renderRoomStatus(rs) {
   const languageLabel = getLanguageLabel(getRoomLanguage());
   const wordLanguageHint = $("wordLanguageHint");
   if (wordLanguageHint) {
-    wordLanguageHint.innerHTML = `<span class="meta-label">Language:</span> <span class="meta-value">${esc(languageLabel)}</span>`;
-  }
-  const wordsRequiredLine = $("wordsRequiredLine");
-  if (wordsRequiredLine) {
-    wordsRequiredLine.innerHTML =
-      wordsRequired != null
-        ? `<span class="meta-label">Words required:</span> <span class="meta-value">${esc(String(wordsRequired))}</span>`
-        : "";
+    const parts = [
+      metaPair("Language:", languageLabel),
+      wordsRequired != null ? metaPair("Words required:", String(wordsRequired)) : null
+    ].filter(Boolean);
+    wordLanguageHint.innerHTML = metaJoin(parts);
   }
   applyRoomStatus(rs);
   updatePlayerBadge();
@@ -2861,6 +2855,14 @@ function esc(s) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function metaPair(label, value) {
+  return `<span class="meta-label">${esc(label)}</span> <span class="meta-value">${esc(value)}</span>`;
+}
+
+function metaJoin(parts) {
+  return parts.join('<span class="meta-sep"> • </span>');
 }
 
 function formatName(raw) {
