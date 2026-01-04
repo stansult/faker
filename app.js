@@ -1144,8 +1144,8 @@ function renderRoomStatus(rs) {
   const wordsRequiredLine = $("wordsRequiredLine");
   if (wordsRequiredLine) {
     wordsRequiredLine.innerHTML =
-      required != null
-        ? `<span class="meta-label">Words required:</span> <span class="meta-value">${esc(String(required))}</span>`
+      wordsRequired != null
+        ? `<span class="meta-label">Words required:</span> <span class="meta-value">${esc(String(wordsRequired))}</span>`
         : "";
   }
   applyRoomStatus(rs);
