@@ -273,12 +273,16 @@ function updateTipAlignment(el, message) {
   const width = getTooltipWidth(message || el.dataset.tip || "");
   if (!width) return;
   const margin = 8;
+  const container = el.closest(".panel");
+  const bounds = container
+    ? container.getBoundingClientRect()
+    : { left: 0, right: window.innerWidth };
   const desiredLeft = rect.left + rect.width / 2 - width / 2;
-  if (desiredLeft < margin) {
+  if (desiredLeft < bounds.left + margin) {
     el.classList.add("tip-align-left");
     return;
   }
-  if (desiredLeft + width > window.innerWidth - margin) {
+  if (desiredLeft + width > bounds.right - margin) {
     el.classList.add("tip-align-right");
   }
 }
@@ -288,31 +292,31 @@ function showTip(el, message, durationMs = 2200) {
   if (activeTooltip?.el && activeTooltip.el !== el) {
     activeTooltip.el.classList.remove("show-tip");
     if (activeTooltip.timer) clearTimeout(activeTooltip.timer);
-    if (activeTooltip.originalTip !== undefined) {
-      if (activeTooltip.originalTip) {
-        activeTooltip.el.dataset.tip = activeTooltip.originalTip;
+    if (activeTooltip.baseTip !== undefined) {
+      if (activeTooltip.baseTip) {
+        activeTooltip.el.dataset.tip = activeTooltip.baseTip;
       } else {
         delete activeTooltip.el.dataset.tip;
       }
     }
   }
-  const originalTip = el.dataset.tip;
+  const baseTip = el.dataset.baseTip ?? el.dataset.tip;
   el.dataset.tip = message;
   updateTipAlignment(el, message);
   el.classList.add("show-tip");
   if (activeTooltip?.timer) clearTimeout(activeTooltip.timer);
   const timer = setTimeout(() => {
     el.classList.remove("show-tip");
-    if (originalTip !== undefined) {
-      if (originalTip) {
-        el.dataset.tip = originalTip;
+    if (baseTip !== undefined) {
+      if (baseTip) {
+        el.dataset.tip = baseTip;
       } else {
         delete el.dataset.tip;
       }
     }
     if (activeTooltip?.el === el) activeTooltip = null;
   }, durationMs);
-  activeTooltip = { el, timer, originalTip };
+  activeTooltip = { el, timer, baseTip };
 }
 
 function clearMoveAlerts(panel) {
@@ -809,8 +813,8 @@ function renderEditableWords(roomCode) {
     return `
       <span class="word-chip">
         <span class="word-text">${safe}</span>
-        <button type="button" class="word-action word-edit icon-btn" data-tip="${TOOLTIP_EDIT_WORD}" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
-        <button type="button" class="word-action word-delete icon-btn" data-tip="${TOOLTIP_DELETE_WORD}" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+        <button type="button" class="word-action word-edit icon-btn" data-tip="${TOOLTIP_EDIT_WORD}" data-base-tip="${TOOLTIP_EDIT_WORD}" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete icon-btn" data-tip="${TOOLTIP_DELETE_WORD}" data-base-tip="${TOOLTIP_DELETE_WORD}" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
       </span>
     `;
   });
@@ -1083,8 +1087,10 @@ function renderRoomStatus(rs) {
     lockIcon.textContent = locked ? "🔒" : "";
     if (locked) {
       lockIcon.dataset.tip = TOOLTIP_ROOM_LOCKED;
+      lockIcon.dataset.baseTip = TOOLTIP_ROOM_LOCKED;
     } else {
       delete lockIcon.dataset.tip;
+      delete lockIcon.dataset.baseTip;
     }
     lockIcon.classList.toggle("hidden", !locked);
   }
@@ -1188,7 +1194,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-base-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? "←&nbsp;you" : "")
           }</td>
         </tr>
@@ -1394,7 +1400,7 @@ function renderRoundsTable() {
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
         if (showHourglass) {
-          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" title="">⏳</span></td>`;
+          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
         }
         return `<td>${esc(word)}</td>`;
       })
@@ -1410,7 +1416,7 @@ function renderRoundsTable() {
     const cells = sortedPlayers
       .map(p =>
         triggerSet.has(String(p.playerId))
-          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" title="">👍</span>`
+          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" data-base-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
           : ""
       )
       .map(cell => `<td>${cell}</td>`)
@@ -3158,13 +3164,25 @@ function wireUI() {
   $("roomLockIcon")?.addEventListener("click", showLockTooltip);
 
   const btnCopyRoomCode = $("btnCopyRoomCode");
-  if (btnCopyRoomCode) btnCopyRoomCode.dataset.tip = TOOLTIP_COPY_CODE;
+  if (btnCopyRoomCode) {
+    btnCopyRoomCode.dataset.tip = TOOLTIP_COPY_CODE;
+    btnCopyRoomCode.dataset.baseTip = TOOLTIP_COPY_CODE;
+  }
   const btnCopyRoomLink = $("btnCopyRoomLink");
-  if (btnCopyRoomLink) btnCopyRoomLink.dataset.tip = TOOLTIP_COPY_LINK;
+  if (btnCopyRoomLink) {
+    btnCopyRoomLink.dataset.tip = TOOLTIP_COPY_LINK;
+    btnCopyRoomLink.dataset.baseTip = TOOLTIP_COPY_LINK;
+  }
   const btnCopyRoomCodeGame = $("btnCopyRoomCodeGame");
-  if (btnCopyRoomCodeGame) btnCopyRoomCodeGame.dataset.tip = TOOLTIP_COPY_CODE;
+  if (btnCopyRoomCodeGame) {
+    btnCopyRoomCodeGame.dataset.tip = TOOLTIP_COPY_CODE;
+    btnCopyRoomCodeGame.dataset.baseTip = TOOLTIP_COPY_CODE;
+  }
   const btnCopyRoomLinkGame = $("btnCopyRoomLinkGame");
-  if (btnCopyRoomLinkGame) btnCopyRoomLinkGame.dataset.tip = TOOLTIP_COPY_LINK;
+  if (btnCopyRoomLinkGame) {
+    btnCopyRoomLinkGame.dataset.tip = TOOLTIP_COPY_LINK;
+    btnCopyRoomLinkGame.dataset.baseTip = TOOLTIP_COPY_LINK;
+  }
 
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
@@ -3281,6 +3299,9 @@ function wireUI() {
   document.addEventListener("mouseover", event => {
     const tip = event.target?.closest?.("[data-tip]");
     if (!tip) return;
+    if (!tip.classList.contains("show-tip") && tip.dataset.baseTip) {
+      tip.dataset.tip = tip.dataset.baseTip;
+    }
     updateTipAlignment(tip, tip.dataset.tip || "");
   });
 

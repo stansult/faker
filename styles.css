@@ -277,13 +277,6 @@ p {
   animation: lift 500ms ease both;
 }
 
-.room-panel {
-  overflow: visible;
-}
-
-#votePanel {
-  overflow: visible;
-}
 
 .panel::before {
   content: "";
