@@ -253,15 +253,30 @@ function showTip(el, message, durationMs = 2200) {
   if (activeTooltip?.el && activeTooltip.el !== el) {
     activeTooltip.el.classList.remove("show-tip");
     if (activeTooltip.timer) clearTimeout(activeTooltip.timer);
+    if (activeTooltip.originalTip !== undefined) {
+      if (activeTooltip.originalTip) {
+        activeTooltip.el.dataset.tip = activeTooltip.originalTip;
+      } else {
+        delete activeTooltip.el.dataset.tip;
+      }
+    }
   }
+  const originalTip = el.dataset.tip;
   el.dataset.tip = message;
   el.classList.add("show-tip");
   if (activeTooltip?.timer) clearTimeout(activeTooltip.timer);
   const timer = setTimeout(() => {
     el.classList.remove("show-tip");
+    if (originalTip !== undefined) {
+      if (originalTip) {
+        el.dataset.tip = originalTip;
+      } else {
+        delete el.dataset.tip;
+      }
+    }
     if (activeTooltip?.el === el) activeTooltip = null;
   }, durationMs);
-  activeTooltip = { el, timer };
+  activeTooltip = { el, timer, originalTip };
 }
 
 function clearMoveAlerts(panel) {
@@ -1029,7 +1044,6 @@ function renderRoomStatus(rs) {
   const lockIcon = $("roomLockIcon");
   if (lockIcon) {
     lockIcon.textContent = locked ? "🔒" : "";
-    lockIcon.title = locked ? TOOLTIP_ROOM_LOCKED : "";
     if (locked) {
       lockIcon.dataset.tip = TOOLTIP_ROOM_LOCKED;
     } else {
@@ -1343,7 +1357,7 @@ function renderRoundsTable() {
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
         if (showHourglass) {
-          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
+          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" title="">⏳</span></td>`;
         }
         return `<td>${esc(word)}</td>`;
       })
@@ -1359,7 +1373,7 @@ function renderRoundsTable() {
     const cells = sortedPlayers
       .map(p =>
         triggerSet.has(String(p.playerId))
-          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
+          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" title="">👍</span>`
           : ""
       )
       .map(cell => `<td>${cell}</td>`)
