@@ -438,6 +438,11 @@ button:disabled {
   font-weight: 700;
 }
 
+.move-instruction {
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -527,6 +532,26 @@ button.pill:focus-visible {
   cursor: pointer;
 }
 
+.room-lock.show-tip::after,
+.icon-btn.show-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f4efe6;
+  color: #5a4634;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(90, 70, 52, 0.18);
+  z-index: 5;
+}
+
+.icon-btn {
+  position: relative;
+}
 .room-code-wrap {
   margin-left: auto;
 }

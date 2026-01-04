@@ -565,7 +565,9 @@ function showGameOverOverlay(game) {
     } else if (winner === "legits") {
       message = role === "faker"
         ? "Votes are in — you lost! 😢😢"
-        : `Votes are in — we won!\n${fakerLabel} was caught. 🎉🎉`;
+        : `Votes are in — we won!\n${fakerLabel.startsWith("player ")
+            ? `Player ${fakerLabel.slice("player ".length)} was caught.`
+            : `${fakerLabel} was caught.`} 🎉🎉`;
     }
   } else if (winner === "faker") {
     message = role === "faker" ? "You won!" : `${fakerLabel} won!`;
@@ -1466,20 +1468,20 @@ function updateGameUI() {
     if (!role) {
       if (secretRow) secretRow.classList.add("hidden");
       secretEl.textContent = "";
-      secretEl.classList.remove("secret-plain");
+      secretEl.classList.remove("secret-plain", "label-inline");
       secretEl.classList.add("pill", "mono");
       if (secretLabel) secretLabel.textContent = "Secret word:";
     } else if (role === "faker") {
       if (secretRow) secretRow.classList.remove("hidden");
       if (secretLabel) secretLabel.textContent = "";
       secretEl.textContent = "You do not know the word.";
-      secretEl.classList.add("secret-plain");
-      secretEl.classList.remove("pill", "mono");
+      secretEl.classList.add("label-inline");
+      secretEl.classList.remove("pill", "mono", "secret-plain");
     } else {
       if (secretRow) secretRow.classList.remove("hidden");
       if (secretLabel) secretLabel.textContent = "Secret word:";
       secretEl.textContent = secret || "(waiting for secret word)";
-      secretEl.classList.remove("secret-plain");
+      secretEl.classList.remove("secret-plain", "label-inline");
       secretEl.classList.add("pill", "mono");
     }
   }
