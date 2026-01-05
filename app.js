@@ -1554,6 +1554,7 @@ function updateGameUI() {
   const triggerBtn = $("btnTriggerVote");
   const voteReadyPanel = $("voteReadyPanel");
   const votePanel = $("votePanel");
+  const voteSection = $("voteSection");
 
   const saved = getSaved(getRoomCode());
   const playerNumber = saved?.playerNumber ?? null;
@@ -1634,9 +1635,9 @@ function updateGameUI() {
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
   if (moveEntryPanel) moveEntryPanel.classList.toggle("hidden", voteStarted);
   if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
-  if (votePanel) {
-    votePanel.classList.toggle("your-turn", voteLive);
-    votePanel.classList.toggle("your-turn-alert", voteLive);
+  if (voteSection) {
+    voteSection.classList.toggle("your-turn", voteLive);
+    voteSection.classList.toggle("your-turn-alert", voteLive);
   }
 
   const isYourTurn =
