@@ -1172,10 +1172,10 @@ function renderRoomStatus(rs) {
         if (!p) {
           return `
         <tr class="row-muted">
-          <td class="mono">${n}</td>
+          <td class="mono col-num">${n}</td>
           <td></td>
-          ${showScoreColumn ? '<td class="mono">-</td>' : ""}
-          ${showWordsColumn ? '<td class="mono">-</td>' : ""}
+          ${showScoreColumn ? '<td class="mono col-score">-</td>' : ""}
+          ${showWordsColumn ? '<td class="mono col-words">-</td>' : ""}
           <td class="mini">Not joined</td>
           ${isHost ? "<td></td>" : ""}
         </tr>
