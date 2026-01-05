@@ -6,11 +6,23 @@ printf '%s  %s\n' "$stamp" "$sha" > build.txt
 
 python3 - "$sha" <<'PY'
 import sys
+import subprocess
 from pathlib import Path
 
 build_id = sys.argv[1]
 index = Path("index.html")
 text = index.read_text(encoding="utf-8")
+
+try:
+    changed = subprocess.check_output(
+        ["git", "diff", "--cached", "--name-only"],
+        text=True
+    ).splitlines()
+except subprocess.CalledProcessError:
+    changed = []
+
+if not any(path in ("styles.css", "app.js") for path in changed):
+    sys.exit(0)
 
 def replace_version(text, asset):
     marker = f"{asset}?v="
