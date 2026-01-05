@@ -1427,12 +1427,14 @@ function renderRoundsTable() {
   if (triggers.length) {
     const triggerSet = new Set(triggers.map(String));
     const cells = sortedPlayers
-      .map(p =>
-        triggerSet.has(String(p.playerId))
+      .map(p => {
+        const isSelf = myId && p.playerId === myId;
+        const cellClass = isSelf ? ' class="cell-emoji self-col"' : ' class="cell-emoji"';
+        const content = triggerSet.has(String(p.playerId))
           ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" data-base-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
-          : ""
-      )
-      .map(cell => `<td class="cell-emoji">${cell}</td>`)
+          : "";
+        return `<td${cellClass}>${content}</td>`;
+      })
       .join("");
     rows.push(`<tr><td class="mono col-round"><strong>Vote?</strong></td>${cells}</tr>`);
   }
