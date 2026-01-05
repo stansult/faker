@@ -1437,7 +1437,7 @@ function renderRoundsTable() {
         return `<td${cellClass}>${content}</td>`;
       })
       .join("");
-    rows.push(`<tr><td class="mono col-round"><strong>Vote?</strong></td>${cells}</tr>`);
+    rows.push(`<tr><td class="col-round"><strong>Vote?</strong></td>${cells}</tr>`);
   }
 
   container.innerHTML = `
