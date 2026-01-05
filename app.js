@@ -250,7 +250,8 @@ function setText(id, text) {
 const tooltipState = {
   el: null,
   timer: null,
-  target: null
+  target: null,
+  shownAt: 0
 };
 
 function getTooltipEl() {
@@ -306,6 +307,7 @@ function showTooltip(target, text, autoHide = false) {
   tip.classList.add(placement);
 
   tooltipState.target = target;
+  tooltipState.shownAt = Date.now();
   if (autoHide) {
     tooltipState.timer = setTimeout(hideTooltip, TOOLTIP_DURATION_MS);
   }
@@ -3248,7 +3250,10 @@ function wireUI() {
   });
 
   window.addEventListener("scroll", hideTooltip, true);
-  window.addEventListener("resize", hideTooltip);
+  window.addEventListener("resize", () => {
+    if (Date.now() - tooltipState.shownAt < 400) return;
+    hideTooltip();
+  });
 
   const voteTable = $("voteTable");
   if (voteTable) {
