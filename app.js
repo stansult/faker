@@ -1889,7 +1889,7 @@ function updateNameError() {
   if (!input) return;
   const value = String(input.value || "").trim();
   if (value.length > MAX_NAME_LENGTH) {
-    setNameError(true, `Name too long (max ${MAX_NAME_LENGTH} chars).`);
+    setNameError(true, `Name too long (max ${MAX_NAME_LENGTH} chars)`);
   } else if (nameTouched) {
     setNameError(!value, "Name is required to join.");
   } else {
@@ -2198,6 +2198,11 @@ async function joinRoom(options = {}) {
     $("roomCode")?.focus();
     return;
   }
+  if (roomCode.length !== ROOM_CODE_LENGTH) {
+    setActionError(true, "Invalid room code.");
+    $("roomCode")?.focus();
+    return;
+  }
 
   if (!skipLobbyGate && !name) {
     nameTouched = true;
@@ -2207,7 +2212,7 @@ async function joinRoom(options = {}) {
     return;
   }
   if (name && name.length > MAX_NAME_LENGTH) {
-    const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+    const message = `Name too long (max ${MAX_NAME_LENGTH} chars)`;
     nameTouched = true;
     setNameError(true, message);
     setActionError(true, message);
@@ -2327,7 +2332,7 @@ async function joinRoom(options = {}) {
       }
       if (name.length > MAX_NAME_LENGTH) {
         if (isStale()) return;
-        const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+        const message = `Name too long (max ${MAX_NAME_LENGTH} chars)`;
         nameTouched = true;
         setNameError(true, message);
         setActionError(true, message);
@@ -2403,7 +2408,7 @@ async function createRoom(options = {}) {
     return;
   }
   if (name.length > MAX_NAME_LENGTH) {
-    const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+    const message = `Name too long (max ${MAX_NAME_LENGTH} chars)`;
     nameTouched = true;
     setNameError(true, message);
     $("playerName")?.focus();
