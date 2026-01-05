@@ -829,8 +829,30 @@ body.debug .debug-only {
   border-bottom: 0.5px solid #efe4d2;
 }
 
+.room-table .col-num {
+  text-align: right;
+}
+
 .room-table .col-score,
 .room-table .col-words {
+  text-align: center;
+}
+
+.room-table .col-round {
+  text-align: right;
+}
+
+.room-table .player-head {
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.room-table .player-name {
+  display: inline-block;
+}
+
+.room-table .cell-emoji {
   text-align: center;
 }
 

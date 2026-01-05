@@ -1185,7 +1185,7 @@ function renderRoomStatus(rs) {
         const isMe = myPlayerId && p.playerId === myPlayerId;
         return `
         <tr${isMe ? ' class="is-me-row"' : ""}>
-          <td class="mono">${p.playerNumber}</td>
+          <td class="mono col-num">${p.playerNumber}</td>
           <td>${esc(formatName(p.name) || "")}</td>
           ${showScoreColumn ? `<td class="mono col-score">${Number.isInteger(p.score) ? p.score : 0}</td>` : ""}
           ${showWordsColumn ? `<td class="mono col-words">${
@@ -1214,7 +1214,7 @@ function renderRoomStatus(rs) {
       <table class="status-table room-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th class="col-num">#</th>
             <th>Name</th>
             ${scoreHeader}
             ${wordHeader}
@@ -1386,7 +1386,7 @@ function renderRoundsTable() {
     cellMap.set(`${m.round}:${m.playerNumber}`, m.word || "");
   }
   const headerCells = sortedPlayers
-    .map(p => `<th class="mono">${p.playerNumber}<span class="mini"> ${esc(formatName(p.name) || "")}</span></th>`)
+    .map(p => `<th class="player-head"><span class="player-name">${esc(formatName(p.name) || "")}</span></th>`)
     .join("");
 
   const gameActive = !!(lastGameState?.game?.gameId && !lastGameState?.game?.endedAt);
@@ -1405,12 +1405,12 @@ function renderRoundsTable() {
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
         if (showHourglass) {
-          return `<td><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
+          return `<td class="cell-emoji"><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
         }
         return `<td>${esc(word)}</td>`;
       })
       .join("");
-    rows.push(`<tr><td class="mono">${r}</td>${cells}</tr>`);
+    rows.push(`<tr><td class="mono col-round">${r}</td>${cells}</tr>`);
   }
 
   const triggers = Array.isArray(lastGameState?.game?.votePhase?.triggers)
@@ -1424,16 +1424,16 @@ function renderRoundsTable() {
           ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" data-base-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
           : ""
       )
-      .map(cell => `<td>${cell}</td>`)
+      .map(cell => `<td class="cell-emoji">${cell}</td>`)
       .join("");
-    rows.push(`<tr><td class="mono"><strong>Vote?</strong></td>${cells}</tr>`);
+    rows.push(`<tr><td class="mono col-round"><strong>Vote?</strong></td>${cells}</tr>`);
   }
 
   container.innerHTML = `
     <table class="status-table room-table">
       <thead>
         <tr>
-          <th>Round</th>
+          <th class="col-round">Round</th>
           ${headerCells}
         </tr>
       </thead>
