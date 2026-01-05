@@ -614,8 +614,8 @@ button.pill:focus-visible {
 .tooltip {
   position: fixed;
   z-index: 1000;
-  background: #fff8ec;
-  border: 1px solid #ead8c2;
+  background: #fff4c2;
+  border: 1px solid #e0c874;
   color: #3f3327;
   font-size: 12px;
   font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -647,12 +647,12 @@ button.pill:focus-visible {
 
 .tooltip.tooltip--above::after {
   top: 100%;
-  border-top-color: #f0dfc7;
+  border-top-color: #e0c874;
 }
 
 .tooltip.tooltip--below::after {
   bottom: 100%;
-  border-bottom-color: #f0dfc7;
+  border-bottom-color: #e0c874;
 }
 
 .is-me-row td {
