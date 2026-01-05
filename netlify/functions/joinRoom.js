@@ -1,6 +1,7 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { MAX_NAME_LENGTH } from "../../shared/validationConstants.js";
-import { isValidRoomCode } from "./roomCode.js";
+import { nameTooLongError } from "./validationErrors.js";
+import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 
 function json(statusCode, obj) {
   return {
@@ -73,7 +74,7 @@ export async function handler(event) {
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!isValidRoomCode(roomCode)) {
-    return json(400, { error: "Invalid room code." });
+    return json(400, roomCodeError());
   }
   if (!requestedPlayerId) return json(400, { error: "playerId is required" });
 
@@ -108,7 +109,7 @@ export async function handler(event) {
       return json(400, { error: "name is required" });
     }
     if (requestedName && requestedName.length > MAX_NAME_LENGTH) {
-      return json(400, { error: `Name too long (max ${MAX_NAME_LENGTH} chars)` });
+      return json(400, nameTooLongError());
     }
     // Allow updating name on rejoin if provided (useful when name was null earlier)
     if (requestedName && existing.name !== requestedName) {
@@ -137,7 +138,7 @@ export async function handler(event) {
 
   if (!requestedName) return json(400, { error: "name is required" });
   if (requestedName.length > MAX_NAME_LENGTH) {
-    return json(400, { error: `Name too long (max ${MAX_NAME_LENGTH} chars)` });
+    return json(400, nameTooLongError());
   }
 
   const playerId = requestedPlayerId || makeId(PLAYER_ID_LENGTH);

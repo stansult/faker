@@ -1,6 +1,7 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
-import { isValidRoomCode } from "./roomCode.js";
+import { isValidRoomCode, roomCodeError } from "./roomCode.js";
+import { wordTooLongError } from "./validationErrors.js";
 
 function json(statusCode, obj) {
   return {
@@ -80,7 +81,7 @@ export async function handler(event) {
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!isValidRoomCode(roomCode)) {
-    return json(400, { error: "Invalid room code." });
+    return json(400, roomCodeError());
   }
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!wordsRaw) return json(400, { error: "words must be an array" });
@@ -128,7 +129,7 @@ export async function handler(event) {
   });
 
   if (hasTooLong) {
-    return json(400, { error: `Word too long (max ${MAX_WORD_LENGTH} chars)` });
+    return json(400, wordTooLongError());
   }
 
   if (hasInvalid) {

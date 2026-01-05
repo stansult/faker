@@ -10,3 +10,9 @@ export function isValidRoomCode(raw) {
   }
   return true;
 }
+
+const ROOM_CODE_ERROR = { error: "Invalid room code." };
+
+export function roomCodeError() {
+  return ROOM_CODE_ERROR;
+}

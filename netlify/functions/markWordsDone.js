@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { isValidRoomCode } from "./roomCode.js";
+import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 
 function json(statusCode, obj) {
   return {
@@ -48,7 +48,7 @@ export async function handler(event) {
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
   if (!isValidRoomCode(roomCode)) {
-    return json(400, { error: "Invalid room code." });
+    return json(400, roomCodeError());
   }
   if (!playerId) return json(400, { error: "playerId is required" });
 
