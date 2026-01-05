@@ -860,6 +860,14 @@ body.debug .debug-only {
   background: #f6efe3;
 }
 
+body.role-legit .room-table .self-col {
+  background: rgba(76, 175, 80, 0.08);
+}
+
+body.role-faker .room-table .self-col {
+  background: rgba(196, 77, 77, 0.08);
+}
+
 #output {
   border: 1px solid var(--line);
   border-radius: 12px;
