@@ -3249,9 +3249,13 @@ function wireUI() {
     showTooltip(target, target.dataset.tipTap, true);
   });
 
-  window.addEventListener("scroll", hideTooltip, true);
+  const shouldSuppressHide = () => Date.now() - tooltipState.shownAt < 400;
+  window.addEventListener("scroll", () => {
+    if (shouldSuppressHide()) return;
+    hideTooltip();
+  }, true);
   window.addEventListener("resize", () => {
-    if (Date.now() - tooltipState.shownAt < 400) return;
+    if (shouldSuppressHide()) return;
     hideTooltip();
   });
 
