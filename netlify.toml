@@ -7,5 +7,4 @@ directory = "netlify/functions"
 [dev]
 publish = "."
 functions = "netlify/functions"
-staticServerPort = 3998
 port = 3999
