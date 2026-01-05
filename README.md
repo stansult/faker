@@ -29,7 +29,13 @@ For mobile HTTPS testing (clipboard works), use Cloudflare Tunnel:
 ```
 npm run dev:live
 ```
-This assumes you created a named tunnel `faker-dev`. To use a different name:
+Then open:
+```
+https://dev.stansult.com
+```
+
+This assumes you created a named tunnel `faker-dev` and mapped it to `dev.stansult.com`.
+To use a different tunnel name:
 ```
 FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
 ```
