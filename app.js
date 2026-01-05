@@ -1860,7 +1860,7 @@ function updateVoteTimer(votePhase) {
 
 /* ===== actions ===== */
 
-function setNameError(show, message = "Name is required to join.") {
+function setNameError(show, message = "Name is required") {
   const el = $("nameError");
   if (!el) return;
   el.textContent = message;
@@ -1876,11 +1876,8 @@ function setActionError(show, message = "") {
 
 function friendlyJoinError(data, status) {
   const raw = String(data?.error || "");
-  if (raw === "Room is full") return "This room is full.";
-  if (raw === "Room is locked") return "This room is locked and can't accept new players.";
-  if (raw === "Match ended") return "This match is over. Please create a new room.";
-  if (raw === "Room not found" || status === 404) return "Room not found.";
   if (raw) return raw;
+  if (status === 404) return "Room not found";
   return `Join failed (${status})`;
 }
 
@@ -1891,7 +1888,7 @@ function updateNameError() {
   if (value.length > MAX_NAME_LENGTH) {
     setNameError(true, `Name too long (max ${MAX_NAME_LENGTH} chars)`);
   } else if (nameTouched) {
-    setNameError(!value, "Name is required to join.");
+    setNameError(!value, "Name is required");
   } else {
     setNameError(false);
   }
@@ -2207,7 +2204,7 @@ async function joinRoom(options = {}) {
   if (!skipLobbyGate && !name) {
     nameTouched = true;
     updateNameError();
-    setActionError(true, "Enter your name to join.");
+    setActionError(true, "Name is required");
     $("playerName")?.focus();
     return;
   }
@@ -2263,7 +2260,7 @@ async function joinRoom(options = {}) {
 
   const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
   if (precheck.status === 404) {
-    setActionError(true, "Room not found.");
+    setActionError(true, "Room not found");
     if (!skipLobbyGate) {
       hideOverlay();
       setLobbyDisabled(false);
