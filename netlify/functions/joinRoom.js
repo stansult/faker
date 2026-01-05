@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { MAX_NAME_LENGTH } from "../../shared/validationConstants.js";
 
 function json(statusCode, obj) {
   return {
@@ -102,6 +103,9 @@ export async function handler(event) {
     if (!existing.name && !requestedName) {
       return json(400, { error: "name is required" });
     }
+    if (requestedName && requestedName.length > MAX_NAME_LENGTH) {
+      return json(400, { error: `Name too long (max ${MAX_NAME_LENGTH} chars)` });
+    }
     // Allow updating name on rejoin if provided (useful when name was null earlier)
     if (requestedName && existing.name !== requestedName) {
       existing.name = requestedName;
@@ -128,6 +132,9 @@ export async function handler(event) {
   }
 
   if (!requestedName) return json(400, { error: "name is required" });
+  if (requestedName.length > MAX_NAME_LENGTH) {
+    return json(400, { error: `Name too long (max ${MAX_NAME_LENGTH} chars)` });
+  }
 
   const playerId = requestedPlayerId || makeId(PLAYER_ID_LENGTH);
   const playerNumber = room.players.length + 1;

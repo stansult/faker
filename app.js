@@ -134,6 +134,9 @@ const VALIDATION_CONSTANTS =
 const MAX_WORD_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_WORD_LENGTH)
   ? VALIDATION_CONSTANTS.MAX_WORD_LENGTH
   : 50;
+const MAX_NAME_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_NAME_LENGTH)
+  ? VALIDATION_CONSTANTS.MAX_NAME_LENGTH
+  : 24;
 
 function isAllowedWord(word) {
   const language = getRoomLanguage();
@@ -331,6 +334,31 @@ function showTooltip(target, text, autoHide = false) {
 
 function isHoverCapable() {
   return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function updateTableScrollHint(container) {
+  if (!container) return;
+  const scrollable = container.scrollWidth - container.clientWidth > 1;
+  container.dataset.scrollable = scrollable ? "true" : "false";
+  if (!scrollable) {
+    container.dataset.atStart = "true";
+    container.dataset.atEnd = "true";
+    return;
+  }
+  const maxScroll = container.scrollWidth - container.clientWidth;
+  container.dataset.atStart = container.scrollLeft <= 1 ? "true" : "false";
+  container.dataset.atEnd = container.scrollLeft >= maxScroll - 1 ? "true" : "false";
+}
+
+function refreshTableScrollHints() {
+  const tables = document.querySelectorAll(".table-scroll");
+  for (const table of tables) {
+    if (!table.dataset.scrollHintBound) {
+      table.dataset.scrollHintBound = "true";
+      table.addEventListener("scroll", () => updateTableScrollHint(table));
+    }
+    updateTableScrollHint(table);
+  }
 }
 
 function clearMoveAlerts(panel) {
@@ -753,18 +781,20 @@ function buildMatchSummaryHtml() {
 
   return `
     <div class="overlay-title">Match over.</div>
-    <table class="status-table match-table">
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th>Score</th>
-          <th>Place</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bodyRows}
-      </tbody>
-    </table>
+    <div class="table-scroll table-scroll--plain">
+      <table class="status-table match-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Score</th>
+            <th>Place</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bodyRows}
+        </tbody>
+      </table>
+    </div>
     ${reasonNote}
     <div class="mini match-total">${totalText}</div>
   `;
@@ -776,7 +806,10 @@ function showMatchEndOverlay() {
   setOverlayTheme(null);
   showOverlay("", "", null, null, false);
   const msg = $("overlayMessage");
-  if (msg) msg.innerHTML = buildMatchSummaryHtml();
+  if (msg) {
+    msg.innerHTML = buildMatchSummaryHtml();
+    refreshTableScrollHints();
+  }
   const waitForRoom = () => {
     const room = $("viewRoom");
     if (room && room.classList.contains("active")) {
@@ -1234,6 +1267,7 @@ function renderRoomStatus(rs) {
         <tbody>${rows}</tbody>
       </table>
     `;
+    refreshTableScrollHints();
   }
 
   updateWordsProgress(rs);
@@ -1462,6 +1496,7 @@ function renderRoundsTable() {
       </tbody>
     </table>
   `;
+  refreshTableScrollHints();
 }
 
 function renderVoteTable() {
@@ -1474,6 +1509,7 @@ function renderVoteTable() {
   const votePhase = lastGameState?.game?.votePhase || null;
   if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
     container.textContent = "Voting will start once enough players are ready.";
+    refreshTableScrollHints();
     return;
   }
 
@@ -1532,6 +1568,7 @@ function renderVoteTable() {
       <tbody>${rows}</tbody>
     </table>
   `;
+  refreshTableScrollHints();
 }
 
 function isGameViewActive() {
@@ -1847,10 +1884,15 @@ function updateNameError() {
   const input = $("playerName");
   if (!input) return;
   const value = String(input.value || "").trim();
-  if (nameTouched) setNameError(!value, "Name is required to join.");
-  else setNameError(false);
+  if (value.length > MAX_NAME_LENGTH) {
+    setNameError(true, `Name too long (max ${MAX_NAME_LENGTH} chars).`);
+  } else if (nameTouched) {
+    setNameError(!value, "Name is required to join.");
+  } else {
+    setNameError(false);
+  }
 
-  const canUse = !!value;
+  const canUse = !!value && value.length <= MAX_NAME_LENGTH;
   const btnCreate = $("btnCreateRoom");
   const btnJoin = $("btnJoinRoom");
   if (btnCreate && !createInFlight) btnCreate.disabled = !canUse;
@@ -2160,6 +2202,14 @@ async function joinRoom(options = {}) {
     $("playerName")?.focus();
     return;
   }
+  if (name && name.length > MAX_NAME_LENGTH) {
+    const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+    nameTouched = true;
+    setNameError(true, message);
+    setActionError(true, message);
+    $("playerName")?.focus();
+    return;
+  }
 
   if (!skipLobbyGate && !ignoreExistingRoom) {
     const lastRoom = getLastRoomCode();
@@ -2271,6 +2321,16 @@ async function joinRoom(options = {}) {
         log({ error: "Name is required" }, "joinRoom");
         return;
       }
+      if (name.length > MAX_NAME_LENGTH) {
+        if (isStale()) return;
+        const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+        nameTouched = true;
+        setNameError(true, message);
+        setActionError(true, message);
+        $("playerName")?.focus();
+        log({ error: message }, "joinRoom");
+        return;
+      }
 
       updateNameError();
 
@@ -2336,6 +2396,14 @@ async function createRoom(options = {}) {
     updateNameError();
     $("playerName")?.focus();
     log({ error: "Name is required" }, "createRoom");
+    return;
+  }
+  if (name.length > MAX_NAME_LENGTH) {
+    const message = `Name too long (max ${MAX_NAME_LENGTH} chars).`;
+    nameTouched = true;
+    setNameError(true, message);
+    $("playerName")?.focus();
+    log({ error: message }, "createRoom");
     return;
   }
 
@@ -3090,7 +3158,9 @@ function wireUI() {
     });
   }
 
-  $("playerName")?.addEventListener("input", () => {
+  const nameInput = $("playerName");
+  if (nameInput) nameInput.maxLength = MAX_NAME_LENGTH;
+  nameInput?.addEventListener("input", () => {
     if (lastJoinError === "name_mismatch") {
       cancelJoinInFlight();
       lastJoinError = null;
@@ -3296,6 +3366,7 @@ function wireUI() {
     if (shouldSuppressHide()) return;
     hideTooltip();
   });
+  window.addEventListener("resize", () => refreshTableScrollHints());
 
   const voteTable = $("voteTable");
   if (voteTable) {
@@ -3351,6 +3422,7 @@ function wireUI() {
   }
 
   renderLocal(getRoomCode());
+  refreshTableScrollHints();
   setView("viewLobby");
   updateLobbyMode(null);
   const roomParam = params.get("room");

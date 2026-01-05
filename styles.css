@@ -727,14 +727,57 @@ body.debug .debug-only {
 
 #roundsTable.players {
   max-height: none;
-  overflow-x: auto;
-  overflow-y: visible;
-  -webkit-overflow-scrolling: touch;
 }
 
-#roundsTable .status-table {
+.table-scroll {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  --scroll-hint-bg: #fffdfa;
+}
+
+.table-scroll .status-table {
   min-width: 100%;
   width: max-content;
+}
+
+.table-scroll::before,
+.table-scroll::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 2;
+}
+
+.table-scroll::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--scroll-hint-bg), transparent);
+}
+
+.table-scroll::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--scroll-hint-bg), transparent);
+}
+
+.table-scroll[data-scrollable="true"][data-at-start="false"]::before {
+  opacity: 1;
+}
+
+.table-scroll[data-scrollable="true"][data-at-end="false"]::after {
+  opacity: 1;
+}
+
+.table-scroll--plain {
+  --scroll-hint-bg: var(--overlay-card-bg);
+  border: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .status-table {
