@@ -247,6 +247,74 @@ function setText(id, text) {
   if (el) el.textContent = text || "";
 }
 
+const tooltipState = {
+  el: null,
+  timer: null,
+  target: null
+};
+
+function getTooltipEl() {
+  if (!tooltipState.el) {
+    tooltipState.el = $("tooltip");
+  }
+  return tooltipState.el;
+}
+
+function hideTooltip() {
+  const tip = getTooltipEl();
+  if (!tip) return;
+  if (tooltipState.timer) {
+    clearTimeout(tooltipState.timer);
+    tooltipState.timer = null;
+  }
+  tip.classList.remove("show", "tooltip--above", "tooltip--below");
+  tip.classList.add("hidden");
+  tooltipState.target = null;
+}
+
+function showTooltip(target, text, autoHide = false) {
+  const tip = getTooltipEl();
+  if (!tip || !target || !text) return;
+  if (tooltipState.timer) {
+    clearTimeout(tooltipState.timer);
+    tooltipState.timer = null;
+  }
+
+  tip.textContent = text;
+  tip.classList.remove("hidden", "tooltip--above", "tooltip--below");
+  tip.classList.add("show");
+
+  const rect = target.getBoundingClientRect();
+  const tipRect = tip.getBoundingClientRect();
+  const margin = 8;
+
+  let top = rect.top - tipRect.height - 10;
+  let placement = "tooltip--above";
+  if (top < margin) {
+    top = rect.bottom + 10;
+    placement = "tooltip--below";
+  }
+
+  let left = rect.left + rect.width / 2 - tipRect.width / 2;
+  const maxLeft = window.innerWidth - tipRect.width - margin;
+  if (left < margin) left = margin;
+  if (left > maxLeft) left = maxLeft;
+
+  tip.style.top = `${Math.round(top)}px`;
+  tip.style.left = `${Math.round(left)}px`;
+  tip.style.setProperty("--arrow-x", `${Math.round(rect.left + rect.width / 2 - left)}px`);
+  tip.classList.add(placement);
+
+  tooltipState.target = target;
+  if (autoHide) {
+    tooltipState.timer = setTimeout(hideTooltip, TOOLTIP_DURATION_MS);
+  }
+}
+
+function isHoverCapable() {
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
 function clearMoveAlerts(panel) {
   if (moveAlertTimer) {
     clearTimeout(moveAlertTimer);
@@ -741,8 +809,8 @@ function renderEditableWords(roomCode) {
     return `
       <span class="word-chip">
         <span class="word-text">${safe}</span>
-        <button type="button" class="word-action word-edit icon-btn" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
-        <button type="button" class="word-action word-delete icon-btn" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+        <button type="button" class="word-action word-edit icon-btn" data-tip-hover="${TOOLTIP_EDIT_WORD}" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete icon-btn" data-tip-hover="${TOOLTIP_DELETE_WORD}" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
       </span>
     `;
   });
@@ -815,6 +883,17 @@ const ACTIVE_GAME_KEY = "faker:activeGameId";
 const APP_VERSION = "1.0";
 const START_OVERLAY_MIN_MS = 1000;
 const GAME_OVER_MIN_MS = 1000;
+const TOOLTIP_DURATION_MS = 2200;
+const TOOLTIP_COPY_CODE = "Copy room code";
+const TOOLTIP_COPY_LINK = "Copy invite link";
+const TOOLTIP_CODE_COPIED = "Room code copied!";
+const TOOLTIP_LINK_COPIED = "Invite link copied!";
+const TOOLTIP_ROOM_LOCKED = "Room locked";
+const TOOLTIP_WAITING_MOVE = "Waiting for move";
+const TOOLTIP_READY_VOTE = "Ready to vote";
+const TOOLTIP_KICK_PLAYER = "Remove player";
+const TOOLTIP_EDIT_WORD = "Edit word";
+const TOOLTIP_DELETE_WORD = "Delete word";
 
 function restoreActiveGameSession() {
   try {
@@ -1003,6 +1082,13 @@ function renderRoomStatus(rs) {
   if (lockIcon) {
     lockIcon.textContent = locked ? "🔒" : "";
     lockIcon.classList.toggle("hidden", !locked);
+    if (locked) {
+      lockIcon.dataset.tipHover = TOOLTIP_ROOM_LOCKED;
+      lockIcon.dataset.tipTap = TOOLTIP_ROOM_LOCKED;
+    } else {
+      delete lockIcon.dataset.tipHover;
+      delete lockIcon.dataset.tipTap;
+    }
   }
   const totalSlots =
     effectiveMaxPlayers ??
@@ -1104,7 +1190,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn kick-player" data-tip-hover="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? renderSelfMarker("left") : "")
           }</td>
         </tr>
@@ -1319,7 +1405,7 @@ function renderRoundsTable() {
         const hourglassClass = isSelf ? "cell-emoji self-col" : "cell-emoji";
         const wordClass = isSelf ? ' class="self-col"' : "";
         if (showHourglass) {
-          return `<td class="${hourglassClass}">⏳</td>`;
+          return `<td class="${hourglassClass}"><span data-tip-hover="${TOOLTIP_WAITING_MOVE}" data-tip-tap="${TOOLTIP_WAITING_MOVE}">⏳</span></td>`;
         }
         return `<td${wordClass}>${esc(word)}</td>`;
       })
@@ -1336,7 +1422,9 @@ function renderRoundsTable() {
       .map(p => {
         const isSelf = myId && p.playerId === myId;
         const cellClass = isSelf ? ' class="cell-emoji self-col"' : ' class="cell-emoji"';
-        const content = triggerSet.has(String(p.playerId)) ? "👍" : "";
+        const content = triggerSet.has(String(p.playerId))
+          ? `<span data-tip-hover="${TOOLTIP_READY_VOTE}" data-tip-tap="${TOOLTIP_READY_VOTE}">👍</span>`
+          : "";
         return `<td${cellClass}>${content}</td>`;
       })
       .join("");
@@ -3075,12 +3163,22 @@ function wireUI() {
   $("moveWord")?.addEventListener("focus", () => setActionHint("btnSubmitMove"));
   $("moveWord")?.addEventListener("blur", clearActionHints);
 
+  const btnCopyRoomCode = $("btnCopyRoomCode");
+  if (btnCopyRoomCode) btnCopyRoomCode.dataset.tipHover = TOOLTIP_COPY_CODE;
+  const btnCopyRoomLink = $("btnCopyRoomLink");
+  if (btnCopyRoomLink) btnCopyRoomLink.dataset.tipHover = TOOLTIP_COPY_LINK;
+  const btnCopyRoomCodeGame = $("btnCopyRoomCodeGame");
+  if (btnCopyRoomCodeGame) btnCopyRoomCodeGame.dataset.tipHover = TOOLTIP_COPY_CODE;
+  const btnCopyRoomLinkGame = $("btnCopyRoomLinkGame");
+  if (btnCopyRoomLinkGame) btnCopyRoomLinkGame.dataset.tipHover = TOOLTIP_COPY_LINK;
+
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
       showRoomCopyNotice("Code copied!");
+      showTooltip($("btnCopyRoomCode"), TOOLTIP_CODE_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3094,6 +3192,7 @@ function wireUI() {
     try {
       await navigator.clipboard.writeText(invite);
       showRoomCopyNotice("Link copied!");
+      showTooltip($("btnCopyRoomLink"), TOOLTIP_LINK_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3105,6 +3204,7 @@ function wireUI() {
     try {
       await navigator.clipboard.writeText(value);
       showRoomCopyNotice("Code copied!");
+      showTooltip($("btnCopyRoomCodeGame"), TOOLTIP_CODE_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3118,10 +3218,37 @@ function wireUI() {
     try {
       await navigator.clipboard.writeText(invite);
       showRoomCopyNotice("Link copied!");
+      showTooltip($("btnCopyRoomLinkGame"), TOOLTIP_LINK_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
   });
+
+  document.addEventListener("pointerover", event => {
+    if (!isHoverCapable()) return;
+    const target = event.target?.closest?.("[data-tip-hover]");
+    if (!target) return;
+    showTooltip(target, target.dataset.tipHover);
+  });
+
+  document.addEventListener("pointerout", event => {
+    if (!isHoverCapable()) return;
+    const target = event.target?.closest?.("[data-tip-hover]");
+    if (!target) return;
+    const related = event.relatedTarget;
+    if (related && target.contains(related)) return;
+    hideTooltip();
+  });
+
+  document.addEventListener("pointerup", event => {
+    if (isHoverCapable()) return;
+    const target = event.target?.closest?.("[data-tip-tap]");
+    if (!target) return;
+    showTooltip(target, target.dataset.tipTap, true);
+  });
+
+  window.addEventListener("scroll", hideTooltip, true);
+  window.addEventListener("resize", hideTooltip);
 
   const voteTable = $("voteTable");
   if (voteTable) {
