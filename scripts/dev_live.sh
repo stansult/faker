@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+npm run build:constants
+
 IP="$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo 'unknown')"
 if [ "$IP" = "unknown" ]; then
   echo "Can't test on a different device: IP is unknown"

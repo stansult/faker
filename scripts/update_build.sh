@@ -39,6 +39,7 @@ def replace_version(text, asset):
     return text
 
 text = replace_version(text, "./styles.css")
+text = replace_version(text, "./validationConstants.js")
 text = replace_version(text, "./app.js")
 
 index.write_text(text, encoding="utf-8")

@@ -127,7 +127,13 @@ function getLanguageLabel(language) {
   return language === "ru" ? "Russian" : "English";
 }
 
-const MAX_WORD_LENGTH = 50;
+const VALIDATION_CONSTANTS =
+  typeof window !== "undefined" && window.VALIDATION_CONSTANTS
+    ? window.VALIDATION_CONSTANTS
+    : {};
+const MAX_WORD_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_WORD_LENGTH)
+  ? VALIDATION_CONSTANTS.MAX_WORD_LENGTH
+  : 50;
 
 function isAllowedWord(word) {
   const language = getRoomLanguage();

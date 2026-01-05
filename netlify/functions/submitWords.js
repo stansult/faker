@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { MAX_WORD_LENGTH } from "./wordRules.js";
+import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
 
 function json(statusCode, obj) {
   return {
