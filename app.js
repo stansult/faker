@@ -137,6 +137,9 @@ const MAX_WORD_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_WORD_LENGTH)
 const MAX_NAME_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_NAME_LENGTH)
   ? VALIDATION_CONSTANTS.MAX_NAME_LENGTH
   : 24;
+const ROOM_CODE_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.ROOM_CODE_LENGTH)
+  ? VALIDATION_CONSTANTS.ROOM_CODE_LENGTH
+  : 6;
 
 function isAllowedWord(word) {
   const language = getRoomLanguage();
@@ -437,6 +440,7 @@ function sanitizeRoomCode(raw) {
     .toUpperCase()
     .split("")
     .filter(ch => alphabet.includes(ch))
+    .slice(0, ROOM_CODE_LENGTH)
     .join("")
     .trim();
 }
@@ -3191,7 +3195,9 @@ function wireUI() {
     if (btn) btn.classList.add("action-hint");
   };
 
-  $("roomCode")?.addEventListener("input", e => {
+  const roomInput = $("roomCode");
+  if (roomInput) roomInput.maxLength = ROOM_CODE_LENGTH;
+  roomInput?.addEventListener("input", e => {
     const input = e.currentTarget;
     if (!input) return;
     const cleaned = sanitizeRoomCode(input.value);

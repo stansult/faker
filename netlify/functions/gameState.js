@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { isValidRoomCode } from "./roomCode.js";
 import { resolveVoteIfEnded, ensureScores } from "./_vote.js";
 
 function json(statusCode, obj) {
@@ -40,6 +41,9 @@ export async function handler(event) {
   const playerId = payload.playerId ? String(payload.playerId).trim() : null;
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!isValidRoomCode(roomCode)) {
+    return json(400, { error: "Invalid room code." });
+  }
 
   connectLambda(event);
   const store = getStore("faker-rooms");

@@ -1,5 +1,6 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
+import { isValidRoomCode } from "./roomCode.js";
 
 function json(statusCode, obj) {
   return {
@@ -78,6 +79,9 @@ export async function handler(event) {
   const wordsRaw = Array.isArray(payload.words) ? payload.words : null;
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!isValidRoomCode(roomCode)) {
+    return json(400, { error: "Invalid room code." });
+  }
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!wordsRaw) return json(400, { error: "words must be an array" });
 

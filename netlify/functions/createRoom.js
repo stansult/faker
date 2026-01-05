@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { ROOM_CODE_LENGTH } from "../../shared/validationConstants.js";
 
 function json(statusCode, bodyObj) {
   return {
@@ -13,7 +14,6 @@ function json(statusCode, bodyObj) {
   };
 }
 
-const ROOM_CODE_LENGTH = 6;
 const MIN_PLAYERS = 3;
 const MAX_PLAYERS = 20;
 const MIN_GAMES = 1;

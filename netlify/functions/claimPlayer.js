@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { isValidRoomCode } from "./roomCode.js";
 
 function json(statusCode, obj) {
   return {
@@ -35,6 +36,9 @@ export async function handler(event) {
   const playerNumber = Number(payload.playerNumber);
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!isValidRoomCode(roomCode)) {
+    return json(400, { error: "Invalid room code." });
+  }
   if (!Number.isInteger(playerNumber) || playerNumber < 1) {
     return json(400, { error: "playerNumber must be an integer >= 1" });
   }

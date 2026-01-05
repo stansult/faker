@@ -1,6 +1,7 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { ensureScores, finalizeGameEnd, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
 import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
+import { isValidRoomCode } from "./roomCode.js";
 
 function json(statusCode, obj) {
   return {
@@ -89,6 +90,9 @@ export async function handler(event) {
   const word = normalizeWord(payload.word);
 
   if (!roomCode) return json(400, { error: "roomCode is required" });
+  if (!isValidRoomCode(roomCode)) {
+    return json(400, { error: "Invalid room code." });
+  }
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!word) return json(400, { error: "word is required" });
   if (word.length > MAX_WORD_LENGTH) {
