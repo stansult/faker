@@ -719,13 +719,8 @@ button.pill:focus-visible {
 }
 
 .you-marker {
-  color: #2e7d32 !important;
+  color: #2e7d32;
   white-space: nowrap;
-}
-
-.status-table td .you-marker,
-.status-table .you-marker {
-  color: #2e7d32 !important;
 }
 
 .is-me-row td {

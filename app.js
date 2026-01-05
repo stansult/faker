@@ -116,7 +116,7 @@ function normalizeName(raw) {
 
 function renderSelfMarker(direction) {
   const arrow = direction === "right" ? "you&nbsp;→" : "←&nbsp;you";
-  return `<span class="you-marker" style="color: #2e7d32;">${arrow}</span>`;
+  return `<span class="you-marker">${arrow}</span>`;
 }
 
 function getRoomLanguage() {
