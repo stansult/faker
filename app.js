@@ -1411,11 +1411,12 @@ function renderRoundsTable() {
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
         const isSelf = myId && p.playerId === myId;
-        const cellClass = isSelf ? ' class="self-col"' : "";
+        const hourglassClass = isSelf ? "cell-emoji self-col" : "cell-emoji";
+        const wordClass = isSelf ? ' class="self-col"' : "";
         if (showHourglass) {
-          return `<td class="cell-emoji"${cellClass}><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
+          return `<td class="${hourglassClass}"><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
         }
-        return `<td${cellClass}>${esc(word)}</td>`;
+        return `<td${wordClass}>${esc(word)}</td>`;
       })
       .join("");
     rows.push(`<tr><td class="mono col-round">${r}</td>${cells}</tr>`);
