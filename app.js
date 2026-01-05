@@ -628,7 +628,7 @@ function showGameOverOverlay(game) {
         : "You won! 🎉🎉";
     } else {
       message = revealed
-        ? `Oh no, ${fakerLabel} guessed "${revealed}" and won! 😢😢`
+        ? `Oh no, faker guessed "${revealed}" and won!\nIt was ${fakerLabel} 😢😢`
         : `Oh no, ${fakerLabel} won! 😢😢`;
     }
   } else if (endReason.startsWith("voting_")) {
@@ -1187,8 +1187,8 @@ function renderRoomStatus(rs) {
         <tr${isMe ? ' class="is-me-row"' : ""}>
           <td class="mono">${p.playerNumber}</td>
           <td>${esc(formatName(p.name) || "")}</td>
-          ${showScoreColumn ? `<td class="mono">${Number.isInteger(p.score) ? p.score : 0}</td>` : ""}
-          ${showWordsColumn ? `<td class="mono">${
+          ${showScoreColumn ? `<td class="mono col-score">${Number.isInteger(p.score) ? p.score : 0}</td>` : ""}
+          ${showWordsColumn ? `<td class="mono col-words">${
             p.doneWords &&
             Number.isInteger(p.wordsRequired) &&
             Number.isInteger(p.wordsSubmitted) &&
@@ -1207,8 +1207,8 @@ function renderRoomStatus(rs) {
       })
       .join("");
 
-    const scoreHeader = showScoreColumn ? "<th>Score</th>" : "";
-    const wordHeader = showWordsColumn ? "<th>Words</th>" : "";
+    const scoreHeader = showScoreColumn ? '<th class="col-score">Score</th>' : "";
+    const wordHeader = showWordsColumn ? '<th class="col-words">Words</th>' : "";
     const kickHeader = "<th></th>";
     el.innerHTML = `
       <table class="status-table room-table">

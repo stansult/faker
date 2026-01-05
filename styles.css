@@ -829,6 +829,11 @@ body.debug .debug-only {
   border-bottom: 0.5px solid #efe4d2;
 }
 
+.room-table .col-score,
+.room-table .col-words {
+  text-align: center;
+}
+
 #output {
   border: 1px solid var(--line);
   border-radius: 12px;
