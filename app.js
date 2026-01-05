@@ -182,6 +182,7 @@ const LOBBY_SUBTITLE =
 
 function setView(activeId) {
   currentView = activeId;
+  hideTooltip();
   for (const id of views) {
     const el = $(id);
     if (!el) continue;
@@ -3261,6 +3262,7 @@ function wireUI() {
 
   document.addEventListener("pointerover", event => {
     if (!isHoverCapable()) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     const target = event.target?.closest?.("[data-tip-hover]");
     if (!target) return;
     if (Date.now() < tooltipState.lockedUntil && tooltipState.target === target) return;
@@ -3269,6 +3271,7 @@ function wireUI() {
 
   document.addEventListener("pointerout", event => {
     if (!isHoverCapable()) return;
+    if (event.pointerType && event.pointerType !== "mouse") return;
     const target = event.target?.closest?.("[data-tip-hover]");
     if (!target) return;
     if (Date.now() < tooltipState.lockedUntil && tooltipState.target === target) return;
