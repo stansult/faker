@@ -3079,12 +3079,6 @@ function wireUI() {
     if (btn) btn.classList.add("action-hint");
   };
 
-  $("roomCode")?.addEventListener("click", async e => {
-    const input = e.currentTarget;
-    if (!input) return;
-    input.select();
-  });
-
   $("roomCode")?.addEventListener("input", e => {
     const input = e.currentTarget;
     if (!input) return;
