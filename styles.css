@@ -723,7 +723,14 @@ body.debug .debug-only {
 
 #roundsTable.players {
   max-height: none;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+#roundsTable .status-table {
+  min-width: 100%;
+  width: max-content;
 }
 
 .status-table {
