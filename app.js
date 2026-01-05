@@ -1488,7 +1488,7 @@ function renderVoteTable() {
       return `
         <tr class="${rowClass}">
           <td class="vote-player">
-            ${checkbox}
+            <span class="vote-choice-slot">${checkbox}</span>
             <span class="${targetClass}" data-target="${p.playerId}">
               ${p.playerNumber}. ${esc(formatName(p.name) || "")}
             </span>

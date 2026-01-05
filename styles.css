@@ -197,6 +197,18 @@ p {
   gap: 6px;
 }
 
+.vote-choice-slot {
+  width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 36px;
+}
+
+.vote-choice-slot .you-marker {
+  font-size: 11px;
+}
+
 .vote-player input[type="checkbox"] {
   margin: 0;
 }
