@@ -982,6 +982,11 @@ body.debug .debug-only {
   margin: 10px 0 8px;
 }
 
+.match-table th:nth-child(2),
+.match-table td:nth-child(2) {
+  text-align: center;
+}
+
 .match-total {
   margin-top: 6px;
 }

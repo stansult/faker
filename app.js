@@ -642,8 +642,8 @@ function showGameOverOverlay(game) {
       message = role === "faker"
         ? "Votes are in — you lost! 😢😢"
         : `Votes are in — we won!\n${fakerLabel.startsWith("player ")
-            ? `Player ${fakerLabel.slice("player ".length)} was caught.`
-            : `${fakerLabel} was caught.`} 🎉🎉`;
+            ? `We caught the faker — Player ${fakerLabel.slice("player ".length)}.`
+            : "We caught the faker."} 🎉🎉`;
     }
   } else if (winner === "faker") {
     message = role === "faker" ? "You won!" : `${fakerLabel} won!`;
