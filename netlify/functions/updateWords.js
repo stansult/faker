@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { MAX_WORD_LENGTH } from "./wordRules.js";
 
 function json(statusCode, obj) {
   return {
@@ -107,16 +108,26 @@ export async function handler(event) {
 
   const required = Number.isInteger(room.wordsPerPlayer) ? room.wordsPerPlayer : 4;
 
-  const invalid = [];
-  const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
+  const normalized = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean));
+  let hasTooLong = false;
+  let hasInvalid = false;
+  const submitted = normalized.filter(word => {
+    if (word.length > MAX_WORD_LENGTH) {
+      hasTooLong = true;
+      return false;
+    }
     if (!isAllowedWord(word, language)) {
-      invalid.push(word);
+      hasInvalid = true;
       return false;
     }
     return true;
   });
 
-  if (invalid.length) {
+  if (hasTooLong) {
+    return json(400, { error: `Word too long (max ${MAX_WORD_LENGTH} chars)` });
+  }
+
+  if (hasInvalid) {
     return json(400, { error: getWordRuleHint(language) });
   }
 

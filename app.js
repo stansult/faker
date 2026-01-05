@@ -127,6 +127,8 @@ function getLanguageLabel(language) {
   return language === "ru" ? "Russian" : "English";
 }
 
+const MAX_WORD_LENGTH = 50;
+
 function isAllowedWord(word) {
   const language = getRoomLanguage();
   const value = String(word || "");
@@ -141,6 +143,10 @@ function getWordRuleHint() {
   return language === "ru"
     ? "Use Russian letters only (including ё), hyphens, apostrophes."
     : "Use English letters only, hyphens, apostrophes.";
+}
+
+function isWithinWordLength(word) {
+  return String(word || "").length <= MAX_WORD_LENGTH;
 }
 
 const copiedTimers = {};
@@ -2481,6 +2487,11 @@ async function submitWords() {
   if (!words.length) {
     return log({ error: "Enter a word" }, "submitWords");
   }
+  if (!isWithinWordLength(words[0])) {
+    const message = `Word too long (max ${MAX_WORD_LENGTH} chars)`;
+    setSubmitWordsError(message);
+    return log({ error: message }, "submitWords");
+  }
   if (!isAllowedWord(words[0])) {
     setSubmitWordsError(getWordRuleHint());
     return;
@@ -2517,6 +2528,7 @@ async function submitWords() {
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
         invalid_format: "invalid format",
+        too_long: "too long",
         already_yours: "already submitted",
         already_in_pool: "already used by another player"
       };
@@ -2554,6 +2566,12 @@ async function submitWordsBulk() {
   if (!words.length) {
     return log({ error: "Enter at least one word" }, "submitWordsBulk");
   }
+  const tooLong = words.filter(word => !isWithinWordLength(word));
+  if (tooLong.length) {
+    const message = `Word too long (max ${MAX_WORD_LENGTH} chars)`;
+    setSubmitWordsError(message);
+    return log({ error: message }, "submitWordsBulk");
+  }
 
   const invalid = words.filter(w => !isAllowedWord(w));
   const valid = words.filter(w => isAllowedWord(w));
@@ -2587,6 +2605,7 @@ async function submitWordsBulk() {
     if (Array.isArray(data.duplicates) && data.duplicates.length) {
       const reasonMap = {
         invalid_format: "invalid format",
+        too_long: "too long",
         already_yours: "already submitted",
         already_in_pool: "already used by another player"
       };
@@ -2725,6 +2744,11 @@ async function submitMove() {
   const raw = String($("moveWord")?.value || "");
   const word = normalizeWord(raw);
   if (!word) return log({ error: "Enter a word" }, "submitMove");
+  if (!isWithinWordLength(word)) {
+    const message = `Word too long (max ${MAX_WORD_LENGTH} chars)`;
+    setMoveError(message);
+    return log({ error: message }, "submitMove");
+  }
   if (!isAllowedWord(word)) {
     const hint = getWordRuleHint();
     setMoveError(hint);

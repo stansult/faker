@@ -1,4 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
+import { MAX_WORD_LENGTH } from "./wordRules.js";
 
 function json(statusCode, obj) {
   return {
@@ -89,8 +90,12 @@ export async function handler(event) {
 
   const invalid = [];
   const submitted = uniqPreserve(wordsRaw.map(normalizeWord).filter(Boolean)).filter(word => {
+    if (word.length > MAX_WORD_LENGTH) {
+      invalid.push({ word, reason: "too_long" });
+      return false;
+    }
     if (!isAllowedWord(word, language)) {
-      invalid.push(word);
+      invalid.push({ word, reason: "invalid_format" });
       return false;
     }
     return true;
@@ -116,7 +121,7 @@ export async function handler(event) {
       return json(200, {
         ok: true,
         accepted: [],
-        duplicates: invalid.map(word => ({ word, reason: "invalid_format" })),
+        duplicates: invalid.map(item => ({ word: item.word, reason: item.reason })),
         yourTotal: me.words.length,
         required,
         remaining: Math.max(0, required - me.words.length),

@@ -1,5 +1,6 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { ensureScores, finalizeGameEnd, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
+import { MAX_WORD_LENGTH } from "./wordRules.js";
 
 function json(statusCode, obj) {
   return {
@@ -19,7 +20,6 @@ function sleep(ms) {
 }
 
 const MOVE_ID_LENGTH = 12;
-const MAX_WORD_LENGTH = 40;
 const RETRY_START_DELAY_MS = 150;
 const RETRY_MAX_DELAY_MS = 700;
 const RETRY_BACKOFF = 1.25;
