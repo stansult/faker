@@ -114,6 +114,11 @@ function normalizeName(raw) {
     .toLowerCase();
 }
 
+function renderSelfMarker(direction) {
+  const arrow = direction === "right" ? "you&nbsp;→" : "←&nbsp;you";
+  return `<span class="you-marker">${arrow}</span>`;
+}
+
 function getRoomLanguage() {
   return lastRoomStatus?.language === "ru" ? "ru" : "en";
 }
@@ -1195,7 +1200,7 @@ function renderRoomStatus(rs) {
           <td class="mini">${
             canKick
               ? `<button class="icon-btn tip-up kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-base-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
-              : (isMe ? "←&nbsp;you" : "")
+              : (isMe ? renderSelfMarker("left") : "")
           }</td>
         </tr>
       `;
@@ -1474,9 +1479,8 @@ function renderVoteTable() {
       const isSelf = myId && p.playerId === myId;
       const checked = myVote && myVote === p.playerId;
       const disabled = !votePhase.active || isSelf;
-      const spacer = `<span class="vote-spacer" aria-hidden="true"></span>`;
       const checkbox = isSelf
-        ? spacer
+        ? renderSelfMarker("right")
         : `<input type="checkbox" class="vote-choice" data-target="${p.playerId}" ${checked ? "checked" : ""} ${disabled ? "disabled" : ""} />`;
       const targetClass = disabled && !isSelf ? "vote-target disabled" : "vote-target";
       const rowClass = isSelf ? "vote-row-self" : "";

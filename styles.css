@@ -718,6 +718,11 @@ button.pill:focus-visible {
   font-size: 10px;
 }
 
+.you-marker {
+  color: #2e7d32;
+  white-space: nowrap;
+}
+
 .is-me-row td {
   background: #f6efe3;
 }
