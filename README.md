@@ -19,8 +19,17 @@ npm run dev
 ```
 Then open `http://localhost:8888`.
 
-For other devices (share a public URL):
+For other devices on the same Wi‑Fi (HTTP):
 ```
 npm run dev:lan
 ```
-It will print a public URL you can open on any device.
+It prints `http://<your-mac-ip>:8888`.
+
+For mobile HTTPS testing (clipboard works), use Cloudflare Tunnel:
+```
+npm run dev:live
+```
+This assumes you created a named tunnel `faker-dev`. To use a different name:
+```
+FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
+```
