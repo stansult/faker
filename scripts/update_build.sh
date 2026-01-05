@@ -3,6 +3,9 @@ set -e
 stamp="$(date '+%Y-%m-%d %H:%M')"
 sha="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 printf '%s  %s\n' "$stamp" "$sha" > build.txt
+if ! git diff --quiet -- build.txt; then
+  git add build.txt
+fi
 
 python3 - "$sha" <<'PY'
 import sys
@@ -40,3 +43,7 @@ text = replace_version(text, "./app.js")
 
 index.write_text(text, encoding="utf-8")
 PY
+
+if ! git diff --quiet -- index.html; then
+  git add index.html
+fi
