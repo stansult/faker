@@ -247,83 +247,6 @@ function setText(id, text) {
   if (el) el.textContent = text || "";
 }
 
-function showLockTooltip() {
-  const icon = $("roomLockIcon");
-  if (!icon || icon.classList.contains("hidden")) return;
-  showTip(icon, TOOLTIP_ROOM_LOCKED);
-}
-
-let tooltipMeasureEl = null;
-
-function getTooltipWidth(message) {
-  if (!message) return 0;
-  if (!tooltipMeasureEl) {
-    tooltipMeasureEl = document.createElement("span");
-    tooltipMeasureEl.style.position = "absolute";
-    tooltipMeasureEl.style.visibility = "hidden";
-    tooltipMeasureEl.style.whiteSpace = "nowrap";
-    tooltipMeasureEl.style.fontSize = "12px";
-    tooltipMeasureEl.style.fontFamily = '"Inter", "Helvetica Neue", Arial, sans-serif';
-    tooltipMeasureEl.style.padding = "4px 6px";
-    document.body.appendChild(tooltipMeasureEl);
-  }
-  tooltipMeasureEl.textContent = message;
-  return tooltipMeasureEl.getBoundingClientRect().width;
-}
-
-function updateTipAlignment(el, message) {
-  if (!el) return;
-  el.classList.remove("tip-align-left", "tip-align-right");
-  const rect = el.getBoundingClientRect();
-  const width = getTooltipWidth(message || el.dataset.tip || "");
-  if (!width) return;
-  const margin = 8;
-  const container = el.closest(".players") || el.closest(".panel");
-  const bounds = container
-    ? container.getBoundingClientRect()
-    : { left: 0, right: window.innerWidth };
-  const desiredLeft = rect.left + rect.width / 2 - width / 2;
-  if (desiredLeft < bounds.left + margin) {
-    el.classList.add("tip-align-left");
-    return;
-  }
-  if (desiredLeft + width > bounds.right - margin) {
-    el.classList.add("tip-align-right");
-  }
-}
-
-function showTip(el, message, durationMs = 2200) {
-  if (!el) return;
-  if (activeTooltip?.el && activeTooltip.el !== el) {
-    activeTooltip.el.classList.remove("show-tip");
-    if (activeTooltip.timer) clearTimeout(activeTooltip.timer);
-    if (activeTooltip.baseTip !== undefined) {
-      if (activeTooltip.baseTip) {
-        activeTooltip.el.dataset.tip = activeTooltip.baseTip;
-      } else {
-        delete activeTooltip.el.dataset.tip;
-      }
-    }
-  }
-  const baseTip = el.dataset.baseTip ?? el.dataset.tip;
-  el.dataset.tip = message;
-  updateTipAlignment(el, message);
-  el.classList.add("show-tip");
-  if (activeTooltip?.timer) clearTimeout(activeTooltip.timer);
-  const timer = setTimeout(() => {
-    el.classList.remove("show-tip");
-    if (baseTip !== undefined) {
-      if (baseTip) {
-        el.dataset.tip = baseTip;
-      } else {
-        delete el.dataset.tip;
-      }
-    }
-    if (activeTooltip?.el === el) activeTooltip = null;
-  }, durationMs);
-  activeTooltip = { el, timer, baseTip };
-}
-
 function clearMoveAlerts(panel) {
   if (moveAlertTimer) {
     clearTimeout(moveAlertTimer);
@@ -818,8 +741,8 @@ function renderEditableWords(roomCode) {
     return `
       <span class="word-chip">
         <span class="word-text">${safe}</span>
-        <button type="button" class="word-action word-edit icon-btn" data-tip="${TOOLTIP_EDIT_WORD}" data-base-tip="${TOOLTIP_EDIT_WORD}" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
-        <button type="button" class="word-action word-delete icon-btn" data-tip="${TOOLTIP_DELETE_WORD}" data-base-tip="${TOOLTIP_DELETE_WORD}" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
+        <button type="button" class="word-action word-edit icon-btn" data-word="${raw}" aria-label="Edit ${safe}">✏️</button>
+        <button type="button" class="word-action word-delete icon-btn" data-word="${raw}" aria-label="Delete ${safe}">❌</button>
       </span>
     `;
   });
@@ -885,7 +808,6 @@ let moveTurnActive = false;
 let moveTurnStartedAt = null;
 let moveAlertTimer = null;
 let moveVibrateTimer = null;
-let activeTooltip = null;
 
 const CREATE_TIMEOUT_MS = 12000;
 const POST_ACTION_DELAY_MS = 200;
@@ -893,16 +815,6 @@ const ACTIVE_GAME_KEY = "faker:activeGameId";
 const APP_VERSION = "1.0";
 const START_OVERLAY_MIN_MS = 1000;
 const GAME_OVER_MIN_MS = 1000;
-const TOOLTIP_COPY_CODE = "Copy room code";
-const TOOLTIP_COPY_LINK = "Copy invite link";
-const TOOLTIP_CODE_COPIED = "Code copied!";
-const TOOLTIP_LINK_COPIED = "Link copied!";
-const TOOLTIP_ROOM_LOCKED = "Room locked";
-const TOOLTIP_WAITING_MOVE = "Waiting for a player to make a move";
-const TOOLTIP_READY_VOTE = "This player is ready to vote!";
-const TOOLTIP_KICK_PLAYER = "Remove player";
-const TOOLTIP_EDIT_WORD = "Edit word";
-const TOOLTIP_DELETE_WORD = "Delete word";
 
 function restoreActiveGameSession() {
   try {
@@ -1090,13 +1002,6 @@ function renderRoomStatus(rs) {
   const lockIcon = $("roomLockIcon");
   if (lockIcon) {
     lockIcon.textContent = locked ? "🔒" : "";
-    if (locked) {
-      lockIcon.dataset.tip = TOOLTIP_ROOM_LOCKED;
-      lockIcon.dataset.baseTip = TOOLTIP_ROOM_LOCKED;
-    } else {
-      delete lockIcon.dataset.tip;
-      delete lockIcon.dataset.baseTip;
-    }
     lockIcon.classList.toggle("hidden", !locked);
   }
   const totalSlots =
@@ -1199,7 +1104,7 @@ function renderRoomStatus(rs) {
           <td>${p.ready ? "Ready" : "Not ready"}</td>
           <td class="mini">${
             canKick
-              ? `<button class="icon-btn tip-up kick-player" data-tip="${TOOLTIP_KICK_PLAYER}" data-base-tip="${TOOLTIP_KICK_PLAYER}" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
+              ? `<button class="icon-btn kick-player" data-player-id="${p.playerId}" data-player-number="${p.playerNumber}" data-player-name="${esc(formatName(p.name) || "")}" type="button" aria-label="Kick player">❌</button>`
               : (isMe ? renderSelfMarker("left") : "")
           }</td>
         </tr>
@@ -1414,7 +1319,7 @@ function renderRoundsTable() {
         const hourglassClass = isSelf ? "cell-emoji self-col" : "cell-emoji";
         const wordClass = isSelf ? ' class="self-col"' : "";
         if (showHourglass) {
-          return `<td class="${hourglassClass}"><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
+          return `<td class="${hourglassClass}">⏳</td>`;
         }
         return `<td${wordClass}>${esc(word)}</td>`;
       })
@@ -1431,9 +1336,7 @@ function renderRoundsTable() {
       .map(p => {
         const isSelf = myId && p.playerId === myId;
         const cellClass = isSelf ? ' class="cell-emoji self-col"' : ' class="cell-emoji"';
-        const content = triggerSet.has(String(p.playerId))
-          ? `<span class="wait-tip" data-tip="${esc(TOOLTIP_READY_VOTE)}" data-base-tip="${esc(TOOLTIP_READY_VOTE)}">👍</span>`
-          : "";
+        const content = triggerSet.has(String(p.playerId)) ? "👍" : "";
         return `<td${cellClass}>${content}</td>`;
       })
       .join("");
@@ -3172,35 +3075,12 @@ function wireUI() {
   $("moveWord")?.addEventListener("focus", () => setActionHint("btnSubmitMove"));
   $("moveWord")?.addEventListener("blur", clearActionHints);
 
-  $("roomLockIcon")?.addEventListener("click", showLockTooltip);
-
-  const btnCopyRoomCode = $("btnCopyRoomCode");
-  if (btnCopyRoomCode) {
-    btnCopyRoomCode.dataset.tip = TOOLTIP_COPY_CODE;
-    btnCopyRoomCode.dataset.baseTip = TOOLTIP_COPY_CODE;
-  }
-  const btnCopyRoomLink = $("btnCopyRoomLink");
-  if (btnCopyRoomLink) {
-    btnCopyRoomLink.dataset.tip = TOOLTIP_COPY_LINK;
-    btnCopyRoomLink.dataset.baseTip = TOOLTIP_COPY_LINK;
-  }
-  const btnCopyRoomCodeGame = $("btnCopyRoomCodeGame");
-  if (btnCopyRoomCodeGame) {
-    btnCopyRoomCodeGame.dataset.tip = TOOLTIP_COPY_CODE;
-    btnCopyRoomCodeGame.dataset.baseTip = TOOLTIP_COPY_CODE;
-  }
-  const btnCopyRoomLinkGame = $("btnCopyRoomLinkGame");
-  if (btnCopyRoomLinkGame) {
-    btnCopyRoomLinkGame.dataset.tip = TOOLTIP_COPY_LINK;
-    btnCopyRoomLinkGame.dataset.baseTip = TOOLTIP_COPY_LINK;
-  }
-
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      showTip($("btnCopyRoomCode"), TOOLTIP_CODE_COPIED);
+      showRoomCopyNotice("Code copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3213,7 +3093,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      showTip($("btnCopyRoomLink"), TOOLTIP_LINK_COPIED);
+      showRoomCopyNotice("Link copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3224,7 +3104,7 @@ function wireUI() {
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      showTip($("btnCopyRoomCodeGame"), TOOLTIP_CODE_COPIED);
+      showRoomCopyNotice("Code copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3237,7 +3117,7 @@ function wireUI() {
     if (!invite) return;
     try {
       await navigator.clipboard.writeText(invite);
-      showTip($("btnCopyRoomLinkGame"), TOOLTIP_LINK_COPIED);
+      showRoomCopyNotice("Link copied!");
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3295,34 +3175,6 @@ function wireUI() {
       await kickPlayer(playerId);
     });
   }
-
-  const roundsTable = $("roundsTable");
-  if (roundsTable) {
-    roundsTable.addEventListener("click", e => {
-      const target = e.target;
-      if (!target) return;
-      const tip = target.closest?.(".wait-tip");
-      if (!tip) return;
-      showTip(tip, tip.dataset.tip || "Waiting for a player to make a move");
-    });
-  }
-
-  document.addEventListener("mouseover", event => {
-    const tip = event.target?.closest?.("[data-tip]");
-    if (!tip) return;
-    if (!tip.classList.contains("show-tip") && tip.dataset.baseTip) {
-      tip.dataset.tip = tip.dataset.baseTip;
-    }
-    updateTipAlignment(tip, tip.dataset.tip || "");
-  });
-
-  document.addEventListener(
-    "touchstart",
-    () => {
-      document.body.classList.add("touch");
-    },
-    { passive: true, once: true }
-  );
 
   renderLocal(getRoomCode());
   setView("viewLobby");
