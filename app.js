@@ -251,7 +251,8 @@ const tooltipState = {
   el: null,
   timer: null,
   target: null,
-  shownAt: 0
+  shownAt: 0,
+  lockedUntil: 0
 };
 
 function getTooltipEl() {
@@ -271,6 +272,7 @@ function hideTooltip() {
   tip.classList.remove("show", "tooltip--above", "tooltip--below");
   tip.classList.add("hidden");
   tooltipState.target = null;
+  tooltipState.lockedUntil = 0;
 }
 
 function showTooltip(target, text, autoHide = false) {
@@ -309,6 +311,7 @@ function showTooltip(target, text, autoHide = false) {
   tooltipState.target = target;
   tooltipState.shownAt = Date.now();
   if (autoHide) {
+    tooltipState.lockedUntil = tooltipState.shownAt + TOOLTIP_DURATION_MS;
     tooltipState.timer = setTimeout(hideTooltip, TOOLTIP_DURATION_MS);
   }
 }
@@ -3177,10 +3180,10 @@ function wireUI() {
   $("btnCopyRoomCode")?.addEventListener("click", async () => {
     const value = String($("roomCodeDisplay")?.textContent || "").trim();
     if (!value) return;
+    showTooltip($("btnCopyRoomCode"), TOOLTIP_CODE_COPIED, true);
     try {
       await navigator.clipboard.writeText(value);
       showRoomCopyNotice("Code copied!");
-      showTooltip($("btnCopyRoomCode"), TOOLTIP_CODE_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3191,10 +3194,10 @@ function wireUI() {
     if (!value) return;
     const invite = getInviteUrl(value);
     if (!invite) return;
+    showTooltip($("btnCopyRoomLink"), TOOLTIP_LINK_COPIED, true);
     try {
       await navigator.clipboard.writeText(invite);
       showRoomCopyNotice("Link copied!");
-      showTooltip($("btnCopyRoomLink"), TOOLTIP_LINK_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3203,10 +3206,10 @@ function wireUI() {
   $("btnCopyRoomCodeGame")?.addEventListener("click", async () => {
     const value = String($("roomCodeGame")?.textContent || "").trim();
     if (!value) return;
+    showTooltip($("btnCopyRoomCodeGame"), TOOLTIP_CODE_COPIED, true);
     try {
       await navigator.clipboard.writeText(value);
       showRoomCopyNotice("Code copied!");
-      showTooltip($("btnCopyRoomCodeGame"), TOOLTIP_CODE_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3217,10 +3220,10 @@ function wireUI() {
     if (!value) return;
     const invite = getInviteUrl(value);
     if (!invite) return;
+    showTooltip($("btnCopyRoomLinkGame"), TOOLTIP_LINK_COPIED, true);
     try {
       await navigator.clipboard.writeText(invite);
       showRoomCopyNotice("Link copied!");
-      showTooltip($("btnCopyRoomLinkGame"), TOOLTIP_LINK_COPIED, true);
     } catch {
       // Ignore clipboard failures (e.g., permissions)
     }
@@ -3230,6 +3233,7 @@ function wireUI() {
     if (!isHoverCapable()) return;
     const target = event.target?.closest?.("[data-tip-hover]");
     if (!target) return;
+    if (Date.now() < tooltipState.lockedUntil && tooltipState.target === target) return;
     showTooltip(target, target.dataset.tipHover);
   });
 
@@ -3237,6 +3241,7 @@ function wireUI() {
     if (!isHoverCapable()) return;
     const target = event.target?.closest?.("[data-tip-hover]");
     if (!target) return;
+    if (Date.now() < tooltipState.lockedUntil && tooltipState.target === target) return;
     const related = event.relatedTarget;
     if (related && target.contains(related)) return;
     hideTooltip();
