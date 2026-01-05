@@ -839,7 +839,7 @@ body.debug .debug-only {
 }
 
 .room-table .col-round {
-  text-align: right;
+  text-align: center;
 }
 
 .room-table .player-head {
@@ -854,6 +854,10 @@ body.debug .debug-only {
 
 .room-table .cell-emoji {
   text-align: center;
+}
+
+.room-table .self-col {
+  background: #f6efe3;
 }
 
 #output {

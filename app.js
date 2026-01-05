@@ -1363,6 +1363,8 @@ function renderRoundsTable() {
 
   const players = Array.isArray(lastRoomStatus?.players) ? lastRoomStatus.players : [];
   const sortedPlayers = players.slice().sort((a, b) => (a.playerNumber ?? 0) - (b.playerNumber ?? 0));
+  const saved = getSaved(getRoomCode());
+  const myId = saved?.playerId || null;
 
   const moves = Array.isArray(lastGameState?.game?.moves) ? lastGameState.game.moves : [];
   const roundsTotal =
@@ -1386,7 +1388,11 @@ function renderRoundsTable() {
     cellMap.set(`${m.round}:${m.playerNumber}`, m.word || "");
   }
   const headerCells = sortedPlayers
-    .map(p => `<th class="player-head"><span class="player-name">${esc(formatName(p.name) || "")}</span></th>`)
+    .map(p => {
+      const isSelf = myId && p.playerId === myId;
+      const headerClass = isSelf ? "player-head self-col" : "player-head";
+      return `<th class="${headerClass}"><span class="player-name">${esc(formatName(p.name) || "")}</span></th>`;
+    })
     .join("");
 
   const gameActive = !!(lastGameState?.game?.gameId && !lastGameState?.game?.endedAt);
@@ -1404,10 +1410,12 @@ function renderRoundsTable() {
           !word &&
           activePlayerNumber === p.playerNumber &&
           lastGameState?.game?.round === r;
+        const isSelf = myId && p.playerId === myId;
+        const cellClass = isSelf ? ' class="self-col"' : "";
         if (showHourglass) {
-          return `<td class="cell-emoji"><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
+          return `<td class="cell-emoji"${cellClass}><span class="wait-tip" data-tip="${esc(TOOLTIP_WAITING_MOVE)}" data-base-tip="${esc(TOOLTIP_WAITING_MOVE)}">⏳</span></td>`;
         }
-        return `<td>${esc(word)}</td>`;
+        return `<td${cellClass}>${esc(word)}</td>`;
       })
       .join("");
     rows.push(`<tr><td class="mono col-round">${r}</td>${cells}</tr>`);
