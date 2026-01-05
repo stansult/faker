@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "netlify dev",
     "dev:lan": "IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo 'unknown'); if [ \"$IP\" = \"unknown\" ]; then echo \"Can't test on a different device: IP is unknown\"; else echo \"LAN test: http://${IP}:8888\"; fi; netlify dev --command \"python3 -m http.server 3999\" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888",
-    "dev:live": "npm run dev:lan & cloudflared tunnel --url http://localhost:8888"
+    "dev:live": "netlify dev --command \"python3 -m http.server 3999\" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888 & cloudflared tunnel --url http://localhost:8888"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.0"
