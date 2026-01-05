@@ -1553,7 +1553,7 @@ function updateGameUI() {
   const voteTimer = $("voteTimer");
   const triggerBtn = $("btnTriggerVote");
   const voteReadyPanel = $("voteReadyPanel");
-  const votePanel = $("votePanel");
+  const movesPanel = $("movesPanel");
   const voteSection = $("voteSection");
 
   const saved = getSaved(getRoomCode());
@@ -1635,6 +1635,7 @@ function updateGameUI() {
   if (movePanel) movePanel.classList.toggle("hidden", voteStarted);
   if (moveEntryPanel) moveEntryPanel.classList.toggle("hidden", voteStarted);
   if (voteReadyPanel) voteReadyPanel.classList.toggle("hidden", voteStarted);
+  if (movesPanel) movesPanel.classList.remove("hidden");
   if (voteSection) {
     voteSection.classList.toggle("your-turn", voteLive);
     voteSection.classList.toggle("your-turn-alert", voteLive);
