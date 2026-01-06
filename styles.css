@@ -208,6 +208,14 @@ p {
   font-size: 11px;
 }
 
+body.role-legit .vote-choice-slot .you-marker {
+  color: #2e7d32;
+}
+
+body.role-faker .vote-choice-slot .you-marker {
+  color: #e0473f;
+}
+
 .vote-player input[type="checkbox"] {
   margin: 0;
 }
@@ -644,7 +652,7 @@ button.pill:focus-visible {
 }
 
 .you-marker {
-  color: #2e7d32;
+  color: #7a6b5c;
   white-space: nowrap;
 }
 
