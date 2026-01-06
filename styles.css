@@ -875,6 +875,11 @@ body.role-faker .table-scroll::after {
   white-space: nowrap;
 }
 
+#voteTable .status-table th:nth-child(3),
+#voteTable .status-table td:nth-child(3) {
+  white-space: nowrap;
+}
+
 #voteTable .status-table th:nth-child(1) {
   text-align: center;
 }
