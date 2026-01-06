@@ -785,7 +785,7 @@ function buildMatchSummaryHtml() {
         <tr${row.isSelf ? ' class="is-me-row"' : ""}>
           <td>${esc(row.name)}</td>
           <td class="mono">${row.score}</td>
-          <td>${ordinalPlace(row.place)} place${tie}</td>
+          <td>${ordinalPlace(row.place)}${tie}</td>
         </tr>
       `;
     })
