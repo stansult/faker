@@ -46,3 +46,13 @@ To use a different tunnel name:
 ```
 FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
 ```
+
+## Production domain (Netlify + Cloudflare)
+Prod is hosted on Netlify: `https://faker-game.netlify.app/`.
+
+To use `play-faker.us` as the prod URL:
+1. Netlify → Site settings → Domain management → add `play-faker.us` and set it as primary.
+2. Cloudflare DNS (for `play-faker.us`), add:
+   - CNAME `@` → `faker-game.netlify.app` (Proxy OFF / DNS only)
+   - CNAME `www` → `faker-game.netlify.app` (Proxy OFF / DNS only)
+3. Wait for Netlify SSL to provision, then the domain should be live.
