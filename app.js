@@ -3058,6 +3058,11 @@ async function leaveRoom() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
 
+  if (lastRoomStatus?.matchEnded) {
+    await leaveRoomAfterMatchEnd();
+    return;
+  }
+
   const ok = await new Promise(resolve => {
     showOverlayChoice(
       "Leave room? You won't be able to rejoin.",
@@ -3117,17 +3122,7 @@ async function leaveRoomAfterMatchEnd() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
 
-  const saved = getSaved(roomCode);
-  if (saved?.playerId) {
-    const { status, data } = await postJSON("/.netlify/functions/leaveRoom", {
-      roomCode,
-      playerId: saved.playerId
-    });
-    log({ status, ...data }, "leaveRoom");
-  }
-
-  clearSaved(roomCode);
-  clearLastRoomCode();
+  // Keep local identity so players can rejoin to view results.
   setRoomCode("");
   renderAcceptedWords(roomCode);
   setSubmitWordsError("");
