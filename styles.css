@@ -798,6 +798,19 @@ body.debug .debug-only {
   overflow: visible;
 }
 
+#roundsTable.players.table-scroll,
+#voteTable.players.table-scroll {
+  overflow: hidden;
+  padding: 0;
+}
+
+#roundsTable.players.table-scroll .table-scroll__inner,
+#voteTable.players.table-scroll .table-scroll__inner {
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
 .table-scroll__inner .status-table {
   min-width: 100%;
   width: max-content;
