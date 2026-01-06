@@ -789,12 +789,12 @@ body.debug .debug-only {
 .table-scroll::before,
 .table-scroll::after {
   position: absolute;
-  bottom: 6px;
-  font-size: 14px;
+  bottom: 2px;
+  font-size: 12px;
   color: rgba(130, 86, 42, 0.95);
   background: rgba(255, 253, 250, 0.95);
   border-radius: 999px;
-  padding: 1px 6px 2px;
+  padding: 0 4px 1px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -802,12 +802,12 @@ body.debug .debug-only {
 
 .table-scroll::before {
   content: "←";
-  left: 10px;
+  left: 6px;
 }
 
 .table-scroll::after {
   content: "→";
-  right: 10px;
+  right: 6px;
 }
 
 .table-scroll[data-scrollable="true"]::before,
