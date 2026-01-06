@@ -3210,7 +3210,10 @@ function metaJoin(parts) {
 function formatName(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return "";
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return s
+    .split(" ")
+    .map(word => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ""))
+    .join(" ");
 }
 
 function wireUI() {
