@@ -57,3 +57,10 @@ To use `play-faker.us` as the prod URL:
    - CNAME `@` → `faker-game.netlify.app` (Proxy OFF / DNS only)
    - CNAME `www` → `faker-game.netlify.app` (Proxy OFF / DNS only)
 3. Wait for Netlify SSL to provision, then the domain should be live.
+
+## Itch.io build
+Generate a static itch build that points to the prod backend:
+```
+npm run build:itch
+```
+This creates `./itch/` with frontend files only and absolute API calls to `https://play-faker.us/.netlify/functions/`.
