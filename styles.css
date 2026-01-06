@@ -786,28 +786,38 @@ body.debug .debug-only {
   background: transparent;
 }
 
+.table-scroll::before,
 .table-scroll::after {
-  content: "Swipe →";
   position: absolute;
-  right: 10px;
   bottom: 6px;
-  font-size: 11px;
-  color: rgba(140, 120, 95, 0.7);
-  background: rgba(255, 253, 250, 0.9);
+  font-size: 14px;
+  color: rgba(130, 86, 42, 0.95);
+  background: rgba(255, 253, 250, 0.95);
   border-radius: 999px;
-  padding: 2px 6px;
-  letter-spacing: 0.2px;
+  padding: 1px 6px 2px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
 }
 
+.table-scroll::before {
+  content: "←";
+  left: 10px;
+}
+
+.table-scroll::after {
+  content: "→";
+  right: 10px;
+}
+
+.table-scroll[data-scrollable="true"]::before,
 .table-scroll[data-scrollable="true"]::after {
   opacity: 1;
 }
 
+.table-scroll--plain::before,
 .table-scroll--plain::after {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .status-table {
