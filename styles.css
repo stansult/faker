@@ -221,7 +221,6 @@ p {
 .word-chip {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
