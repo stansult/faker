@@ -833,7 +833,9 @@ function showMatchEndOverlay() {
 function renderAcceptedWords(roomCode) {
   const el = $("submittedWordsLine");
   if (!el) return;
-  const words = getAcceptedWords(roomCode);
+  const words = getAcceptedWords(roomCode)
+    .slice()
+    .sort((a, b) => a.length - b.length);
   if (!words.length) {
     el.textContent = "";
     return;
@@ -3507,14 +3509,6 @@ function wireUI() {
       hideOverlay();
       if (!choice) return;
       await kickPlayer(playerId);
-    });
-  }
-
-  const wordScrollToggle = $("toggleWordScroll");
-  if (wordScrollToggle) {
-    wordScrollToggle.checked = document.body.classList.contains("words-scroll");
-    wordScrollToggle.addEventListener("change", () => {
-      document.body.classList.toggle("words-scroll", wordScrollToggle.checked);
     });
   }
 
