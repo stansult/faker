@@ -788,6 +788,11 @@ body.debug .debug-only {
   -webkit-overflow-scrolling: touch;
 }
 
+.players.table-scroll .table-scroll__inner {
+  max-height: calc(100% - 16px);
+  box-sizing: border-box;
+}
+
 .table-scroll__inner .status-table {
   min-width: 100%;
   width: max-content;
