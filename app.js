@@ -358,6 +358,8 @@ function updateScrollableContainer(container, html) {
   requestAnimationFrame(() => {
     const maxScroll = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
     scrollEl.scrollLeft = Math.min(prevScroll, maxScroll);
+    const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
+    container.dataset.scrollable = scrollable ? "true" : "false";
   });
 }
 
