@@ -347,20 +347,18 @@ function getTableScrollInner(container) {
   return container.querySelector(".table-scroll__inner") || container;
 }
 
-function updateTableScrollHint(container) {
+function updateScrollableContainer(container, html) {
   if (!container) return;
+  if (container.dataset.lastHtml === html) return;
+  const prevScroll = getTableScrollInner(container)?.scrollLeft || 0;
+  container.dataset.lastHtml = html;
+  container.innerHTML = html;
   const scrollEl = getTableScrollInner(container);
   if (!scrollEl) return;
-  const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
-  container.dataset.scrollable = scrollable ? "true" : "false";
-}
-
-function refreshTableScrollHints() {
-  const tables = document.querySelectorAll(".table-scroll");
-  for (const table of tables) {
-    const scrollEl = getTableScrollInner(table);
-    updateTableScrollHint(table);
-  }
+  requestAnimationFrame(() => {
+    const maxScroll = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+    scrollEl.scrollLeft = Math.min(prevScroll, maxScroll);
+  });
 }
 
 function clearMoveAlerts(panel) {
@@ -813,7 +811,6 @@ function showMatchEndOverlay() {
   const msg = $("overlayMessage");
   if (msg) {
     msg.innerHTML = buildMatchSummaryHtml();
-    refreshTableScrollHints();
   }
   const waitForRoom = () => {
     const room = $("viewRoom");
@@ -1264,7 +1261,7 @@ function renderRoomStatus(rs) {
     const scoreHeader = showScoreColumn ? '<th class="col-score">Score</th>' : "";
     const wordHeader = showWordsColumn ? '<th class="col-words">Words</th>' : "";
     const kickHeader = "<th></th>";
-    el.innerHTML = `
+    const html = `
       <div class="table-scroll__inner">
         <table class="status-table room-table">
           <thead>
@@ -1281,7 +1278,7 @@ function renderRoomStatus(rs) {
         </table>
       </div>
     `;
-    refreshTableScrollHints();
+    updateScrollableContainer(el, html);
   }
 
   updateWordsProgress(rs);
@@ -1497,7 +1494,7 @@ function renderRoundsTable() {
     rows.push(`<tr><td class="col-round"><strong>Vote?</strong></td>${cells}</tr>`);
   }
 
-  container.innerHTML = `
+  const html = `
     <div class="table-scroll__inner">
       <table class="status-table room-table">
         <thead>
@@ -1512,7 +1509,7 @@ function renderRoundsTable() {
       </table>
     </div>
   `;
-  refreshTableScrollHints();
+  updateScrollableContainer(container, html);
 }
 
 function renderVoteTable() {
@@ -1524,12 +1521,12 @@ function renderVoteTable() {
 
   const votePhase = lastGameState?.game?.votePhase || null;
   if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
-    container.innerHTML = `
+    const html = `
       <div class="table-scroll__inner">
         Voting will start once enough players are ready.
       </div>
     `;
-    refreshTableScrollHints();
+    updateScrollableContainer(container, html);
     return;
   }
 
@@ -1576,7 +1573,7 @@ function renderVoteTable() {
     })
     .join("");
 
-  container.innerHTML = `
+  const html = `
     <div class="table-scroll__inner">
       <table class="status-table room-table">
         <thead>
@@ -1590,7 +1587,7 @@ function renderVoteTable() {
       </table>
     </div>
   `;
-  refreshTableScrollHints();
+  updateScrollableContainer(container, html);
 }
 
 function isGameViewActive() {
@@ -3465,7 +3462,6 @@ function wireUI() {
     if (shouldSuppressHide()) return;
     hideTooltip();
   });
-  window.addEventListener("resize", () => refreshTableScrollHints());
 
   const voteTable = $("voteTable");
   if (voteTable) {
@@ -3520,16 +3516,7 @@ function wireUI() {
     });
   }
 
-  const nativeScrollToggle = $("toggleNativeScrollbars");
-  if (nativeScrollToggle) {
-    nativeScrollToggle.checked = document.body.classList.contains("native-scrollbars");
-    nativeScrollToggle.addEventListener("change", () => {
-      document.body.classList.toggle("native-scrollbars", nativeScrollToggle.checked);
-    });
-  }
-
   renderLocal(getRoomCode());
-  refreshTableScrollHints();
   setView("viewLobby");
   updateLobbyMode(null);
   const roomParam = params.get("room");
