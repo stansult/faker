@@ -781,11 +781,20 @@ function buildMatchSummaryHtml() {
   const bodyRows = rows
     .map(row => {
       const tie = (placeCounts.get(row.place) || 0) > 1 ? " (tie)" : "";
+      let selfBadge = "";
+      if (row.isSelf && tie === "") {
+        const maxPlace = Math.max(1, ...placeCounts.keys());
+        if (row.place === 1) {
+          selfBadge = " 🎉";
+        } else if (row.place === maxPlace) {
+          selfBadge = " 😢";
+        }
+      }
       return `
         <tr${row.isSelf ? ' class="is-me-row"' : ""}>
           <td>${esc(row.name)}</td>
           <td class="mono">${row.score}</td>
-          <td>${ordinalPlace(row.place)}${tie}</td>
+          <td>${ordinalPlace(row.place)}${tie}${selfBadge}</td>
         </tr>
       `;
     })
