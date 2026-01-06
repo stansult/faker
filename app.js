@@ -1599,7 +1599,7 @@ function renderVoteTable() {
       <table class="status-table room-table">
         <thead>
           <tr>
-            <th>Player</th>
+            <th>Players</th>
             <th></th>
             <th></th>
           </tr>
