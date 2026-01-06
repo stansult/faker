@@ -864,6 +864,7 @@ body.role-faker .table-scroll::after {
 .room-table th,
 .room-table td {
   border-bottom: 0.5px solid #efe4d2;
+  padding: 4px 6px;
 }
 
 .room-table .col-num {
@@ -881,8 +882,8 @@ body.role-faker .table-scroll::after {
 
 .room-table .col-round,
 .room-table .col-num {
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 .room-table .player-head {
@@ -899,6 +900,8 @@ body.role-faker .table-scroll::after {
 
 .room-table .cell-emoji {
   text-align: center;
+  padding-left: 3px;
+  padding-right: 3px;
 }
 
 .room-table .self-col {
