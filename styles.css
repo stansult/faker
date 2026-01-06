@@ -874,6 +874,10 @@ body.role-faker .table-scroll::after {
   white-space: nowrap;
 }
 
+#voteTable .status-table th:nth-child(1) {
+  text-align: center;
+}
+
 .status-table th {
   color: #6d6357;
   font-weight: 700;
