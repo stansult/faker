@@ -861,6 +861,11 @@ body.role-faker .table-scroll::after {
   border-right: 0;
 }
 
+#playersList .status-table th:not(:last-child),
+#playersList .status-table td:not(:last-child) {
+  border-right: 0;
+}
+
 #voteTable .status-table {
   table-layout: auto;
   width: 100%;
