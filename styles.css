@@ -879,14 +879,22 @@ body.role-faker .table-scroll::after {
   text-align: center;
 }
 
+.room-table .col-round,
+.room-table .col-num {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
 .room-table .player-head {
   font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
+  text-align: center;
 }
 
 .room-table .player-name {
   display: inline-block;
+  text-align: center;
 }
 
 .room-table .cell-emoji {
