@@ -851,19 +851,9 @@ body.role-faker .table-scroll::after {
   text-align: left;
 }
 
-.status-table th:not(:last-child),
-.status-table td:not(:last-child) {
+#roundsTable .status-table th:not(:last-child),
+#roundsTable .status-table td:not(:last-child) {
   border-right: 0.5px solid #efe4d2;
-}
-
-#voteTable .status-table th:not(:last-child),
-#voteTable .status-table td:not(:last-child) {
-  border-right: 0;
-}
-
-#playersList .status-table th:not(:last-child),
-#playersList .status-table td:not(:last-child) {
-  border-right: 0;
 }
 
 #voteTable .status-table {
