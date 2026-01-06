@@ -2531,7 +2531,17 @@ async function createRoom(options = {}) {
       const { status, data } = await postJSON("/.netlify/functions/createRoom", payload);
       log({ status, ...data }, "createRoom");
 
+      if (status !== 200) {
+        const message = data?.error ? String(data.error) : `Create failed (${status})`;
+        setActionError(true, message);
+        hideOverlay();
+        setLobbyDisabled(false);
+        createInFlight = false;
+        return false;
+      }
+
       if (!data.roomCode) {
+        setActionError(true, "Create failed (missing room code)");
         hideOverlay();
         setLobbyDisabled(false);
         createInFlight = false;
