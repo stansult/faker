@@ -785,7 +785,7 @@ body.debug .debug-only {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 28px;
+  width: 26px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -794,20 +794,30 @@ body.debug .debug-only {
 
 .table-scroll::before {
   left: 0;
-  background: linear-gradient(90deg, rgba(140, 120, 95, 0.22), transparent);
+  background: linear-gradient(90deg, rgba(140, 120, 95, 0.18), transparent);
 }
 
 .table-scroll::after {
   right: 0;
-  background: linear-gradient(270deg, rgba(140, 120, 95, 0.22), transparent);
+  background: linear-gradient(270deg, rgba(140, 120, 95, 0.18), transparent);
 }
 
-.table-scroll[data-scrollable="true"][data-at-start="false"]::before {
+.table-scroll[data-scrollable="true"]::before,
+.table-scroll[data-scrollable="true"]::after {
   opacity: 1;
 }
 
-.table-scroll[data-scrollable="true"][data-at-end="false"]::after {
-  opacity: 1;
+.debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+body.native-scrollbars .table-scroll::before,
+body.native-scrollbars .table-scroll::after {
+  display: none;
 }
 
 .table-scroll--plain {

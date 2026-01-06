@@ -353,24 +353,12 @@ function updateTableScrollHint(container) {
   if (!scrollEl) return;
   const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
   container.dataset.scrollable = scrollable ? "true" : "false";
-  if (!scrollable) {
-    container.dataset.atStart = "true";
-    container.dataset.atEnd = "true";
-    return;
-  }
-  const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-  container.dataset.atStart = scrollEl.scrollLeft <= 1 ? "true" : "false";
-  container.dataset.atEnd = scrollEl.scrollLeft >= maxScroll - 1 ? "true" : "false";
 }
 
 function refreshTableScrollHints() {
   const tables = document.querySelectorAll(".table-scroll");
   for (const table of tables) {
     const scrollEl = getTableScrollInner(table);
-    if (scrollEl && !scrollEl.dataset.scrollHintBound) {
-      scrollEl.dataset.scrollHintBound = "true";
-      scrollEl.addEventListener("scroll", () => updateTableScrollHint(table));
-    }
     updateTableScrollHint(table);
   }
 }
@@ -3529,6 +3517,14 @@ function wireUI() {
       hideOverlay();
       if (!choice) return;
       await kickPlayer(playerId);
+    });
+  }
+
+  const nativeScrollToggle = $("toggleNativeScrollbars");
+  if (nativeScrollToggle) {
+    nativeScrollToggle.checked = document.body.classList.contains("native-scrollbars");
+    nativeScrollToggle.addEventListener("change", () => {
+      document.body.classList.toggle("native-scrollbars", nativeScrollToggle.checked);
     });
   }
 
