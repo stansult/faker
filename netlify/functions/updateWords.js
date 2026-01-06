@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
+import { MAX_WORD_LENGTH } from "../../shared/validationConstants.mjs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { wordTooLongError } from "./validationErrors.js";
 

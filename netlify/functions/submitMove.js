@@ -1,6 +1,6 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { ensureScores, finalizeGameEnd, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
-import { MAX_WORD_LENGTH } from "../../shared/validationConstants.js";
+import { MAX_WORD_LENGTH } from "../../shared/validationConstants.mjs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { wordTooLongError } from "./validationErrors.js";
 
