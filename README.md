@@ -31,10 +31,10 @@ npm run dev:live
 ```
 Then open:
 ```
-https://dev.stansult.com
+https://dev.play-faker.us
 ```
 
-This assumes you created a named tunnel `faker-dev` and mapped it to `dev.stansult.com`.
+This assumes you created a named tunnel `faker-dev` and mapped it to `dev.play-faker.us`.
 To use a different tunnel name:
 ```
 FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
