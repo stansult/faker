@@ -1787,7 +1787,13 @@ function updateGameUI() {
         voteStatus.textContent = "Voting has not started.";
       }
     } else if (votePhase.active) {
-      voteStatus.textContent = "Voting in progress.";
+      if (role === "faker") {
+        voteStatus.textContent = "Voting in progress. Try to convince others that someone is suspicious. You only need one legit player who doesn't vote you out!";
+      } else if (role === "player") {
+        voteStatus.textContent = "Voting in progress. If you are sure who is faker, convince everyone. You only win if all legit players vote faker out!";
+      } else {
+        voteStatus.textContent = "Voting in progress.";
+      }
     } else {
       voteStatus.textContent = "Voting complete.";
     }
