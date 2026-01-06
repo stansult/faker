@@ -763,6 +763,8 @@ function buildMatchSummaryHtml() {
   const rows = [];
   let lastScore = null;
   let place = 0;
+  const saved = getSaved(getRoomCode());
+  const myId = saved?.playerId || null;
 
   for (let i = 0; i < sorted.length; i++) {
     const p = sorted[i];
@@ -773,14 +775,14 @@ function buildMatchSummaryHtml() {
     }
     placeCounts.set(place, (placeCounts.get(place) || 0) + 1);
     const name = formatName(p.name) || "Unknown";
-    rows.push({ place, name, score });
+    rows.push({ place, name, score, isSelf: myId && p.playerId === myId });
   }
 
   const bodyRows = rows
     .map(row => {
       const tie = (placeCounts.get(row.place) || 0) > 1 ? " (tie)" : "";
       return `
-        <tr>
+        <tr${row.isSelf ? ' class="is-me-row"' : ""}>
           <td>${esc(row.name)}</td>
           <td class="mono">${row.score}</td>
           <td>${ordinalPlace(row.place)} place${tie}</td>
