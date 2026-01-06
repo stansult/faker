@@ -1787,7 +1787,7 @@ function updateGameUI() {
         voteStatus.textContent = "Voting has not started.";
       }
     } else if (votePhase.active) {
-      voteStatus.textContent = `Voting in progress (${triggers}/${Math.max(0, total - 1)} ready).`;
+      voteStatus.textContent = "Voting in progress.";
     } else {
       voteStatus.textContent = "Voting complete.";
     }
