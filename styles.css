@@ -856,6 +856,24 @@ body.role-faker .table-scroll::after {
   border-right: 0.5px solid #efe4d2;
 }
 
+#voteTable .status-table th:not(:last-child),
+#voteTable .status-table td:not(:last-child) {
+  border-right: 0;
+}
+
+#voteTable .status-table {
+  table-layout: auto;
+  width: 100%;
+}
+
+#voteTable .status-table th:nth-child(1),
+#voteTable .status-table td:nth-child(1),
+#voteTable .status-table th:nth-child(2),
+#voteTable .status-table td:nth-child(2) {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .status-table th {
   color: #6d6357;
   font-weight: 700;
