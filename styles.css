@@ -350,6 +350,17 @@ body.role-faker .vote-choice-slot .you-marker {
   align-items: flex-end;
 }
 
+.vote-header-row {
+  align-items: center;
+}
+
+.vote-status-row {
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 label {
   display: block;
   font-size: 12px;
