@@ -3510,6 +3510,14 @@ function wireUI() {
     });
   }
 
+  const wordScrollToggle = $("toggleWordScroll");
+  if (wordScrollToggle) {
+    wordScrollToggle.checked = document.body.classList.contains("words-scroll");
+    wordScrollToggle.addEventListener("change", () => {
+      document.body.classList.toggle("words-scroll", wordScrollToggle.checked);
+    });
+  }
+
   renderLocal(getRoomCode());
   refreshTableScrollHints();
   setView("viewLobby");
