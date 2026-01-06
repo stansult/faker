@@ -770,6 +770,12 @@ body.debug .debug-only {
   max-height: none;
 }
 
+#roundsTable,
+#voteTable {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .table-scroll {
   position: relative;
   overflow: hidden;
