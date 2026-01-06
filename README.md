@@ -48,6 +48,7 @@ FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
 ```
 
 ## Production domain (Netlify + Cloudflare)
+Live site: `https://play-faker.us`.
 Prod is hosted on Netlify: `https://faker-game.netlify.app/`.
 
 To use `play-faker.us` as the prod URL:
