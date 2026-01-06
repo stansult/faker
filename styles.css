@@ -788,9 +788,14 @@ body.debug .debug-only {
   -webkit-overflow-scrolling: touch;
 }
 
+.players.table-scroll {
+  overflow: auto;
+  padding: 8px;
+}
+
 .players.table-scroll .table-scroll__inner {
-  max-height: calc(100% - 16px);
-  box-sizing: border-box;
+  max-height: none;
+  overflow: visible;
 }
 
 .table-scroll__inner .status-table {
