@@ -347,6 +347,21 @@ function getTableScrollInner(container) {
   return container.querySelector(".table-scroll__inner") || container;
 }
 
+function setTableScrollableFlag(container) {
+  if (!container) return;
+  const scrollEl = getTableScrollInner(container);
+  if (!scrollEl) return;
+  const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
+  container.dataset.scrollable = scrollable ? "true" : "false";
+}
+
+function refreshTableScrollableFlags() {
+  const tables = document.querySelectorAll(".table-scroll");
+  for (const table of tables) {
+    setTableScrollableFlag(table);
+  }
+}
+
 function updateScrollableContainer(container, html) {
   if (!container) return;
   if (container.dataset.lastHtml === html) return;
@@ -358,9 +373,9 @@ function updateScrollableContainer(container, html) {
   requestAnimationFrame(() => {
     const maxScroll = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
     scrollEl.scrollLeft = Math.min(prevScroll, maxScroll);
-    const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
-    container.dataset.scrollable = scrollable ? "true" : "false";
+    setTableScrollableFlag(container);
   });
+  setTimeout(() => setTableScrollableFlag(container), 0);
 }
 
 function clearMoveAlerts(panel) {
@@ -3519,6 +3534,9 @@ function wireUI() {
   }
 
   renderLocal(getRoomCode());
+  refreshTableScrollableFlags();
+  window.addEventListener("resize", refreshTableScrollableFlags);
+  window.addEventListener("load", refreshTableScrollableFlags);
   setView("viewLobby");
   updateLobbyMode(null);
   const roomParam = params.get("room");

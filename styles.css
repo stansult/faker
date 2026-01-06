@@ -791,8 +791,8 @@ body.debug .debug-only {
   position: absolute;
   bottom: 2px;
   font-size: 12px;
-  color: rgba(130, 86, 42, 0.95);
-  background: rgba(255, 253, 250, 0.95);
+  color: rgba(98, 58, 24, 1);
+  background: rgba(255, 253, 250, 1);
   border-radius: 999px;
   padding: 0 4px 1px;
   opacity: 0;
