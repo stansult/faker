@@ -820,6 +820,16 @@ body.debug .debug-only {
   background: rgba(255, 255, 255, 0.9);
 }
 
+body.role-legit .table-scroll::before,
+body.role-legit .table-scroll::after {
+  color: #12b05a;
+}
+
+body.role-faker .table-scroll::before,
+body.role-faker .table-scroll::after {
+  color: #e0473f;
+}
+
 .status-table {
   width: 100%;
   border-collapse: collapse;
