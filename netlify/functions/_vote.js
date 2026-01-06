@@ -1,6 +1,19 @@
 import { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS } from "../../shared/validationConstants.mjs";
 
-export { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS };
+function parseEnvInt(name, fallback) {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+export const VOTE_TOTAL_SECONDS_EFFECTIVE =
+  parseEnvInt("VOTE_TOTAL_SECONDS", VOTE_TOTAL_SECONDS);
+export const VOTE_FINAL_SECONDS_EFFECTIVE =
+  parseEnvInt("VOTE_FINAL_SECONDS", VOTE_FINAL_SECONDS);
+
+export { VOTE_FINAL_SECONDS_EFFECTIVE as VOTE_FINAL_SECONDS };
+export { VOTE_TOTAL_SECONDS_EFFECTIVE as VOTE_TOTAL_SECONDS };
 
 export function initVotePhase() {
   return {

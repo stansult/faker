@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export VOTE_TOTAL_SECONDS="${VOTE_TOTAL_SECONDS:-300}"
+export VOTE_FINAL_SECONDS="${VOTE_FINAL_SECONDS:-10}"
+
 npm run build:constants
 
 IP="$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo 'unknown')"

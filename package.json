@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "build:constants": "node scripts/build_constants.mjs",
-    "dev": "npm run build:constants && netlify dev",
-    "dev:lan": "npm run build:constants && IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo 'unknown'); if [ \"$IP\" = \"unknown\" ]; then echo \"Can't test on a different device: IP is unknown\"; else echo \"LAN test: http://${IP}:8888\"; fi; netlify dev --command \"python3 -m http.server 3999\" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888",
+    "dev": "VOTE_TOTAL_SECONDS=${VOTE_TOTAL_SECONDS:-300} VOTE_FINAL_SECONDS=${VOTE_FINAL_SECONDS:-10} npm run build:constants && netlify dev",
+    "dev:lan": "VOTE_TOTAL_SECONDS=${VOTE_TOTAL_SECONDS:-300} VOTE_FINAL_SECONDS=${VOTE_FINAL_SECONDS:-10} npm run build:constants && IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo 'unknown'); if [ \"$IP\" = \"unknown\" ]; then echo \"Can't test on a different device: IP is unknown\"; else echo \"LAN test: http://${IP}:8888\"; fi; netlify dev --command \"python3 -m http.server 3999\" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888",
     "dev:live": "bash scripts/dev_live.sh"
   },
   "dependencies": {
