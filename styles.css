@@ -355,8 +355,9 @@ body.role-faker .vote-choice-slot .you-marker {
 }
 
 .vote-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   margin-top: 4px;
 }
