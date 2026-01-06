@@ -94,7 +94,7 @@ async function postJSON(path, bodyObj) {
   try {
     data = await res.json();
   } catch {
-    data = { error: "Non-JSON response" };
+    data = { error: getUiError("NON_JSON_RESPONSE", "Non-JSON response") };
   }
 
   return { status: res.status, data };
@@ -140,6 +140,9 @@ const MAX_NAME_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_NAME_LENGTH)
 const ROOM_CODE_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.ROOM_CODE_LENGTH)
   ? VALIDATION_CONSTANTS.ROOM_CODE_LENGTH
   : 6;
+const UI_ERRORS =
+  typeof window !== "undefined" && window.UI_ERRORS ? window.UI_ERRORS : {};
+const getUiError = (key, fallback) => UI_ERRORS[key] || fallback;
 
 function isAllowedWord(word) {
   const language = getRoomLanguage();
@@ -999,7 +1002,12 @@ function restoreLogs() {
 async function roomStatus(label = "roomStatus", opts = {}) {
   const roomCode = getRoomCode();
   if (!roomCode) {
-    if (!opts.silent) log({ error: "Enter room code first" }, label);
+    if (!opts.silent) {
+      log(
+        { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+        label
+      );
+    }
     return null;
   }
 
@@ -1860,7 +1868,7 @@ function updateVoteTimer(votePhase) {
 
 /* ===== actions ===== */
 
-function setNameError(show, message = "Name is required") {
+function setNameError(show, message = getUiError("NAME_REQUIRED", "Name is required")) {
   const el = $("nameError");
   if (!el) return;
   el.textContent = message;
@@ -1888,7 +1896,7 @@ function updateNameError() {
   if (value.length > MAX_NAME_LENGTH) {
     setNameError(true, `Name too long (max ${MAX_NAME_LENGTH} chars)`);
   } else if (nameTouched) {
-    setNameError(!value, "Name is required");
+    setNameError(!value, getUiError("NAME_REQUIRED", "Name is required"));
   } else {
     setNameError(false);
   }
@@ -2172,7 +2180,10 @@ async function joinRoom(options = {}) {
 
   if (joinInFlight) {
     log({ note: "Join already in progress; ignoring extra click" }, "joinRoom");
-    setActionError(true, "Join already in progress. Please wait.");
+    setActionError(
+      true,
+      getUiError("JOIN_IN_PROGRESS", "Join already in progress. Please wait.")
+    );
     if (queueAfterJoin) {
       try {
         await joinInFlight;
@@ -2191,7 +2202,10 @@ async function joinRoom(options = {}) {
   }
 
   if (!roomCode) {
-    setActionError(true, "Enter a room code to join.");
+    setActionError(
+      true,
+      getUiError("ENTER_ROOM_CODE_TO_JOIN", "Enter a room code to join.")
+    );
     $("roomCode")?.focus();
     return;
   }
@@ -2204,7 +2218,7 @@ async function joinRoom(options = {}) {
   if (!skipLobbyGate && !name) {
     nameTouched = true;
     updateNameError();
-    setActionError(true, "Name is required");
+    setActionError(true, getUiError("NAME_REQUIRED", "Name is required"));
     $("playerName")?.focus();
     return;
   }
@@ -2324,7 +2338,10 @@ async function joinRoom(options = {}) {
           hideOverlay();
           setLobbyDisabled(false);
         }
-        log({ error: "Name is required" }, "joinRoom");
+        log(
+          { error: getUiError("NAME_REQUIRED", "Name is required") },
+          "joinRoom"
+        );
         return;
       }
       if (name.length > MAX_NAME_LENGTH) {
@@ -2401,7 +2418,10 @@ async function createRoom(options = {}) {
     nameTouched = true;
     updateNameError();
     $("playerName")?.focus();
-    log({ error: "Name is required" }, "createRoom");
+    log(
+      { error: getUiError("NAME_REQUIRED", "Name is required") },
+      "createRoom"
+    );
     return;
   }
   if (name.length > MAX_NAME_LENGTH) {
@@ -2549,10 +2569,20 @@ function getBulkWordSubmission() {
 
 async function submitWords() {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "submitWords");
+  if (!roomCode) {
+    return log(
+      { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+      "submitWords"
+    );
+  }
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWords");
+  if (!saved?.playerId) {
+    return log(
+      { error: getUiError("NOT_JOINED_BROWSER", "Not joined on this browser yet") },
+      "submitWords"
+    );
+  }
   if (submitWordsInFlight) return;
 
   const required = Number.isInteger(lastRoomStatus?.wordsRequired)
@@ -2566,7 +2596,10 @@ async function submitWords() {
 
   const words = getSingleWordSubmission();
   if (!words.length) {
-    return log({ error: "Enter a word" }, "submitWords");
+    return log(
+      { error: getUiError("ENTER_WORD", "Enter a word") },
+      "submitWords"
+    );
   }
   if (!isWithinWordLength(words[0])) {
     const message = `Word too long (max ${MAX_WORD_LENGTH} chars)`;
@@ -2637,15 +2670,28 @@ async function submitWords() {
 
 async function submitWordsBulk() {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "submitWordsBulk");
+  if (!roomCode) {
+    return log(
+      { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+      "submitWordsBulk"
+    );
+  }
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined on this browser yet" }, "submitWordsBulk");
+  if (!saved?.playerId) {
+    return log(
+      { error: getUiError("NOT_JOINED_BROWSER", "Not joined on this browser yet") },
+      "submitWordsBulk"
+    );
+  }
   if (submitWordsInFlight) return;
 
   const words = getBulkWordSubmission();
   if (!words.length) {
-    return log({ error: "Enter at least one word" }, "submitWordsBulk");
+    return log(
+      { error: getUiError("ENTER_AT_LEAST_ONE_WORD", "Enter at least one word") },
+      "submitWordsBulk"
+    );
   }
   const tooLong = words.filter(word => !isWithinWordLength(word));
   if (tooLong.length) {
@@ -2707,10 +2753,20 @@ async function submitWordsBulk() {
 
 async function startGame() {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "startGame");
+  if (!roomCode) {
+    return log(
+      { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+      "startGame"
+    );
+  }
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "startGame");
+  if (!saved?.playerId) {
+    return log(
+      { error: getUiError("NOT_JOINED", "Not joined") },
+      "startGame"
+    );
+  }
 
   if (startInFlight) return;
   startInFlight = true;
@@ -2747,10 +2803,20 @@ async function startGame() {
 
 async function startShortGame() {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "startShortGame");
+  if (!roomCode) {
+    return log(
+      { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+      "startShortGame"
+    );
+  }
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "startShortGame");
+  if (!saved?.playerId) {
+    return log(
+      { error: getUiError("NOT_JOINED", "Not joined") },
+      "startShortGame"
+    );
+  }
 
   const currentPlayers =
     lastRoomStatus?.currentPlayers ??
@@ -2816,15 +2882,30 @@ async function startShortGame() {
 
 async function submitMove() {
   const roomCode = getRoomCode();
-  if (!roomCode) return log({ error: "Enter room code first" }, "submitMove");
+  if (!roomCode) {
+    return log(
+      { error: getUiError("ENTER_ROOM_CODE_FIRST", "Enter room code first") },
+      "submitMove"
+    );
+  }
 
   const saved = getSaved(roomCode);
-  if (!saved?.playerId) return log({ error: "Not joined" }, "submitMove");
+  if (!saved?.playerId) {
+    return log(
+      { error: getUiError("NOT_JOINED", "Not joined") },
+      "submitMove"
+    );
+  }
   if (submitMoveInFlight) return;
 
   const raw = String($("moveWord")?.value || "");
   const word = normalizeWord(raw);
-  if (!word) return log({ error: "Enter a word" }, "submitMove");
+  if (!word) {
+    return log(
+      { error: getUiError("ENTER_WORD", "Enter a word") },
+      "submitMove"
+    );
+  }
   if (!isWithinWordLength(word)) {
     const message = `Word too long (max ${MAX_WORD_LENGTH} chars)`;
     setMoveError(message);
