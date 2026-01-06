@@ -800,7 +800,7 @@ body.debug .debug-only {
   bottom: 2px;
   font-size: 12px;
   color: rgba(98, 58, 24, 1);
-  background: rgba(255, 253, 250, 1);
+  background: rgba(255, 253, 250, 0.7);
   border-radius: 999px;
   padding: 0 4px 1px;
   opacity: 0;
@@ -825,7 +825,7 @@ body.debug .debug-only {
 
 .table-scroll--plain::before,
 .table-scroll--plain::after {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 body.role-legit .table-scroll::before,
