@@ -1,4 +1,4 @@
-import { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS } from "../../shared/validationConstants.mjs";
+import { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS } from "../../shared/validationConstants.cjs";
 
 function parseEnvInt(name, fallback) {
   const raw = process.env[name];

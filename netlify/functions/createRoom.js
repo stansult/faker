@@ -1,5 +1,5 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { ROOM_CODE_LENGTH } from "../../shared/validationConstants.mjs";
+import { ROOM_CODE_LENGTH } from "../../shared/validationConstants.cjs";
 
 function json(statusCode, bodyObj) {
   return {

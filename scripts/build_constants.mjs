@@ -1,12 +1,14 @@
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import {
+import validationConstants from "../shared/validationConstants.cjs";
+
+const {
   MAX_WORD_LENGTH,
   MAX_NAME_LENGTH,
   ROOM_CODE_LENGTH,
   VOTE_TOTAL_SECONDS,
   VOTE_FINAL_SECONDS
-} from "../shared/validationConstants.mjs";
+} = validationConstants;
 
 function parseEnvInt(name, fallback) {
   const raw = process.env[name];

@@ -1,4 +1,4 @@
-import { MAX_NAME_LENGTH, MAX_WORD_LENGTH } from "../../shared/validationConstants.mjs";
+import { MAX_NAME_LENGTH, MAX_WORD_LENGTH } from "../../shared/validationConstants.cjs";
 
 export function nameTooLongError() {
   return { error: `Name too long (max ${MAX_NAME_LENGTH} chars)` };
