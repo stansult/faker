@@ -342,26 +342,34 @@ function isHoverCapable() {
   return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 }
 
+function getTableScrollInner(container) {
+  if (!container) return null;
+  return container.querySelector(".table-scroll__inner") || container;
+}
+
 function updateTableScrollHint(container) {
   if (!container) return;
-  const scrollable = container.scrollWidth - container.clientWidth > 1;
+  const scrollEl = getTableScrollInner(container);
+  if (!scrollEl) return;
+  const scrollable = scrollEl.scrollWidth - scrollEl.clientWidth > 1;
   container.dataset.scrollable = scrollable ? "true" : "false";
   if (!scrollable) {
     container.dataset.atStart = "true";
     container.dataset.atEnd = "true";
     return;
   }
-  const maxScroll = container.scrollWidth - container.clientWidth;
-  container.dataset.atStart = container.scrollLeft <= 1 ? "true" : "false";
-  container.dataset.atEnd = container.scrollLeft >= maxScroll - 1 ? "true" : "false";
+  const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+  container.dataset.atStart = scrollEl.scrollLeft <= 1 ? "true" : "false";
+  container.dataset.atEnd = scrollEl.scrollLeft >= maxScroll - 1 ? "true" : "false";
 }
 
 function refreshTableScrollHints() {
   const tables = document.querySelectorAll(".table-scroll");
   for (const table of tables) {
-    if (!table.dataset.scrollHintBound) {
-      table.dataset.scrollHintBound = "true";
-      table.addEventListener("scroll", () => updateTableScrollHint(table));
+    const scrollEl = getTableScrollInner(table);
+    if (scrollEl && !scrollEl.dataset.scrollHintBound) {
+      scrollEl.dataset.scrollHintBound = "true";
+      scrollEl.addEventListener("scroll", () => updateTableScrollHint(table));
     }
     updateTableScrollHint(table);
   }
@@ -789,18 +797,20 @@ function buildMatchSummaryHtml() {
   return `
     <div class="overlay-title">Match over.</div>
     <div class="table-scroll table-scroll--plain">
-      <table class="status-table match-table">
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th>Score</th>
-            <th>Place</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${bodyRows}
-        </tbody>
-      </table>
+      <div class="table-scroll__inner">
+        <table class="status-table match-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Score</th>
+              <th>Place</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bodyRows}
+          </tbody>
+        </table>
+      </div>
     </div>
     ${reasonNote}
     <div class="mini match-total">${totalText}</div>
@@ -1267,19 +1277,21 @@ function renderRoomStatus(rs) {
     const wordHeader = showWordsColumn ? '<th class="col-words">Words</th>' : "";
     const kickHeader = "<th></th>";
     el.innerHTML = `
-      <table class="status-table room-table">
-        <thead>
-          <tr>
-            <th class="col-num">#</th>
-            <th>Name</th>
-            ${scoreHeader}
-            ${wordHeader}
-            <th>Status</th>
-            ${kickHeader}
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <div class="table-scroll__inner">
+        <table class="status-table room-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th>Name</th>
+              ${scoreHeader}
+              ${wordHeader}
+              <th>Status</th>
+              ${kickHeader}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     `;
     refreshTableScrollHints();
   }
@@ -1498,17 +1510,19 @@ function renderRoundsTable() {
   }
 
   container.innerHTML = `
-    <table class="status-table room-table">
-      <thead>
-        <tr>
-          <th class="col-round">Round</th>
-          ${headerCells}
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.join("")}
-      </tbody>
-    </table>
+    <div class="table-scroll__inner">
+      <table class="status-table room-table">
+        <thead>
+          <tr>
+            <th class="col-round">Round</th>
+            ${headerCells}
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.join("")}
+        </tbody>
+      </table>
+    </div>
   `;
   refreshTableScrollHints();
 }
@@ -1522,7 +1536,11 @@ function renderVoteTable() {
 
   const votePhase = lastGameState?.game?.votePhase || null;
   if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
-    container.textContent = "Voting will start once enough players are ready.";
+    container.innerHTML = `
+      <div class="table-scroll__inner">
+        Voting will start once enough players are ready.
+      </div>
+    `;
     refreshTableScrollHints();
     return;
   }
@@ -1571,16 +1589,18 @@ function renderVoteTable() {
     .join("");
 
   container.innerHTML = `
-    <table class="status-table room-table">
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th></th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="table-scroll__inner">
+      <table class="status-table room-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
   refreshTableScrollHints();
 }
