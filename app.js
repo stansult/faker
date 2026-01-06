@@ -140,6 +140,12 @@ const MAX_NAME_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_NAME_LENGTH)
 const ROOM_CODE_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.ROOM_CODE_LENGTH)
   ? VALIDATION_CONSTANTS.ROOM_CODE_LENGTH
   : 6;
+const VOTE_TOTAL_SECONDS = Number.isInteger(VALIDATION_CONSTANTS.VOTE_TOTAL_SECONDS)
+  ? VALIDATION_CONSTANTS.VOTE_TOTAL_SECONDS
+  : 30;
+const VOTE_FINAL_SECONDS = Number.isInteger(VALIDATION_CONSTANTS.VOTE_FINAL_SECONDS)
+  ? VALIDATION_CONSTANTS.VOTE_FINAL_SECONDS
+  : 5;
 const UI_ERRORS =
   typeof window !== "undefined" && window.UI_ERRORS ? window.UI_ERRORS : {};
 const getUiError = (key, fallback) => UI_ERRORS[key] || fallback;
@@ -177,8 +183,6 @@ function flashCopied(id, message, durationMs = 2500) {
   }, durationMs);
 }
 
-const VOTE_TOTAL_SECONDS = 30;
-const VOTE_FINAL_SECONDS = 5;
 const MOVE_ALERT_SECONDS = 30;
 const MOVE_VIBRATE_INTERVAL_SECONDS = 10;
 

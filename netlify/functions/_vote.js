@@ -1,5 +1,6 @@
-export const VOTE_TOTAL_SECONDS = 30;
-export const VOTE_FINAL_SECONDS = 5;
+import { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS } from "../../shared/validationConstants.mjs";
+
+export { VOTE_FINAL_SECONDS, VOTE_TOTAL_SECONDS };
 
 export function initVotePhase() {
   return {
