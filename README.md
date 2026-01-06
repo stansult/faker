@@ -34,7 +34,14 @@ Then open:
 https://dev.play-faker.us
 ```
 
-This assumes you created a named tunnel `faker-dev` and mapped it to `dev.play-faker.us`.
+This assumes you created a named tunnel `faker-dev` and mapped it to `dev.play-faker.us`:
+```
+cloudflared tunnel route dns faker-dev dev.play-faker.us
+```
+Or add a DNS CNAME in Cloudflare:
+```
+dev -> <tunnel-id>.cfargotunnel.com
+```
 To use a different tunnel name:
 ```
 FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
