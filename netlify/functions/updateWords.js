@@ -1,7 +1,10 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { MAX_WORD_LENGTH } from "../../shared/validationConstants.cjs";
+import validationConstants from "../../shared/validationConstants.cjs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { wordTooLongError } from "./validationErrors.js";
+import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
+
+const { MAX_WORD_LENGTH } = validationConstants;
 
 function json(statusCode, obj) {
   return {
@@ -91,6 +94,7 @@ export async function handler(event) {
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
+  if (isActiveRoomExpired(room)) return json(410, roomExpiredError());
 
   if (room.matchEnded) {
     return json(409, { error: "Match ended" });

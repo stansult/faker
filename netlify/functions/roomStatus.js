@@ -1,5 +1,6 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
+import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
 
 function json(statusCode, obj) {
   return {
@@ -53,6 +54,7 @@ export async function handler(event) {
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
+  if (isActiveRoomExpired(room)) return json(410, roomExpiredError());
 
   const maxPlayers = Number.isInteger(room.playerCount) ? room.playerCount : 0;
   const roundsPerGame = Number.isInteger(room.roundsPerGame)

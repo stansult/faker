@@ -1,4 +1,6 @@
-import { ROOM_CODE_LENGTH } from "../../shared/validationConstants.cjs";
+import validationConstants from "../../shared/validationConstants.cjs";
+
+const { ROOM_CODE_LENGTH } = validationConstants;
 
 const ROOM_CODE_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 

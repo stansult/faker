@@ -1,7 +1,10 @@
 import { connectLambda, getStore } from "@netlify/blobs";
-import { MAX_NAME_LENGTH } from "../../shared/validationConstants.cjs";
+import validationConstants from "../../shared/validationConstants.cjs";
 import { nameTooLongError } from "./validationErrors.js";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
+import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
+
+const { MAX_NAME_LENGTH } = validationConstants;
 
 function json(statusCode, obj) {
   return {
@@ -94,6 +97,7 @@ export async function handler(event) {
   }
 
   if (!room) return json(404, { error: "Room not found" });
+  if (isActiveRoomExpired(room)) return json(410, roomExpiredError());
 
   room.players = Array.isArray(room.players) ? room.players : [];
   room.game = room.game || null;

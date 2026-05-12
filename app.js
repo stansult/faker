@@ -140,6 +140,10 @@ const MAX_NAME_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.MAX_NAME_LENGTH)
 const ROOM_CODE_LENGTH = Number.isInteger(VALIDATION_CONSTANTS.ROOM_CODE_LENGTH)
   ? VALIDATION_CONSTANTS.ROOM_CODE_LENGTH
   : 6;
+const ROOM_ACTIVE_TTL_HOURS = Number.isFinite(VALIDATION_CONSTANTS.ROOM_ACTIVE_TTL_HOURS)
+  ? VALIDATION_CONSTANTS.ROOM_ACTIVE_TTL_HOURS
+  : 24;
+const ROOM_ACTIVE_TTL_MS = ROOM_ACTIVE_TTL_HOURS * 60 * 60 * 1000;
 const VOTE_TOTAL_SECONDS = Number.isInteger(VALIDATION_CONSTANTS.VOTE_TOTAL_SECONDS)
   ? VALIDATION_CONSTANTS.VOTE_TOTAL_SECONDS
   : 30;
@@ -490,13 +494,26 @@ function clearLastRoomCode() {
   localStorage.removeItem(lastRoomKey());
 }
 
+function isSavedRoomExpired(saved) {
+  const touchedAt = Number(saved?.lastSeenAt || saved?.savedAt || 0);
+  return !Number.isFinite(touchedAt) || Date.now() - touchedAt > ROOM_ACTIVE_TTL_MS;
+}
+
 function getSaved(roomCode) {
   if (!roomCode) return null;
   const raw = localStorage.getItem(roomKey(roomCode));
   if (!raw) return null;
   try {
     const obj = JSON.parse(raw);
-    return obj && typeof obj === "object" ? obj : null;
+    if (!obj || typeof obj !== "object") return null;
+    if (isSavedRoomExpired(obj)) {
+      clearSaved(roomCode);
+      if (getLastRoomCode() === String(roomCode || "").trim().toUpperCase()) {
+        clearLastRoomCode();
+      }
+      return null;
+    }
+    return obj;
   } catch {
     return null;
   }
@@ -504,7 +521,12 @@ function getSaved(roomCode) {
 
 function setSaved(roomCode, obj) {
   if (!roomCode) return;
-  localStorage.setItem(roomKey(roomCode), JSON.stringify(obj || {}));
+  const now = Date.now();
+  localStorage.setItem(roomKey(roomCode), JSON.stringify({
+    ...(obj || {}),
+    savedAt: obj?.savedAt || now,
+    lastSeenAt: now
+  }));
   renderLocal(roomCode);
 }
 
@@ -513,6 +535,11 @@ function clearSaved(roomCode) {
   localStorage.removeItem(roomKey(roomCode));
   localStorage.removeItem(wordsKey(roomCode));
   renderLocal(roomCode);
+}
+
+function clearExpiredLocalRooms() {
+  const lastRoom = getLastRoomCode();
+  if (lastRoom) getSaved(lastRoom);
 }
 
 function renderLocal(roomCode) {
@@ -1044,6 +1071,10 @@ async function roomStatus(label = "roomStatus", opts = {}) {
   if (!opts.silent) log({ status, ...data }, label);
 
   if (status === 200) renderRoomStatus(data);
+  if (status === 410) {
+    handleExpiredRoom(roomCode);
+    return { status, data };
+  }
   if (status === 200) {
     const saved = getSaved(data?.roomCode || roomCode);
     if (saved?.playerId && currentView === "viewLobby") {
@@ -1338,8 +1369,11 @@ function renderRoomStatus(rs) {
   updateViewState(rs);
 
   if (rs.game?.gameId) {
-    if (!roleState.role) fetchRole({ silent: true });
-    fetchGameState({ silent: true });
+    const saved = getSaved(rs.roomCode || getRoomCode());
+    if (saved?.playerId) {
+      if (!roleState.role) fetchRole({ silent: true });
+      fetchGameState({ silent: true });
+    }
   }
 
   if (shouldStartOverlay || (startOverlayPending && nextGameId && !ended)) {
@@ -1404,7 +1438,7 @@ function updateViewState(rs) {
   const roomCode = rs?.roomCode || getRoomCode();
   const saved = roomCode ? getSaved(roomCode) : null;
 
-  if (!saved?.playerId) {
+  if (!saved?.playerId && !rs?.matchEnded) {
     setView("viewLobby");
     return;
   }
@@ -1930,8 +1964,32 @@ function setActionError(show, message = "") {
 function friendlyJoinError(data, status) {
   const raw = String(data?.error || "");
   if (raw) return raw;
+  if (status === 410) return "Room expired";
   if (status === 404) return "Room not found";
   return `Join failed (${status})`;
+}
+
+function handleExpiredRoom(roomCode = getRoomCode(), message = "Room expired. Create a new room.") {
+  const code = sanitizeRoomCode(roomCode || "");
+  if (code) {
+    clearSaved(code);
+    if (getLastRoomCode() === code) clearLastRoomCode();
+  }
+  if (code === getRoomCode()) {
+    setRoomCode("");
+  }
+  setSubmitWordsError("");
+  roleState = { role: null, secretWord: null, gameId: null };
+  lastRoomStatus = null;
+  lastGameState = null;
+  clearActiveGameSession();
+  lastGameOverKey = null;
+  matchEndShown = false;
+  stopPolling();
+  hideOverlay();
+  setView("viewLobby");
+  updateLobbyMode(null);
+  setActionError(true, message);
 }
 
 function updateNameError() {
@@ -2318,6 +2376,22 @@ async function joinRoom(options = {}) {
   }
 
   const precheck = await postJSON("/.netlify/functions/roomStatus", { roomCode });
+  if (precheck.status === 200 && precheck.data?.matchEnded) {
+    setActionError(false);
+    renderRoomStatus(precheck.data);
+    startPolling();
+    if (!skipLobbyGate) {
+      hideOverlay();
+      setLobbyDisabled(false);
+    }
+    return;
+  }
+  if (precheck.status === 410) {
+    handleExpiredRoom(roomCode);
+    if (!skipLobbyGate) setLobbyDisabled(false);
+    log({ status: precheck.status, ...precheck.data }, "joinRoom");
+    return;
+  }
   if (precheck.status === 404) {
     setActionError(true, "Room not found");
     if (!skipLobbyGate) {
@@ -3139,7 +3213,8 @@ async function leaveRoomAfterMatchEnd() {
   const roomCode = getRoomCode();
   if (!roomCode) return;
 
-  // Keep local identity so players can rejoin to view results.
+  clearSaved(roomCode);
+  if (getLastRoomCode() === roomCode) clearLastRoomCode();
   setRoomCode("");
   renderAcceptedWords(roomCode);
   setSubmitWordsError("");
@@ -3573,6 +3648,7 @@ function wireUI() {
     setRoomCode(roomParam);
     updateLobbyMode("join");
   }
+  clearExpiredLocalRooms();
   updateNameError();
   updateRejoinButton();
   initOverlayDismissal();

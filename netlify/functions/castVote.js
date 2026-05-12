@@ -1,6 +1,7 @@
 import { connectLambda, getStore } from "@netlify/blobs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { VOTE_FINAL_SECONDS, resolveVoteIfEnded } from "./_vote.js";
+import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
 
 function json(statusCode, obj) {
   return {
@@ -52,6 +53,7 @@ export async function handler(event) {
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
+  if (isActiveRoomExpired(room)) return json(410, roomExpiredError());
 
   const players = Array.isArray(room.players) ? room.players : [];
   const me = players.find(p => p.playerId === playerId);
