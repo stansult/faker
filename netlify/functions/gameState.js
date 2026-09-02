@@ -60,8 +60,8 @@ export async function handler(event) {
     : (room.locked ? players.length : maxPlayers);
   const gamesTotal = Number.isInteger(room.gamesTotal) ? room.gamesTotal : null;
   const gamesPlayed = Number.isInteger(room.gamesPlayed) ? room.gamesPlayed : 0;
-  const matchEnded = !!room.matchEnded;
-  const matchEndReason = room.matchEndReason || null;
+  let matchEnded = !!room.matchEnded;
+  let matchEndReason = room.matchEndReason || null;
   const currentPlayers = players.length;
   const language = room.language === "ru" ? "ru" : "en";
 
@@ -74,6 +74,8 @@ export async function handler(event) {
     const resolved = resolveVoteIfEnded(room, nowIso);
     if (resolved) {
       await store.setJSON(roomCode, room);
+      matchEnded = !!room.matchEnded;
+      matchEndReason = room.matchEndReason || null;
     }
   }
 
