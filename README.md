@@ -253,7 +253,7 @@ Lightweight syntax checks:
 
 ```bash
 node --check app.js
-for f in netlify/functions/*.js scripts/*.mjs; do node --check "$f"; done
+for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do node --check "$f"; done
 ```
 
 Run the local API smoke test:
@@ -262,7 +262,7 @@ Run the local API smoke test:
 npm run test:api
 ```
 
-`test:api` starts `netlify dev --offline` on localhost-only test ports, creates a short one-game room, joins three players, submits words, starts the game, plays one round, votes, resolves the match, and checks result viewing by room code.
+`test:api` starts `netlify dev --offline` on localhost-only test ports. It covers room validation, join/rejoin and roster locking, turn and clue rules, voting through match completion, ended-room mutation rejection, result viewing by room code, and an HTTP-level expired-room check.
 
 The smoke test refuses non-local API hosts unless `ALLOW_NON_LOCAL_TEST_API=1` is set.
 
