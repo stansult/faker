@@ -1,4 +1,8 @@
 #!/bin/sh
 set -e
 sh ./scripts/update_build.sh
-git add build.txt
+node --check app.js
+for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do
+  node --check "$f"
+done
+npm test

@@ -194,7 +194,14 @@ The hook runs:
 
 ```bash
 sh ./scripts/update_build.sh
+node --check app.js
+for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do node --check "$f"; done
+npm test
 ```
+
+The build update script stages generated changes to `build.txt` and, when frontend
+assets changed, the cache-buster updates in `index.html`. API smoke tests remain a
+separate explicit command for now.
 
 The repo is configured with:
 
