@@ -200,8 +200,16 @@ npm test
 ```
 
 The build update script stages generated changes to `build.txt` and, when frontend
-assets changed, the cache-buster updates in `index.html`. API smoke tests remain a
-separate explicit command for now.
+assets changed, the cache-buster updates in `index.html`.
+
+The pre-push hook runs the local API regression suite:
+
+```bash
+npm run test:api
+```
+
+This starts `netlify dev --offline` on localhost and requires local `netlify` and
+`python3` commands. It does not call the deployed site or other external APIs.
 
 The repo is configured with:
 
