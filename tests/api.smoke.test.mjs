@@ -9,6 +9,11 @@ const PLAYERS = [
   { playerId: "test-player-b", name: "Bob", move: "echo" },
   { playerId: "test-player-c", name: "Carol", move: "foxtrot" }
 ];
+const SAFE_CLUES = new Map([
+  ["test-player-a", "amber"],
+  ["test-player-b", "birch"],
+  ["test-player-c", "cedar"]
+]);
 
 async function post(baseUrl, functionName, payload) {
   return postFunction(baseUrl, functionName, payload);
@@ -194,15 +199,35 @@ test("local API enforces turn, duplicate clue, and secret-word rules", async t =
   while (true) {
     const state = await getState(server.baseUrl, immediate.roomCode);
     const next = playerForNumber(state.game.nextPlayerNumber);
+    assert.ok(next, `expected immediate-win player ${state.game.nextPlayerNumber}`);
+    assert.equal(
+      state.game.moves.some(move => move.word === immediate.secretWord),
+      false,
+      `secret word was already recorded: ${JSON.stringify(state.game.moves)}`
+    );
     const word = next.playerId === immediate.faker.playerId
       ? immediate.secretWord
-      : `safe${next.playerNumber}`;
+      : SAFE_CLUES.get(next.playerId);
+    assert.ok(word, `expected a clue for ${next.playerId}`);
+    if (next.playerId !== immediate.faker.playerId) {
+      assert.notEqual(word, immediate.secretWord, "safe clue must differ from the secret word");
+    }
     const move = await post(server.baseUrl, "submitMove", {
       roomCode: immediate.roomCode,
       playerId: next.playerId,
       word
     });
-    assertOk(assert, move, `immediate-win move ${next.name}`);
+    assert.equal(
+      move.status,
+      200,
+      `immediate-win move ${next.name} failed: ${JSON.stringify({
+        response: move.data,
+        fakerPlayerId: immediate.faker.playerId,
+        secretWord: immediate.secretWord,
+        nextPlayerNumber: state.game.nextPlayerNumber,
+        moves: state.game.moves
+      })}`
+    );
     if (next.playerId === immediate.faker.playerId) {
       assert.equal(move.data.ended, true);
       assert.equal(move.data.winner, "faker");
