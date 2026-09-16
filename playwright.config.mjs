@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const remoteBaseURL = process.env.FAKER_UI_BASE_URL || null;
+if (remoteBaseURL && process.env.ALLOW_NON_LOCAL_TEST_UI !== "1") {
+  throw new Error("Set ALLOW_NON_LOCAL_TEST_UI=1 to run UI tests against a non-local target");
+}
+
 export default defineConfig({
   testDir: "./tests/ui",
   fullyParallel: false,
@@ -10,7 +15,7 @@ export default defineConfig({
   },
   reporter: "list",
   use: {
-    baseURL: "http://localhost:4173",
+    baseURL: remoteBaseURL || "http://localhost:4173",
     screenshot: "only-on-failure",
     trace: "retain-on-failure"
   },
@@ -25,7 +30,7 @@ export default defineConfig({
       use: devices["Pixel 7"]
     }
   ],
-  webServer: {
+  webServer: remoteBaseURL ? undefined : {
     command: "node tests/helpers/uiServer.mjs",
     url: "http://localhost:4173",
     reuseExistingServer: false,

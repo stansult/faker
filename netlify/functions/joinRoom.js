@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import validationConstants from "../../shared/validationConstants.cjs";
 import { nameTooLongError } from "./validationErrors.js";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
@@ -81,10 +81,9 @@ export async function handler(event) {
   }
   if (!requestedPlayerId) return json(400, { error: "playerId is required" });
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
-  // Read with retry (eventual consistency)
+  // Retain retries for the local sandbox; deployed reads use strong consistency.
   let room = null;
   let delay = ROOM_READ_RETRY_START_DELAY_MS;
 
@@ -163,7 +162,7 @@ export async function handler(event) {
 
   await store.setJSON(roomCode, room);
 
-  // Verify our player is actually present (defends against stale reads / lost updates)
+  // Verify our player is actually present (defends against overlapping updates).
   let vMe = null;
   for (let i = 0; i < VISIBILITY_VERIFY_MAX_ATTEMPTS; i++) {
     const verify = await store.get(roomCode, { type: "json" });

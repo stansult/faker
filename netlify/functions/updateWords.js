@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import validationConstants from "../../shared/validationConstants.cjs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { wordTooLongError } from "./validationErrors.js";
@@ -89,8 +89,7 @@ export async function handler(event) {
   if (!playerId) return json(400, { error: "playerId is required" });
   if (!wordsRaw) return json(400, { error: "words must be an array" });
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });

@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { resolveVoteIfEnded, ensureScores } from "./_vote.js";
 import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
@@ -46,8 +46,7 @@ export async function handler(event) {
     return json(400, roomCodeError());
   }
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });

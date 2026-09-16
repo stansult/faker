@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import { ensureScores, finalizeGameEnd, initVotePhase, VOTE_TOTAL_SECONDS } from "./_vote.js";
 import validationConstants from "../../shared/validationConstants.cjs";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
@@ -103,12 +103,11 @@ export async function handler(event) {
     return json(400, wordTooLongError());
   }
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
   const moveId = makeId(MOVE_ID_LENGTH);
 
-  // Merge-safe update with verification (helps with eventual consistency / concurrent writes)
+  // Merge-safe update with verification (helps with local consistency and concurrent writes).
   let delay = RETRY_START_DELAY_MS;
 
   for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
@@ -272,7 +271,7 @@ export async function handler(event) {
     room.updatedAt = now;
     await store.setJSON(roomCode, room);
 
-    // Verify the move exists in stored state (stale reads happen)
+    // Verify the move exists in stored state before reporting success.
     let verified = false;
     let ended = false;
     let endReason = null;

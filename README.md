@@ -31,9 +31,13 @@ Backend:
 - `shared/validationConstants.cjs` is the source for shared validation and timing constants. It is CommonJS because Netlify bundling previously had issues requiring a shared ESM constants file.
 - `netlify/functions/roomExpiry.js` enforces active-room expiry.
 - `netlify/functions/_vote.js` contains shared voting helpers and voting timer configuration.
+- `netlify/functions/_roomStore.js` centralizes room-store access: Netlify Dev uses its local
+  sandbox, while deployed Functions use Netlify's strongly consistent API path.
 
 Storage:
 - Netlify Blobs store room records in `faker-rooms`.
+- Deployed room reads use strong consistency because each player action depends on the
+  immediately preceding write. Local development retains Netlify's sandboxed store.
 - Room writes update `updatedAt`; polling/status reads do not.
 - Expiry is an access rule, not physical deletion. Cleanup can be added separately later.
 

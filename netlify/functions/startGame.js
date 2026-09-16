@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import { isValidRoomCode, roomCodeError } from "./roomCode.js";
 import { initVotePhase, ensureScores } from "./_vote.js";
 import { isActiveRoomExpired, roomExpiredError } from "./roomExpiry.js";
@@ -91,11 +91,10 @@ export async function handler(event) {
   }
   if (!playerId) return json(400, { error: "playerId is required" });
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
   // Only this endpoint starts the game.
-  // Small retry loop because room visibility can lag (eventual consistency).
+  // Retain retries for the local sandbox; deployed reads use strong consistency.
   let delay = RETRY_START_DELAY_MS;
 
   for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
@@ -242,7 +241,7 @@ export async function handler(event) {
 
     await store.setJSON(roomCode, room);
 
-    // Verify visibility (eventual consistency)
+    // Verify the stored transition and guard against overlapping updates.
     let verified = false;
     for (let v = 0; v < VERIFY_MAX_ATTEMPTS; v++) {
       const verify = await store.get(roomCode, { type: "json" });

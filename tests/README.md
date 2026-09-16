@@ -7,7 +7,7 @@ site or other external APIs.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests plus 4 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | Room creation through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -87,6 +87,9 @@ Pre-push runs `npm run test:api`. The Playwright suite remains an explicit comma
 
 - `run.mjs` and `helpers/testHarness.mjs` provide the lightweight logic/API runner.
 - `api.smoke.test.mjs` contains the local HTTP workflow tests.
+- `api.remote.test.mjs` contains the explicitly enabled deployed workflow test.
+- `blobConsistency.test.mjs` verifies local/deployed adapter selection, fail-closed credential
+  handling, and adoption by every room Function.
 - `helpers/netlifyDev.mjs` manages isolated offline Netlify processes.
 - `helpers/uiServer.mjs` adapts that server lifecycle for Playwright.
 - `ui/` contains browser tests configured by `../playwright.config.mjs`.
@@ -94,3 +97,25 @@ Pre-push runs `npm run test:api`. The Playwright suite remains an explicit comma
 The API client rejects non-local hosts by default. Production verification should
 use a separately designed, explicitly approved smoke test rather than repointing
 these state-mutating workflows.
+
+## Approved remote validation
+
+Migration and release validation can target an explicitly approved HTTPS deploy.
+These commands mutate the target by creating test rooms, so neither is part of the
+default test commands:
+
+```bash
+ALLOW_NON_LOCAL_TEST_API=1 \
+FAKER_TEST_BASE_URL=https://approved-deploy.example \
+npm run test:api:remote
+
+ALLOW_NON_LOCAL_TEST_UI=1 \
+FAKER_UI_BASE_URL=https://approved-deploy.example \
+npm run test:ui
+```
+
+The remote API smoke test validates static delivery, input validation, room setup,
+Blob-backed state, role assignment, turn progression, immediate match resolution,
+result reads by room code, and ended-room mutation rejection. Timing-dependent
+expiration and voting-resolution coverage remains in the isolated local suite,
+where each test can safely use its own clock-related environment overrides.

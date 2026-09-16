@@ -1,4 +1,4 @@
-import { connectLambda, getStore } from "@netlify/blobs";
+import { getRoomStore } from "./_roomStore.js";
 import validationConstants from "../../shared/validationConstants.cjs";
 
 const { ROOM_CODE_LENGTH } = validationConstants;
@@ -131,8 +131,7 @@ export async function handler(event) {
     return json(400, { error: "Failed to compute wordsPerPlayer" });
   }
 
-  connectLambda(event);
-  const store = getStore("faker-rooms");
+  const store = getRoomStore(event);
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const roomCode = makeRoomCode(ROOM_CODE_LENGTH);
