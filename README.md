@@ -195,7 +195,8 @@ The hook runs:
 ```bash
 sh ./scripts/update_build.sh
 node --check app.js
-for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do node --check "$f"; done
+node --check playwright.config.mjs
+for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs; do node --check "$f"; done
 npm test
 ```
 
@@ -280,6 +281,17 @@ npm run test:api
 `test:api` starts `netlify dev --offline` on localhost-only test ports. It covers room validation, join/rejoin and roster locking, turn and clue rules, voting through match completion, ended-room mutation rejection, result viewing by room code, and an HTTP-level expired-room check.
 
 The smoke test refuses non-local API hosts unless `ALLOW_NON_LOCAL_TEST_API=1` is set.
+
+Install Chromium once and run the browser UI tests:
+
+```bash
+npx playwright install chromium
+npm run test:ui
+```
+
+`test:ui` starts the same isolated local Netlify environment and uses Playwright
+with Chromium. The initial smoke test creates a room through the real browser UI
+and verifies that the host reaches the room lobby. It does not call production.
 
 The test runner is dependency-free and lives in `tests/run.mjs`.
 

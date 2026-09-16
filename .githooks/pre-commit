@@ -2,7 +2,8 @@
 set -e
 sh ./scripts/update_build.sh
 node --check app.js
-for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do
+node --check playwright.config.mjs
+for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs; do
   node --check "$f"
 done
 npm test

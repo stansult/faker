@@ -5,3 +5,5 @@ deno.lock
 screenshots/
 notes/
 itch/
+playwright-report/
+test-results/
