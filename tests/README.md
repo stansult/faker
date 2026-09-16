@@ -1,19 +1,88 @@
 # Testing
 
-Faker has three local test layers. None of the standard commands call the deployed
-site or other external APIs.
+Faker has three primary local test commands. None of them call the deployed site
+or other external APIs. Individual test types within those commands are described
+below.
 
-## Test suites
+## Primary test commands
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | Room creation through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | Room creation and API-prepared multiplayer game start through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 15–30 seconds,
 including one shared Netlify startup.
+
+## How each test type works
+
+### Pure game-logic tests
+
+`roomCode.test.mjs`, `roomExpiry.test.mjs`, and `vote.test.mjs` call exported
+helpers directly with Node.js strict assertions. The dependency-free `run.mjs`
+loader imports each requested file, executes its registered tests sequentially,
+and runs per-test cleanup callbacks. These tests need no browser, server, Blob
+store, or network access and run through `npm run test:logic`.
+
+### Room-store adapter contract tests
+
+`blobConsistency.test.mjs` exercises the room-store adapter with injected fake
+Netlify dependencies. It verifies local sandbox selection, strongly consistent
+deployed access, and fail-closed credential handling. It also scans every room
+Function to ensure all storage access goes through the central adapter. These
+tests use the same lightweight runner and are included in `npm run test:logic`.
+
+### Deployment-safety tests
+
+`scripts/deployment-safety.test.cjs` uses Node.js's built-in `node:test` runner
+and a fake GitHub API client. It verifies that only the current tested `main` tip
+can deploy, lookup failures stop deployment, and the workflow is bound to the
+environment that owns the Netlify secrets. Run them with
+`npm run test:deployment`; `npm test` combines them with the logic tests.
+
+### Local API integration tests
+
+`api.smoke.test.mjs` sends real HTTP requests through local Netlify Functions and
+the local Blob sandbox. For each workflow, `helpers/netlifyDev.mjs` creates an
+isolated temporary project, reserves ports, starts `netlify dev --offline`, and
+removes the project after the test. The workflows cover validation, room
+lifecycle, gameplay rules, completion, and expiration through `npm run test:api`.
+
+Playwright's API client is intentionally not used for these API-only workflows.
+They do not need browser state, cookies, or coordination with a UI action, so
+running them through Playwright would add runner coupling without increasing the
+behavior covered. The direct Node.js HTTP client keeps this suite independent of
+browser installation and focused on Functions, Blob persistence, and response
+contracts. Playwright API requests are reserved for hybrid tests, where they make
+otherwise expensive browser setup faster while the user action remains in the UI.
+
+### Browser UI tests
+
+Playwright launches Chromium against the real app served by one shared local
+Netlify process from `helpers/uiServer.mjs`. Tests run serially so they can share
+that server without sharing browser state. Every scenario runs in Desktop Chrome;
+tests tagged `@mobile` also run with the Pixel 7 profile. Run the suite with
+`npm run test:ui`.
+
+### Hybrid browser/API tests
+
+Hybrid tests use Playwright's `request` fixture against the same base URL as the
+browser. API calls prepare supporting multiplayer state quickly, the browser
+performs the user action under test, and a final API read verifies the persisted
+backend transition. `start-game.spec.mjs` uses this pattern to create the host in
+the UI, prepare two supporting players and all word submissions through APIs,
+start the game in the UI, and confirm the resulting `gameState`. This scenario is
+desktop-only because it tests workflow integration rather than responsive layout.
+
+### Opt-in deployed smoke tests
+
+`api.remote.test.mjs` can exercise an explicitly approved HTTPS deployment, and
+the Playwright suite can be pointed at the same kind of target. Both paths require
+an allow flag as well as a target URL, mutate the target by creating rooms, and
+are never used by the default local commands. The exact commands and safety
+boundary are documented under [Approved remote validation](#approved-remote-validation).
 
 ## Browser coverage strategy
 
@@ -35,6 +104,17 @@ space can materially change the result.
 
 Add `{ tag: "@mobile" }` to a Playwright test when it belongs in the mobile
 subset. Mobile runs are emulated Chromium tests, not physical-device tests.
+
+### Current browser coverage
+
+This table is an inventory of implemented, passing browser tests. Planned
+coverage belongs in the issue tracker, not here. Update the table whenever a
+browser scenario is added, removed, or materially changed.
+
+| Scenario | Browser action | API role | Profiles |
+| --- | --- | --- | --- |
+| Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
+| Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop Chrome |
 
 ## Setup and commands
 
@@ -67,9 +147,10 @@ npm run check:syntax
 
 `.github/workflows/test.yml` runs syntax, logic, deployment-safety, API, and UI
 tests on pushes and pull requests to `main`, then verifies the allowlisted Netlify
-artifact can be built. A prepared deploy job remains local until the credential,
-draft-deploy, and Netlify ownership gates are approved. See the
-[deployment migration guide](../docs/deployment.md).
+artifact can be built. On eligible pushes to `main`, the deploy job runs only after
+the test job passes, publishes to the legacy-team Netlify project, and records the
+production deployment in GitHub. Pull requests never receive deployment secrets or
+deploy. See the [deployment guide](../docs/deployment.md).
 
 ## Git hooks
 
