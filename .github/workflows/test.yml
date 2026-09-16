@@ -41,6 +41,7 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    environment: netlify-production
     timeout-minutes: 15
     permissions:
       contents: read

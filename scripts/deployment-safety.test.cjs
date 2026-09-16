@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { test } = require("node:test");
 
 const {
@@ -24,6 +26,16 @@ function fixture(currentSha = "tested") {
 
 test("uses the production deployment environment", () => {
   assert.equal(environment, "netlify-production");
+
+  const workflow = fs.readFileSync(
+    path.join(__dirname, "..", ".github", "workflows", "test.yml"),
+    "utf8"
+  );
+  assert.match(
+    workflow,
+    /\n  deploy:\n[\s\S]*?\n    environment: netlify-production\n/,
+    "deploy job must bind the environment that owns the Netlify secrets"
+  );
 });
 
 test("allows the tested tip of main to deploy", async () => {
