@@ -121,13 +121,16 @@ browser scenario is added, removed, or materially changed.
 
 | Scenario | Browser action | API role | Profiles |
 | --- | --- | --- | --- |
-| Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
-| Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
-| Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop Chrome |
-| Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
-| Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
-| Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
-| Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop Chrome |
+| Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
+| Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop, Mobile |
+| Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop |
+| Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop, Mobile |
+| Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
+| Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
+| Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
+
+- **Desktop:** Playwright's Desktop Chrome profile.
+- **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.
 
 ## Setup and commands
 
