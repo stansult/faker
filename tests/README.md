@@ -10,7 +10,7 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | Room creation and API-prepared multiplayer game start through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | Room creation, API-prepared joining, and multiplayer game start through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 15–30 seconds,
@@ -75,6 +75,9 @@ backend transition. `start-game.spec.mjs` uses this pattern to create the host i
 the UI, prepare two supporting players and all word submissions through APIs,
 start the game in the UI, and confirm the resulting `gameState`. This scenario is
 desktop-only because it tests workflow integration rather than responsive layout.
+`join-room.spec.mjs` reverses the boundary: APIs create the room and two supporting
+players, then the desktop/mobile UI joins the third player and an API read confirms
+that the browser action was persisted.
 
 ### Opt-in deployed smoke tests
 
@@ -114,6 +117,7 @@ browser scenario is added, removed, or materially changed.
 | Scenario | Browser action | API role | Profiles |
 | --- | --- | --- | --- |
 | Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
+| Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
 | Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop Chrome |
 
 ## Setup and commands

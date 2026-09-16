@@ -17,5 +17,8 @@ test("host creates a room and reaches the lobby", { tag: "@mobile" }, async ({ p
   await expect(page.locator("#roomCodeDisplay")).toHaveText(/^[0-9A-Z]{6}$/);
   await expect(page.locator("#playerBadge")).toContainText("Alice");
   await expect(page.locator("#playersList")).toContainText("Alice");
+  const aliceRow = page.locator("#playersList tbody tr").filter({ hasText: "Alice" });
+  await expect(aliceRow).toContainText("← you");
+  await expect(page.locator("#playersList tbody tr.is-me-row")).toHaveCount(1);
   await expect(page.locator("#roomMeta")).toContainText("Games:");
 });
