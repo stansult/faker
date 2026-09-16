@@ -209,6 +209,11 @@ www CNAME   faker-game.netlify.app   DNS only
 
 Keep these DNS records unproxied unless Cloudflare proxying is intentionally configured and tested with Netlify SSL.
 
+The repository is preparing a test-gated GitHub Actions deployment. The current
+workflow is test-only; Netlify's existing deployment remains authoritative until
+the documented migration gates are explicitly approved and completed. See the
+[deployment guide](docs/deployment.md).
+
 ## Itch.io Build
 
 Generate a static itch.io build that points to the production backend:
@@ -240,5 +245,6 @@ Gitignored:
 - `screenshots/`
 - `notes/`
 - `itch/`
+- `dist/`
 
 `notes/` contains local handoff/testing notes and is not intended for public repo documentation.

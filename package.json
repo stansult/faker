@@ -4,6 +4,8 @@
   "scripts": {
     "build:constants": "node scripts/build_constants.mjs",
     "build:itch": "node scripts/build_itch.mjs",
+    "build:netlify": "npm run build:constants && node scripts/build_netlify.mjs",
+    "check:syntax": "node --check app.js && node --check playwright.config.mjs && for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs; do node --check \"$f\"; done",
     "test": "node tests/run.mjs tests/roomCode.test.mjs tests/roomExpiry.test.mjs tests/vote.test.mjs",
     "test:api": "node tests/run.mjs tests/*.smoke.test.mjs",
     "test:ui": "playwright test",

@@ -11,8 +11,9 @@ site or other external APIs.
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | Room creation through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
-The API suite takes about 30 seconds. The two-project UI suite takes about 15
-seconds, including one shared Netlify startup.
+Local runtime varies with Netlify cold startup. The API suite commonly takes
+about 30–90 seconds; the two-project UI suite commonly takes about 15–30 seconds,
+including one shared Netlify startup.
 
 ## Browser coverage strategy
 
@@ -59,10 +60,15 @@ Netlify servers, and clean them up after each suite.
 Run syntax checks with:
 
 ```bash
-node --check app.js
-node --check playwright.config.mjs
-for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs; do node --check "$f"; done
+npm run check:syntax
 ```
+
+## Hosted checks
+
+`.github/workflows/test.yml` runs syntax, logic, API, and UI tests on pushes and
+pull requests to `main`, then verifies the allowlisted Netlify artifact can be
+built. The workflow is currently test-only and has no production credentials.
+See the [deployment migration guide](../docs/deployment.md).
 
 ## Git hooks
 
