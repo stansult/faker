@@ -10,11 +10,20 @@ export default defineConfig({
   },
   reporter: "list",
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: "http://localhost:4173",
     screenshot: "only-on-failure",
     trace: "retain-on-failure"
   },
+  projects: [
+    {
+      name: "desktop-chrome",
+      use: devices["Desktop Chrome"]
+    },
+    {
+      name: "mobile-chrome",
+      use: devices["Pixel 7"]
+    }
+  ],
   webServer: {
     command: "node tests/helpers/uiServer.mjs",
     url: "http://localhost:4173",

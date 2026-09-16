@@ -291,7 +291,8 @@ npm run test:ui
 
 `test:ui` starts the same isolated local Netlify environment and uses Playwright
 with Chromium. The initial smoke test creates a room through the real browser UI
-and verifies that the host reaches the room lobby. It does not call production.
+and verifies that the host reaches the room lobby in both Desktop Chrome and an
+emulated Pixel 7 Mobile Chrome profile. It does not call production.
 
 The test runner is dependency-free and lives in `tests/run.mjs`.
 
