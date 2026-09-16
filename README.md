@@ -184,39 +184,7 @@ v1.0 • build <timestamp> <short-sha>
 
 `scripts/update_build.sh` updates `build.txt` and refreshes cache-buster query strings in `index.html` for changed frontend assets.
 
-This repo uses a pre-commit hook:
-
-```text
-.githooks/pre-commit
-```
-
-The hook runs:
-
-```bash
-sh ./scripts/update_build.sh
-node --check app.js
-node --check playwright.config.mjs
-for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs; do node --check "$f"; done
-npm test
-```
-
-The build update script stages generated changes to `build.txt` and, when frontend
-assets changed, the cache-buster updates in `index.html`.
-
-The pre-push hook runs the local API regression suite:
-
-```bash
-npm run test:api
-```
-
-This starts `netlify dev --offline` on localhost and requires local `netlify` and
-`python3` commands. It does not call the deployed site or other external APIs.
-
-The repo is configured with:
-
-```bash
-git config core.hooksPath .githooks
-```
+The pre-commit hook runs this update and stages its generated changes.
 
 ## Production Deployment
 
@@ -257,44 +225,11 @@ https://play-faker.us/.netlify/functions/
 
 `itch/` is generated output and is gitignored.
 
-## Validation
+## Testing
 
-Run the fast regression tests:
-
-```bash
-npm test
-```
-
-Lightweight syntax checks:
-
-```bash
-node --check app.js
-for f in netlify/functions/*.js scripts/*.mjs tests/*.mjs tests/helpers/*.mjs; do node --check "$f"; done
-```
-
-Run the local API smoke test:
-
-```bash
-npm run test:api
-```
-
-`test:api` starts `netlify dev --offline` on localhost-only test ports. It covers room validation, join/rejoin and roster locking, turn and clue rules, voting through match completion, ended-room mutation rejection, result viewing by room code, and an HTTP-level expired-room check.
-
-The smoke test refuses non-local API hosts unless `ALLOW_NON_LOCAL_TEST_API=1` is set.
-
-Install Chromium once and run the browser UI tests:
-
-```bash
-npx playwright install chromium
-npm run test:ui
-```
-
-`test:ui` starts the same isolated local Netlify environment and uses Playwright
-with Chromium. The initial smoke test creates a room through the real browser UI
-and verifies that the host reaches the room lobby in both Desktop Chrome and an
-emulated Pixel 7 Mobile Chrome profile. It does not call production.
-
-The test runner is dependency-free and lives in `tests/run.mjs`.
+The project has fast logic tests, local offline API workflows, and Playwright UI
+coverage for desktop and mobile layouts. Local Git hooks run the fast suite before
+commits and API workflows before pushes. See the [testing guide](tests/README.md).
 
 ## Generated / Local Files
 
