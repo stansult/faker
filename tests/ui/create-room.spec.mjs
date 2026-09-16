@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("host creates a room and reaches the lobby", async ({ page }) => {
+test("host creates a room and reaches the lobby", { tag: "@mobile" }, async ({ page }) => {
   await page.goto("/");
 
   await expect(page).toHaveTitle("Faker — Lobby");

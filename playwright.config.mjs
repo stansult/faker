@@ -21,6 +21,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chrome",
+      grep: /@mobile/,
       use: devices["Pixel 7"]
     }
   ],

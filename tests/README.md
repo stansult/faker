@@ -14,6 +14,27 @@ site or other external APIs.
 The API suite takes about 30 seconds. The two-project UI suite takes about 15
 seconds, including one shared Netlify startup.
 
+## Browser coverage strategy
+
+Every UI test runs in Desktop Chrome. Tests tagged `@mobile` also run in the
+emulated Pixel 7 Mobile Chrome project. This is a deliberate balance: browser
+workflows receive a consistent desktop baseline, while mobile execution is
+reserved for behavior where viewport, touch, responsive layout, or constrained
+space can materially change the result.
+
+| Scenario | Desktop | Mobile |
+| --- | --- | --- |
+| Create or join a room | Yes | Yes |
+| Submit a move | Yes | Yes |
+| Voting controls and layout | Yes | Yes |
+| Overlays, tables, and overflow-sensitive UI | Yes | Yes |
+| Multiplayer setup performed mainly through APIs | Yes | No |
+| Backend persistence verification | Yes | No |
+| Expiration or API error response logic | Yes | Only when presentation differs |
+
+Add `{ tag: "@mobile" }` to a Playwright test when it belongs in the mobile
+subset. Mobile runs are emulated Chromium tests, not physical-device tests.
+
 ## Setup and commands
 
 Install project dependencies and the Playwright Chromium binary:
