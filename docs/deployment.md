@@ -1,10 +1,9 @@
 # Test-Gated Netlify Deployment
 
-Faker is migrating from Netlify's independent Git deployment to a GitHub Actions
-test gate. The repository contains the tested workflow, production artifact
-builder, and a prepared deploy job. GitHub Actions does not yet have deployment
-credentials, and the deploy job must not be pushed until the account migration
-gates below are approved and coordinated.
+Faker deploys through a GitHub Actions test gate to the legacy-team Netlify
+project `faker-game-legacy` (`16b3daa3-6675-46b3-9f49-0afe6373c1b8`). The
+previous credit-team project remains available for rollback with its automatic
+Git builds stopped.
 
 ## Intended flow
 
@@ -48,26 +47,33 @@ until the replacement path has been verified.
    app, complete remote API workflow, and desktop/mobile UI. Completed with deploy
    `6aaa6e53b83fb8e9c6d502de` on September 16, 2026.
 4. Add `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` as GitHub environment secrets only
-   after reviewing the token's account authority and storage boundary.
+   after reviewing the token's account authority and storage boundary. Completed
+   using the protected `netlify-production` environment.
 5. Stop the credit-based project's independent Git builds while leaving its current
-   production deploy live for rollback.
-6. Push the prepared deploy job to `main`.
+   production deploy live for rollback. Completed before the deployment workflow
+   was pushed.
+6. Push the prepared deploy job to `main`. Completed in commits `7ed7f99` and
+   `8420934`.
 7. Run the first test-gated production deployment to the legacy project and verify
-   its Netlify URL.
+   its Netlify URL. Completed by Actions run `35086767503` and production deploy
+   `6aaa740b2829c8ff19fd2efd` on September 16, 2026.
 8. Move `play-faker.us` only after the legacy production deploy passes verification,
    then verify the public domain, core API flow, and GitHub deployment record.
+   Completed on September 16, 2026; the remote API workflow and desktop/mobile
+   Playwright checks passed through the public domain, and TLS was issued for the
+   apex and `www` names.
 
 Each account or production change requires explicit approval immediately before
 it is performed.
 
 ## Recovery
 
-Until migration is complete, Netlify's existing Git integration remains the
-production owner. After migration, a failed test or deploy must leave the last
-successful production deployment live. Recovery options must include rerunning a
-failed workflow after correction and restoring a previously verified Netlify
-deployment. Manual production uploads should not be mixed with workflow-owned
-deployment records except during an explicitly documented recovery.
+GitHub Actions is the production deployment owner. A failed test or deploy must
+leave the last successful production deployment live. Recovery options include
+rerunning a failed workflow after correction, restoring a previously verified
+legacy-project deploy, or explicitly moving the public domain back to the retained
+credit-team project. Manual production uploads should not be mixed with
+workflow-owned deployment records except during an explicitly documented recovery.
 
 The deploy job uses `NETLIFY_AUTH_TOKEN` only in secret validation and the publish
 step. It uses `NETLIFY_SITE_ID` only to select the existing site. Workflow source
