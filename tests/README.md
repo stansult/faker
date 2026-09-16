@@ -10,10 +10,10 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | Room creation, API-prepared joining, and multiplayer game start through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | Room setup, word submission, multiplayer game start, clue submission, and voting through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
-about 30–90 seconds; the two-project UI suite commonly takes about 15–30 seconds,
+about 30–90 seconds; the two-project UI suite commonly takes about 50–70 seconds,
 including one shared Netlify startup.
 
 ## How each test type works
@@ -71,13 +71,18 @@ tests tagged `@mobile` also run with the Pixel 7 profile. Run the suite with
 Hybrid tests use Playwright's `request` fixture against the same base URL as the
 browser. API calls prepare supporting multiplayer state quickly, the browser
 performs the user action under test, and a final API read verifies the persisted
-backend transition. `start-game.spec.mjs` uses this pattern to create the host in
-the UI, prepare two supporting players and all word submissions through APIs,
-start the game in the UI, and confirm the resulting `gameState`. This scenario is
-desktop-only because it tests workflow integration rather than responsive layout.
+backend transition. Shared setup in `helpers/playwrightGame.mjs` creates and starts
+a three-player game through public Functions, discovers randomized roles and turn
+order, and restores one prepared player's normal browser identity. It never writes
+directly to Blob storage. `start-game.spec.mjs` uses the hybrid pattern to create
+the host in the UI, prepare two supporting players and all word submissions through
+APIs, start the game in the UI, and confirm the resulting `gameState`. This scenario
+is desktop-only because it tests workflow integration rather than responsive layout.
 `join-room.spec.mjs` reverses the boundary: APIs create the room and two supporting
 players, then the desktop/mobile UI joins the third player and an API read confirms
-that the browser action was persisted.
+that the browser action was persisted. `gameplay.spec.mjs` prepares an active game,
+then submits a clue or casts a vote in the desktop/mobile UI and verifies the
+persisted action through `gameState`.
 
 ### Opt-in deployed smoke tests
 
@@ -119,6 +124,10 @@ browser scenario is added, removed, or materially changed.
 | Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
 | Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
 | Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop Chrome |
+| Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
+| Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
+| Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop Chrome and emulated Pixel 7 Mobile Chrome |
+| Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop Chrome |
 
 ## Setup and commands
 
@@ -177,6 +186,7 @@ Pre-push runs `npm run test:api`. The Playwright suite remains an explicit comma
   handling, and adoption by every room Function.
 - `helpers/netlifyDev.mjs` manages isolated offline Netlify processes.
 - `helpers/uiServer.mjs` adapts that server lifecycle for Playwright.
+- `helpers/playwrightGame.mjs` prepares reusable multiplayer game state for hybrid tests.
 - `ui/` contains browser tests configured by `../playwright.config.mjs`.
 
 The API client rejects non-local hosts by default. Production verification should

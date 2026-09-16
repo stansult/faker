@@ -967,6 +967,7 @@ let lastJoinError = null;
 let lobbyMode = null;
 let logBuffer = [];
 let voteTimerInterval = null;
+let voteEndRefreshKey = null;
 let createInFlight = false;
 let createState = { roomCode: null, retries: 0 };
 let createAbort = false;
@@ -1906,6 +1907,7 @@ function updateVoteTimer(votePhase) {
   }
 
   if (!votePhase || (!votePhase.active && !votePhase.startedAt)) {
+    voteEndRefreshKey = null;
     timer.textContent = formatSeconds(VOTE_TOTAL_SECONDS);
     timer.classList.remove("timer", "urgent");
     return;
@@ -1914,6 +1916,7 @@ function updateVoteTimer(votePhase) {
   timer.classList.add("timer");
 
   if (!votePhase.active && votePhase.startedAt) {
+    voteEndRefreshKey = null;
     timer.textContent = formatSeconds(0);
     timer.classList.remove("urgent");
     return;
@@ -1925,6 +1928,8 @@ function updateVoteTimer(votePhase) {
     timer.classList.remove("urgent");
     return;
   }
+
+  const refreshKey = `${votePhase.startedAt || ""}:${votePhase.endsAt || ""}`;
 
   const tick = () => {
     const remainingMs = endsAt - Date.now();
@@ -1938,6 +1943,11 @@ function updateVoteTimer(votePhase) {
     if (remainingSec <= 0 && voteTimerInterval) {
       clearInterval(voteTimerInterval);
       voteTimerInterval = null;
+      if (voteEndRefreshKey !== refreshKey) {
+        voteEndRefreshKey = refreshKey;
+        // Resolve promptly at the displayed deadline; normal polling remains the fallback.
+        void fetchGameState({ silent: true });
+      }
     }
   };
 

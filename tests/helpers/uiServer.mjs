@@ -6,7 +6,7 @@ const server = await startNetlifyDev({
   functionsPort: 4175,
   env: {
     ROOM_ACTIVE_TTL_HOURS: "1",
-    VOTE_TOTAL_SECONDS: "1",
+    VOTE_TOTAL_SECONDS: "10",
     VOTE_FINAL_SECONDS: "1"
   }
 });
