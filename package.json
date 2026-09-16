@@ -9,7 +9,7 @@
     "test": "npm run test:logic && npm run test:deployment",
     "test:api": "node tests/run.mjs tests/*.smoke.test.mjs",
     "test:api:remote": "node tests/run.mjs tests/api.remote.test.mjs",
-    "test:deployment": "node --test scripts/deployment-safety.test.cjs",
+    "test:deployment": "node --test scripts/*.test.cjs",
     "test:logic": "node tests/run.mjs tests/blobConsistency.test.mjs tests/roomCode.test.mjs tests/roomExpiry.test.mjs tests/vote.test.mjs",
     "test:ui": "playwright test",
     "dev": "VOTE_TOTAL_SECONDS=${VOTE_TOTAL_SECONDS:-300} VOTE_FINAL_SECONDS=${VOTE_FINAL_SECONDS:-10} npm run build:constants && netlify dev",

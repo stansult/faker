@@ -1,5 +1,14 @@
 #!/bin/sh
 set -e
+
+if git diff --cached --name-only --diff-filter=ACDMRTUXB --no-renames -z |
+  node scripts/change-scope.cjs
+then
+  echo "Markdown-only commit: skipping build metadata, syntax checks, and tests."
+  git diff --cached --check
+  exit 0
+fi
+
 sh ./scripts/update_build.sh
 npm run check:syntax
 npm test

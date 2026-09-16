@@ -238,7 +238,8 @@ https://play-faker.us/.netlify/functions/
 
 The project has fast logic tests, local offline API workflows, and Playwright UI
 coverage for desktop and mobile layouts. Local Git hooks run the fast suite before
-commits and API workflows before pushes. See the [testing guide](tests/README.md).
+commits and API workflows before pushes; Markdown-only changes use the documented
+lightweight exception. See the [testing guide](tests/README.md).
 
 ## Generated / Local Files
 

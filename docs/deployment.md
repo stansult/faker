@@ -7,12 +7,13 @@ Git builds stopped.
 
 ## Intended flow
 
-Pushes and pull requests to `main` run syntax checks, logic and deployment-safety
-tests, local API workflows, Playwright UI tests, and the production artifact
-build. Pull requests never deploy. On an eligible `main` run, the deploy job waits
-for every test, confirms the tested commit is still the branch tip, rebuilds the
-allowlisted artifact from that commit, publishes through the pinned Netlify CLI,
-and records the production deployment in GitHub.
+Non-documentation pushes and all pull requests to `main` run syntax checks, logic
+and deployment-safety tests, local API workflows, Playwright UI tests, and the
+production artifact build. Markdown-only pushes are ignored and do not deploy;
+mixed pushes always use the full gate. Pull requests never deploy. On an eligible
+`main` run, the deploy job waits for every test, confirms the tested commit is still
+the branch tip, rebuilds the allowlisted artifact from that commit, publishes
+through the pinned Netlify CLI, and records the production deployment in GitHub.
 
 The production artifact is built in `dist/netlify-deploy/`:
 

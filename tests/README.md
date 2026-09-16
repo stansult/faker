@@ -8,7 +8,7 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | Room setup, word submission, multiplayer game start, clue submission, and voting through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -33,6 +33,15 @@ Netlify dependencies. It verifies local sandbox selection, strongly consistent
 deployed access, and fail-closed credential handling. It also scans every room
 Function to ensure all storage access goes through the central adapter. These
 tests use the same lightweight runner and are included in `npm run test:logic`.
+
+### Change-scope tests
+
+`scripts/change-scope.test.cjs` verifies the conservative Markdown-only classifier,
+its NUL-delimited command-line interface, the hook configuration, and the hosted
+workflow contract. Temporary Git repositories execute both hooks to prove that
+documentation changes skip tests while mixed and multi-ref changes do not. These
+tests use Node.js's built-in `node:test` runner and run through
+`npm run test:deployment` as part of the fast tooling suite.
 
 ### Deployment-safety tests
 
@@ -163,10 +172,12 @@ npm run check:syntax
 
 `.github/workflows/test.yml` runs syntax, logic, deployment-safety, API, and UI
 tests on pushes and pull requests to `main`, then verifies the allowlisted Netlify
-artifact can be built. On eligible pushes to `main`, the deploy job runs only after
-the test job passes, publishes to the legacy-team Netlify project, and records the
-production deployment in GitHub. Pull requests never receive deployment secrets or
-deploy. See the [deployment guide](../docs/deployment.md).
+artifact can be built. Markdown-only pushes are ignored, so they neither run CI nor
+deploy. Mixed pushes always follow the normal workflow. On eligible pushes to
+`main`, the deploy job runs only after the test job passes, publishes to the
+legacy-team Netlify project, and records the production deployment in GitHub. Pull
+requests never receive deployment secrets or deploy. See the
+[deployment guide](../docs/deployment.md).
 
 ## Git hooks
 
@@ -176,9 +187,13 @@ Git uses the tracked hooks in `.githooks` through:
 git config core.hooksPath .githooks
 ```
 
-Pre-commit updates build metadata, runs syntax checks, and runs all logic and
-deployment-safety tests through `npm test`.
-Pre-push runs `npm run test:api`. The Playwright suite remains an explicit command.
+For Markdown-only changes, pre-commit runs `git diff --cached --check` and pre-push
+performs no tests. A change is Markdown-only only when the detected file list is
+non-empty and every path ends in `.md`; uncertainty and mixed changes fail closed
+to the normal test path. For all other changes, pre-commit updates build metadata,
+runs syntax checks, and runs all logic and deployment-safety tests through
+`npm test`; pre-push runs `npm run test:api`. The Playwright suite remains an
+explicit command.
 
 ## Structure
 
@@ -191,6 +206,7 @@ Pre-push runs `npm run test:api`. The Playwright suite remains an explicit comma
 - `helpers/uiServer.mjs` adapts that server lifecycle for Playwright.
 - `helpers/playwrightGame.mjs` prepares reusable multiplayer game state for hybrid tests.
 - `ui/` contains browser tests configured by `../playwright.config.mjs`.
+- `../scripts/change-scope.cjs` is the shared fail-closed classifier used by Git hooks.
 
 The API client rejects non-local hosts by default. Production verification should
 use a separately designed, explicitly approved smoke test rather than repointing
