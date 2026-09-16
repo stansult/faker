@@ -36,3 +36,94 @@ jobs:
         run: npm run test:ui
       - name: Build production artifact
         run: npm run build:netlify
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+    concurrency:
+      group: netlify-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Confirm tested commit is still current
+        id: current
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { deploymentReadiness } = require('./scripts/deployment-safety.cjs');
+            const result = await deploymentReadiness({ github, context });
+            core.setOutput('ready', String(result.ready));
+            core.info(result.reason);
+            await core.summary.addHeading('Production deployment').addRaw(result.reason).write();
+      - name: Validate Netlify secrets
+        if: steps.current.outputs.ready == 'true'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          test -n "$NETLIFY_AUTH_TOKEN" || { echo 'Missing NETLIFY_AUTH_TOKEN repository secret'; exit 1; }
+          test -n "$NETLIFY_SITE_ID" || { echo 'Missing NETLIFY_SITE_ID repository secret'; exit 1; }
+      - name: Install dependencies
+        if: steps.current.outputs.ready == 'true'
+        run: npm ci
+      - name: Install pinned Netlify CLI
+        if: steps.current.outputs.ready == 'true'
+        run: npm install --global netlify-cli@27.7.0
+      - name: Build production artifact
+        if: steps.current.outputs.ready == 'true'
+        run: npm run build:netlify
+      - name: Reconfirm commit before publishing
+        if: steps.current.outputs.ready == 'true'
+        id: publish_current
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { deploymentReadiness } = require('./scripts/deployment-safety.cjs');
+            const result = await deploymentReadiness({ github, context });
+            core.setOutput('ready', String(result.ready));
+            core.info(result.reason);
+      - name: Publish tested commit
+        if: steps.publish_current.outputs.ready == 'true'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: >-
+          netlify deploy
+          --dir=dist/netlify-deploy/site
+          --functions=dist/netlify-deploy/netlify/functions
+          --site="$NETLIFY_SITE_ID"
+          --prod
+          --no-build
+          --message="GitHub Actions $GITHUB_SHA"
+      - name: Record successful deployment
+        if: steps.publish_current.outputs.ready == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { environment } = require('./scripts/deployment-safety.cjs');
+            const { data } = await github.rest.repos.createDeployment({
+              ...context.repo,
+              ref: context.sha,
+              environment,
+              auto_merge: false,
+              required_contexts: [],
+              production_environment: true,
+              description: 'Faker published by test-gated workflow',
+            });
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: data.id,
+              state: 'success',
+              auto_inactive: false,
+              environment_url: 'https://play-faker.us',
+              log_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });

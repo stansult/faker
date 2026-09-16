@@ -7,7 +7,7 @@ site or other external APIs.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 room-code, expiration, and voting logic tests | Node.js, `node:assert`, dependency-free runner |
+| `npm test` | 10 game-logic tests plus 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | Room creation through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -65,10 +65,11 @@ npm run check:syntax
 
 ## Hosted checks
 
-`.github/workflows/test.yml` runs syntax, logic, API, and UI tests on pushes and
-pull requests to `main`, then verifies the allowlisted Netlify artifact can be
-built. The workflow is currently test-only and has no production credentials.
-See the [deployment migration guide](../docs/deployment.md).
+`.github/workflows/test.yml` runs syntax, logic, deployment-safety, API, and UI
+tests on pushes and pull requests to `main`, then verifies the allowlisted Netlify
+artifact can be built. A prepared deploy job remains local until the credential,
+draft-deploy, and Netlify ownership gates are approved. See the
+[deployment migration guide](../docs/deployment.md).
 
 ## Git hooks
 
@@ -78,7 +79,8 @@ Git uses the tracked hooks in `.githooks` through:
 git config core.hooksPath .githooks
 ```
 
-Pre-commit updates build metadata, runs syntax checks, and runs `npm test`.
+Pre-commit updates build metadata, runs syntax checks, and runs all logic and
+deployment-safety tests through `npm test`.
 Pre-push runs `npm run test:api`. The Playwright suite remains an explicit command.
 
 ## Structure
