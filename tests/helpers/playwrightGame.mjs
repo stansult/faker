@@ -27,6 +27,10 @@ export async function getGameState(request, roomCode, playerId) {
   return postFunction(request, "gameState", { roomCode, playerId });
 }
 
+export async function getRoomStatus(request, roomCode) {
+  return postFunction(request, "roomStatus", { roomCode });
+}
+
 export async function prepareStartedGame(request, overrides = {}) {
   const room = await postFunction(request, "createRoom", {
     playerCount: 3,
@@ -75,11 +79,51 @@ export async function prepareStartedGame(request, overrides = {}) {
     player.secretWord = role.secretWord;
   }
 
-  expect(players.filter(player => player.role === "faker")).toHaveLength(1);
-  return { roomCode: room.roomCode, players };
+  const faker = players.find(player => player.role === "faker");
+  const legit = players.filter(player => player.role === "player");
+  expect(faker).toBeTruthy();
+  expect(legit).toHaveLength(2);
+  expect(legit[0].secretWord).toBeTruthy();
+  return {
+    roomCode: room.roomCode,
+    players,
+    faker,
+    legit,
+    secretWord: legit[0].secretWord
+  };
 }
 
-export async function openGameAsPlayer(page, game, player) {
+export async function advanceToPlayer(request, game, target) {
+  for (let attempt = 0; attempt < game.players.length; attempt++) {
+    const state = await getGameState(request, game.roomCode, target.playerId);
+    const current = game.players.find(player =>
+      player.playerNumber === state.game.nextPlayerNumber
+    );
+    expect(current, `player #${state.game.nextPlayerNumber} should exist`).toBeTruthy();
+    if (current.playerId === target.playerId) return state;
+
+    await postFunction(request, "submitMove", {
+      roomCode: game.roomCode,
+      playerId: current.playerId,
+      word: current.clue
+    }, `submitMove ${current.name}`);
+  }
+  throw new Error(`Could not advance ${game.roomCode} to ${target.name}`);
+}
+
+export async function finishWithFakerSecret(request, game) {
+  await advanceToPlayer(request, game, game.faker);
+  const result = await postFunction(request, "submitMove", {
+    roomCode: game.roomCode,
+    playerId: game.faker.playerId,
+    word: game.secretWord
+  }, "submitMove faker secret word");
+  expect(result.ended).toBe(true);
+  expect(result.winner).toBe("faker");
+  return result;
+}
+
+export async function openRoomAsPlayer(page, game, player, expectedView = "#viewRoom") {
   await page.addInitScript(({ roomCode, savedPlayer }) => {
     const now = Date.now();
     localStorage.setItem(`faker:${roomCode}`, JSON.stringify({
@@ -96,8 +140,13 @@ export async function openGameAsPlayer(page, game, player) {
   await page.locator("#playerName").fill(player.name);
   await page.locator("#btnJoinRoom").click();
 
-  await expect(page.locator("#viewGame")).toBeVisible();
-  await expect(page.locator("#playerBadgeGame")).toHaveText(
+  await expect(page.locator(expectedView)).toBeVisible();
+  const badge = expectedView === "#viewGame" ? "#playerBadgeGame" : "#playerBadge";
+  await expect(page.locator(badge)).toHaveText(
     `Player #${player.playerNumber}: ${player.name}`
   );
+}
+
+export async function openGameAsPlayer(page, game, player) {
+  await openRoomAsPlayer(page, game, player, "#viewGame");
 }

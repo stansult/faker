@@ -10,10 +10,10 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | Room setup, word submission, multiplayer game start, clue submission, and voting through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | Room setup, gameplay, voting, and match results through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
-about 30–90 seconds; the two-project UI suite commonly takes about 50–70 seconds,
+about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
 including one shared Netlify startup.
 
 ## How each test type works
@@ -91,7 +91,9 @@ is desktop-only because it tests workflow integration rather than responsive lay
 players, then the desktop/mobile UI joins the third player and an API read confirms
 that the browser action was persisted. `gameplay.spec.mjs` prepares an active game,
 then submits a clue or casts a vote in the desktop/mobile UI and verifies the
-persisted action through `gameState`.
+persisted action through `gameState`. `game-results.spec.mjs` exercises immediate
+faker victory, voting resolution, role-specific game-over messaging, and the
+completed-match summary and leave action.
 
 ### Opt-in deployed smoke tests
 
@@ -137,6 +139,9 @@ browser scenario is added, removed, or materially changed.
 | Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
 | Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
 | Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
+| Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
+| Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
+| Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
 
 - **Desktop:** Playwright's Desktop Chrome profile.
 - **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.
