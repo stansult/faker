@@ -106,6 +106,46 @@ async function submitNextMove(baseUrl, roomCode, word) {
   return { move, player };
 }
 
+async function getRoles(baseUrl, roomCode) {
+  const roles = [];
+  for (const player of PLAYERS) {
+    const role = await post(baseUrl, "getRole", {
+      roomCode,
+      playerId: player.playerId
+    });
+    assertOk(assert, role, `getRole ${player.name}`);
+    roles.push({ ...player, role: role.data.role, secretWord: role.data.secretWord });
+  }
+
+  const faker = roles.find(player => player.role === "faker");
+  const legit = roles.filter(player => player.role !== "faker");
+  assert.ok(faker, "expected exactly one faker");
+  assert.equal(legit.length, 2);
+  assert.ok(legit[0].secretWord, "legit player should receive the secret word");
+  return { roles, faker, legit, secretWord: legit[0].secretWord };
+}
+
+async function finishWithFakerSecret(baseUrl, roomCode, game) {
+  for (let attempt = 0; attempt < PLAYERS.length; attempt++) {
+    const state = await getState(baseUrl, roomCode, game.faker.playerId);
+    const player = playerForNumber(state.game.nextPlayerNumber);
+    assert.ok(player, `expected next player ${state.game.nextPlayerNumber}`);
+    const isFaker = player.playerId === game.faker.playerId;
+    const move = await post(baseUrl, "submitMove", {
+      roomCode,
+      playerId: player.playerId,
+      word: isFaker ? game.secretWord : SAFE_CLUES.get(player.playerId)
+    });
+    assertOk(assert, move, `submitMove ${player.name}`);
+    if (isFaker) {
+      assert.equal(move.data.ended, true);
+      assert.equal(move.data.winner, "faker");
+      return;
+    }
+  }
+  assert.fail(`faker never received a turn in room ${roomCode}`);
+}
+
 test("local API validates creation and enforces join, rejoin, full, and locked rooms", async t => {
   const server = await startNetlifyDev();
   t.after(() => server.stop());
@@ -384,6 +424,82 @@ test("local API completes a one-game room and exposes match-ended results by roo
   const unchanged = await post(server.baseUrl, "roomStatus", { roomCode });
   assertOk(assert, unchanged, "roomStatus after rejected mutations");
   assert.deepEqual(unchanged.data, status.data, "ended-room result must remain unchanged");
+});
+
+test("local API carries state across a two-game match and ends after game two", async t => {
+  const server = await startNetlifyDev({ env: { ROOM_ACTIVE_TTL_HOURS: "1" } });
+  t.after(() => server.stop());
+
+  const first = await prepareGame(server.baseUrl, { gamesTotal: 2 });
+  const firstState = await getState(server.baseUrl, first.roomCode, first.faker.playerId);
+  const firstGameId = firstState.game.gameId;
+  const firstStarter = firstState.game.nextPlayerNumber;
+  assert.equal(firstState.game.gamesPlayed, 0);
+  assert.equal(firstState.game.gamesTotal, 2);
+  assert.equal(firstState.game.matchEnded, false);
+  assert.deepEqual(firstState.game.usedWords, [first.secretWord]);
+
+  const expectedScores = new Map(PLAYERS.map(player => [player.playerId, 0]));
+  await finishWithFakerSecret(server.baseUrl, first.roomCode, first);
+  expectedScores.set(first.faker.playerId, 1);
+
+  const afterFirst = await post(server.baseUrl, "roomStatus", { roomCode: first.roomCode });
+  assertOk(assert, afterFirst, "roomStatus after game one");
+  assert.equal(afterFirst.data.gamesPlayed, 1);
+  assert.equal(afterFirst.data.matchEnded, false);
+  assert.equal(afterFirst.data.canStart, true);
+  assert.deepEqual(afterFirst.data.usedWords, [first.secretWord]);
+  for (const player of afterFirst.data.players) {
+    assert.equal(player.score, expectedScores.get(player.playerId));
+  }
+
+  const startSecond = await post(server.baseUrl, "startGame", {
+    roomCode: first.roomCode,
+    playerId: PLAYERS[0].playerId
+  });
+  assertOk(assert, startSecond, "startGame game two");
+  assert.notEqual(startSecond.data.gameId, firstGameId);
+
+  const second = await getRoles(server.baseUrl, first.roomCode);
+  const secondState = await getState(server.baseUrl, first.roomCode, second.faker.playerId);
+  assert.equal(secondState.game.gameId, startSecond.data.gameId);
+  assert.equal(secondState.game.nextPlayerNumber, (firstStarter % PLAYERS.length) + 1);
+  assert.equal(secondState.game.gamesPlayed, 1);
+  assert.equal(secondState.game.matchEnded, false);
+  assert.notEqual(second.secretWord, first.secretWord);
+  assert.deepEqual(secondState.game.usedWords, [first.secretWord, second.secretWord]);
+
+  await finishWithFakerSecret(server.baseUrl, first.roomCode, second);
+  expectedScores.set(
+    second.faker.playerId,
+    expectedScores.get(second.faker.playerId) + 1
+  );
+
+  const finalStatus = await post(server.baseUrl, "roomStatus", { roomCode: first.roomCode });
+  assertOk(assert, finalStatus, "roomStatus after game two");
+  assert.equal(finalStatus.data.gamesPlayed, 2);
+  assert.equal(finalStatus.data.gamesTotal, 2);
+  assert.equal(finalStatus.data.matchEnded, true);
+  assert.equal(finalStatus.data.canStart, false);
+  assert.equal(finalStatus.data.game.winner, "faker");
+  assert.deepEqual(finalStatus.data.usedWords, [first.secretWord, second.secretWord]);
+  for (const player of finalStatus.data.players) {
+    assert.equal(player.score, expectedScores.get(player.playerId));
+  }
+  assert.equal(
+    finalStatus.data.players.reduce((sum, player) => sum + player.score, 0),
+    2
+  );
+
+  const resultByCode = await post(server.baseUrl, "gameState", {
+    roomCode: first.roomCode
+  });
+  assertOk(assert, resultByCode, "gameState two-game result by code");
+  assert.equal(resultByCode.data.matchEnded, true);
+  assert.equal(resultByCode.data.game.gameId, secondState.game.gameId);
+  assert.equal(resultByCode.data.game.gamesPlayed, 2);
+  assert.equal(resultByCode.data.yourRole, null);
+  assert.equal(resultByCode.data.secretWord, null);
 });
 
 test("local API returns 410 for an expired active room", async t => {

@@ -9,7 +9,7 @@ below.
 | Command | Coverage | Platform |
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
-| `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
+| `npm run test:api` | 5 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 11 browser scenarios producing 17 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
@@ -57,8 +57,9 @@ environment that owns the Netlify secrets. Run them with
 the local Blob sandbox. For each workflow, `helpers/netlifyDev.mjs` creates an
 isolated temporary project, reserves ports, starts `netlify dev --offline`, and
 removes the project after the test. The workflows cover validation, room
-lifecycle, gameplay rules, completion, post-match immutability across every
-mutating room endpoint, and expiration through `npm run test:api`.
+lifecycle, gameplay rules, single-game and multi-game completion, score and
+starter continuity, post-match immutability across every mutating room endpoint,
+and expiration through `npm run test:api`.
 
 Playwright's API client is intentionally not used for these API-only workflows.
 They do not need browser state, cookies, or coordination with a UI action, so

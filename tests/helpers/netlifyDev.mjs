@@ -33,19 +33,40 @@ async function waitForServer(baseUrl, logs, timeoutMs = 45000) {
   throw new Error(`Timed out waiting for Netlify dev at ${baseUrl}\n\n${logs()}`);
 }
 
-function getFreePort() {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
+function closeServer(server) {
+  return new Promise(resolve => server.close(resolve));
+}
+
+async function getFreePorts(count, excluded = []) {
+  const servers = [];
+  const ports = [];
+  const unavailable = new Set(excluded.map(String));
+
+  try {
+    while (ports.length < count) {
+      const server = createServer();
+      await new Promise((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", resolve);
+      });
       const address = server.address();
       const port = address && typeof address === "object" ? address.port : null;
-      server.close(() => {
-        if (port) resolve(port);
-        else reject(new Error("Failed to allocate a free port"));
-      });
-    });
-  });
+      if (!port) {
+        await closeServer(server);
+        throw new Error("Failed to allocate a free port");
+      }
+      if (unavailable.has(String(port))) {
+        await closeServer(server);
+        continue;
+      }
+      unavailable.add(String(port));
+      servers.push(server);
+      ports.push(port);
+    }
+    return ports;
+  } finally {
+    await Promise.all(servers.map(closeServer));
+  }
 }
 
 export async function startNetlifyDev(options = {}) {
@@ -73,13 +94,26 @@ export async function startNetlifyDev(options = {}) {
     }
   }
 
-  const port = String(options.port || process.env.FAKER_TEST_PORT || await getFreePort());
-  const targetPort = String(
-    options.targetPort || process.env.FAKER_TEST_TARGET_PORT || await getFreePort()
+  const configuredPorts = [
+    options.port || process.env.FAKER_TEST_PORT || null,
+    options.targetPort || process.env.FAKER_TEST_TARGET_PORT || null,
+    options.functionsPort || process.env.FAKER_TEST_FUNCTIONS_PORT || null
+  ];
+  const explicitPorts = configuredPorts.filter(Boolean).map(String);
+  if (new Set(explicitPorts).size !== explicitPorts.length) {
+    throw new Error("Netlify dev ports must be distinct");
+  }
+  const allocatedPorts = await getFreePorts(
+    configuredPorts.filter(port => !port).length,
+    explicitPorts
   );
-  const functionsPort = String(
-    options.functionsPort || process.env.FAKER_TEST_FUNCTIONS_PORT || await getFreePort()
+  let allocatedIndex = 0;
+  const [port, targetPort, functionsPort] = configuredPorts.map(configured =>
+    String(configured || allocatedPorts[allocatedIndex++])
   );
+  if (new Set([port, targetPort, functionsPort]).size !== 3) {
+    throw new Error("Netlify dev ports must be distinct");
+  }
   const baseUrl = `http://localhost:${port}`;
 
   const args = [
