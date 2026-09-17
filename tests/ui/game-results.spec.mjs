@@ -77,6 +77,55 @@ test("legit player sees the winning voting result", async ({ page, request }) =>
   expect(resolved.game.endReason).toBe("voting_legits_win");
 });
 
+test("legit player sees the faker win after an incorrect vote", async ({ page, request }) => {
+  const game = await prepareStartedGame(request);
+  const voter = game.legit[0];
+  const wrongTarget = game.legit[1];
+  await openGameAsPlayer(page, game, voter);
+
+  for (const trigger of game.players.filter(player => player.playerId !== voter.playerId)) {
+    await postFunction(request, "triggerVote", {
+      roomCode: game.roomCode,
+      playerId: trigger.playerId
+    }, `triggerVote ${trigger.name}`);
+  }
+  await expect(page.locator("#voteDetails")).toBeVisible();
+
+  for (const player of game.players.filter(player => player.playerId !== voter.playerId)) {
+    await postFunction(request, "castVote", {
+      roomCode: game.roomCode,
+      playerId: player.playerId,
+      targetPlayerId: player.role === "faker" ? voter.playerId : game.faker.playerId
+    }, `castVote ${player.name}`);
+  }
+
+  const wrongChoice = page.locator(
+    `.vote-target[data-target="${wrongTarget.playerId}"]`
+  );
+  await wrongChoice.click({ force: true });
+  await wrongChoice.click({ force: true });
+  await expect.poll(async () => {
+    const state = await getGameState(request, game.roomCode, voter.playerId);
+    return state.game.votePhase.votes[voter.playerId];
+  }).toBe(wrongTarget.playerId);
+
+  let resolved;
+  await expect.poll(async () => {
+    resolved = await getGameState(request, game.roomCode, voter.playerId);
+    return resolved.game.winner;
+  }, { timeout: 5_000 }).toBe("faker");
+
+  await expect(page.locator("#overlay")).toBeVisible({ timeout: 6_000 });
+  await expect(page.locator("#overlayMessage")).toContainText(
+    `Player #${game.faker.playerNumber} (${game.faker.name}) was the faker.`
+  );
+  await expect(page.locator("#overlayMessage")).toContainText(
+    "Votes are in — the faker won!"
+  );
+  expect(resolved.matchEnded).toBe(true);
+  expect(resolved.game.endReason).toBe("voting_faker_win");
+});
+
 test("completed match shows results and can be left", { tag: "@mobile" }, async ({
   page,
   request

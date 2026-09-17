@@ -10,7 +10,7 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | 10 browser scenarios producing 16 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | 11 browser scenarios producing 17 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
@@ -57,7 +57,8 @@ environment that owns the Netlify secrets. Run them with
 the local Blob sandbox. For each workflow, `helpers/netlifyDev.mjs` creates an
 isolated temporary project, reserves ports, starts `netlify dev --offline`, and
 removes the project after the test. The workflows cover validation, room
-lifecycle, gameplay rules, completion, and expiration through `npm run test:api`.
+lifecycle, gameplay rules, completion, post-match immutability across every
+mutating room endpoint, and expiration through `npm run test:api`.
 
 Playwright's API client is intentionally not used for these API-only workflows.
 They do not need browser state, cookies, or coordination with a UI action, so
@@ -92,8 +93,8 @@ players, then the desktop/mobile UI joins the third player and an API read confi
 that the browser action was persisted. `gameplay.spec.mjs` prepares an active game,
 then submits a clue or casts a vote in the desktop/mobile UI and verifies the
 persisted action through `gameState`. `game-results.spec.mjs` exercises immediate
-faker victory, voting resolution, role-specific game-over messaging, and the
-completed-match summary and leave action.
+faker victory, correct and incorrect voting outcomes, role-specific game-over
+messaging, and the completed-match summary and leave action.
 
 ### Opt-in deployed smoke tests
 
@@ -141,7 +142,8 @@ browser scenario is added, removed, or materially changed.
 | 7 | Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
 | 8 | Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
 | 9 | Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
-| 10 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
+| 10 | Faker wins after an incorrect vote | Casts an incorrect vote and verifies the role-specific losing message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
+| 11 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
 
 - **Desktop:** Playwright's Desktop Chrome profile.
 - **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.

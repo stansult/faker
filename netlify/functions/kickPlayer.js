@@ -53,6 +53,7 @@ export async function handler(event) {
   const room = await store.get(roomCode, { type: "json" });
   if (!room) return json(404, { error: "Room not found" });
   if (isActiveRoomExpired(room)) return json(410, roomExpiredError());
+  if (room.matchEnded) return json(409, { error: "Match ended" });
 
   const game = room.game;
   if (game && game.gameId && !game.endedAt) {

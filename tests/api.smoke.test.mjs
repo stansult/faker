@@ -355,14 +355,35 @@ test("local API completes a one-game room and exposes match-ended results by roo
     assert.equal(status.data.players.find(p => p.playerId === player.playerId).score, 1);
   }
 
-  for (const [functionName, payload] of [
-    ["joinRoom", { playerId: "test-player-d", name: "Dave" }],
-    ["submitWords", { playerId: PLAYERS[0].playerId, words: ["late"] }],
-    ["updateWords", { playerId: PLAYERS[0].playerId, words: ["late"] }],
-    ["markWordsDone", { playerId: PLAYERS[0].playerId }]
+  for (const [functionName, payload, error] of [
+    ["joinRoom", { playerId: "test-player-d", name: "Dave" }, "Match ended"],
+    ["submitWords", { playerId: PLAYERS[0].playerId, words: ["late"] }, "Match ended"],
+    ["updateWords", { playerId: PLAYERS[0].playerId, words: ["late"] }, "Match ended"],
+    ["markWordsDone", { playerId: PLAYERS[0].playerId }, "Match ended"],
+    ["startGame", { playerId: PLAYERS[0].playerId }, null],
+    ["submitMove", { playerId: PLAYERS[0].playerId, word: "late" }, null],
+    ["triggerVote", { playerId: PLAYERS[0].playerId }, null],
+    ["castVote", {
+      playerId: PLAYERS[0].playerId,
+      targetPlayerId: PLAYERS[1].playerId
+    }, null],
+    ["kickPlayer", {
+      hostPlayerId: PLAYERS[0].playerId,
+      targetPlayerId: PLAYERS[1].playerId
+    }, "Match ended"],
+    ["leaveRoom", { playerId: PLAYERS[1].playerId }, "Match ended"]
   ]) {
-    assertResponse(await post(server.baseUrl, functionName, { roomCode, ...payload }), 409, "Match ended", `${functionName} ended room`);
+    assertResponse(
+      await post(server.baseUrl, functionName, { roomCode, ...payload }),
+      409,
+      error,
+      `${functionName} ended room`
+    );
   }
+
+  const unchanged = await post(server.baseUrl, "roomStatus", { roomCode });
+  assertOk(assert, unchanged, "roomStatus after rejected mutations");
+  assert.deepEqual(unchanged.data, status.data, "ended-room result must remain unchanged");
 });
 
 test("local API returns 410 for an expired active room", async t => {
