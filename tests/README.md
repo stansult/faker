@@ -10,7 +10,7 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 4 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | Room setup, gameplay, voting, and match results through the real UI | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | 10 browser scenarios producing 16 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
@@ -130,18 +130,18 @@ This table is an inventory of implemented, passing browser tests. Planned
 coverage belongs in the issue tracker, not here. Update the table whenever a
 browser scenario is added, removed, or materially changed.
 
-| Scenario | Browser action | API role | Profiles |
-| --- | --- | --- | --- |
-| Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
-| Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop, Mobile |
-| Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop |
-| Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop, Mobile |
-| Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
-| Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
-| Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
-| Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
-| Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
-| Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
+| # | Scenario | Browser action | API role | Profiles |
+| ---: | --- | --- | --- | --- |
+| 1 | Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
+| 2 | Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop, Mobile |
+| 3 | Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop |
+| 4 | Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop, Mobile |
+| 5 | Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
+| 6 | Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
+| 7 | Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
+| 8 | Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
+| 9 | Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
+| 10 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
 
 - **Desktop:** Playwright's Desktop Chrome profile.
 - **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.
@@ -180,7 +180,7 @@ tests on pushes and pull requests to `main`, then verifies the allowlisted Netli
 artifact can be built. Markdown-only pushes are ignored, so they neither run CI nor
 deploy. Mixed pushes always follow the normal workflow. On eligible pushes to
 `main`, the deploy job runs only after the test job passes, publishes to the
-legacy-team Netlify project, and records the production deployment in GitHub. Pull
+production Netlify project, and records the production deployment in GitHub. Pull
 requests never receive deployment secrets or deploy. See the
 [deployment guide](../docs/deployment.md).
 
@@ -219,7 +219,7 @@ these state-mutating workflows.
 
 ## Approved remote validation
 
-Migration and release validation can target an explicitly approved HTTPS deploy.
+Release validation can target an explicitly approved HTTPS deploy.
 These commands mutate the target by creating test rooms, so neither is part of the
 default test commands:
 
