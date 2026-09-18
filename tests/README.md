@@ -8,8 +8,8 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
-| `npm run test:api` | 6 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 15 browser scenarios producing 22 profile-specific executions across room setup, gameplay, voting, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
@@ -33,6 +33,14 @@ Netlify dependencies. It verifies local sandbox selection, strongly consistent
 deployed access, and fail-closed credential handling. It also scans every room
 Function to ensure all storage access goes through the central adapter. These
 tests use the same lightweight runner and are included in `npm run test:logic`.
+
+### Local-server harness tests
+
+`netlifyDev.test.mjs` verifies the bounded startup retry used when an automatically
+selected port is taken between allocation and process binding. Only recognized bind
+collisions on automatic ports are retried; explicit ports and unrelated startup
+failures remain immediately visible. These tests use the lightweight runner and are
+included in `npm run test:logic`.
 
 ### Change-scope tests
 
@@ -59,7 +67,10 @@ isolated temporary project, reserves ports, starts `netlify dev --offline`, and
 removes the project after the test. The workflows cover validation, room
 lifecycle, lobby edits and membership permissions, gameplay rules, single-game and
 multi-game completion, score and starter continuity, post-match immutability across
-every mutating room endpoint, and expiration through `npm run test:api`.
+every mutating room endpoint, expiration, and repeated concurrent final-slot joins and
+same-turn move submissions through `npm run test:api`. The concurrency workflow
+requires one accepted mutation, one explicit rejection, and final state matching the
+accepted request without a lost update.
 
 Playwright's API client is intentionally not used for these API-only workflows.
 They do not need browser state, cookies, or coordination with a UI action, so
@@ -222,6 +233,7 @@ explicit command.
 - `api.remote.test.mjs` contains the explicitly enabled deployed workflow test.
 - `blobConsistency.test.mjs` verifies local/deployed adapter selection, fail-closed credential
   handling, and adoption by every room Function.
+- `netlifyDev.test.mjs` verifies automatic-port startup retry boundaries.
 - `helpers/netlifyDev.mjs` manages isolated offline Netlify processes.
 - `helpers/uiServer.mjs` adapts that server lifecycle for Playwright.
 - `helpers/playwrightGame.mjs` prepares reusable multiplayer game state for hybrid tests.

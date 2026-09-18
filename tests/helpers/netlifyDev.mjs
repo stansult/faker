@@ -9,6 +9,31 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const AUTO_PORT_START_ATTEMPTS = 3;
+
+function isPortCollision(error) {
+  const message = String(error?.message || error || "");
+  return message.includes("Address already in use") || message.includes("EADDRINUSE");
+}
+
+export async function retryAutoPortStartup(startAttempt, options = {}) {
+  const hasExplicitPorts = !!options.hasExplicitPorts;
+  const maxAttempts = options.maxAttempts || AUTO_PORT_START_ATTEMPTS;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await startAttempt(attempt);
+    } catch (error) {
+      const canRetry =
+        !hasExplicitPorts && attempt < maxAttempts && isPortCollision(error);
+      if (!canRetry) throw error;
+      await sleep(50);
+    }
+  }
+
+  throw new Error("Netlify dev startup attempts exhausted");
+}
+
 async function waitForServer(baseUrl, logs, timeoutMs = 45000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -35,6 +60,17 @@ async function waitForServer(baseUrl, logs, timeoutMs = 45000) {
 
 function closeServer(server) {
   return new Promise(resolve => server.close(resolve));
+}
+
+async function stopChild(child) {
+  if (child.exitCode != null || child.signalCode != null) return;
+  child.kill("SIGTERM");
+  await Promise.race([
+    new Promise(resolve => child.once("exit", resolve)),
+    sleep(3000).then(() => {
+      if (child.exitCode == null && child.signalCode == null) child.kill("SIGKILL");
+    })
+  ]);
 }
 
 async function getFreePorts(count, excluded = []) {
@@ -103,77 +139,83 @@ export async function startNetlifyDev(options = {}) {
   if (new Set(explicitPorts).size !== explicitPorts.length) {
     throw new Error("Netlify dev ports must be distinct");
   }
-  const allocatedPorts = await getFreePorts(
-    configuredPorts.filter(port => !port).length,
-    explicitPorts
-  );
-  let allocatedIndex = 0;
-  const [port, targetPort, functionsPort] = configuredPorts.map(configured =>
-    String(configured || allocatedPorts[allocatedIndex++])
-  );
-  if (new Set([port, targetPort, functionsPort]).size !== 3) {
-    throw new Error("Netlify dev ports must be distinct");
-  }
-  const baseUrl = `http://localhost:${port}`;
-
-  const args = [
-    "dev",
-    "--offline",
-    "--no-open",
-    "--command",
-    `python3 -m http.server ${targetPort}`,
-    "--target-port",
-    targetPort,
-    "--functions",
-    "netlify/functions",
-    "--functions-port",
-    functionsPort,
-    "--port",
-    port
-  ];
-
-  let output = "";
-  const child = spawn("netlify", args, {
-    cwd: projectDir,
-    env: {
-      ...process.env,
-      ...options.env
-    },
-    stdio: ["ignore", "pipe", "pipe"]
-  });
-
-  child.stdout.on("data", chunk => {
-    output += chunk.toString();
-  });
-  child.stderr.on("data", chunk => {
-    output += chunk.toString();
-  });
-
-  const exitPromise = new Promise((_, reject) => {
-    child.once("exit", (code, signal) => {
-      reject(new Error(`Netlify dev exited early with code ${code} signal ${signal}\n\n${output}`));
-    });
-  });
-
-  await Promise.race([
-    waitForServer(baseUrl, () => output),
-    exitPromise
-  ]);
-
-  return {
-    baseUrl,
-    logs: () => output,
-    async stop() {
-      if (child.exitCode == null && child.signalCode == null) {
-        child.kill("SIGTERM");
-        await Promise.race([
-          new Promise(resolve => child.once("exit", resolve)),
-          sleep(3000).then(() => {
-            if (child.exitCode == null && child.signalCode == null) child.kill("SIGKILL");
-          })
-        ]);
+  try {
+    return await retryAutoPortStartup(async () => {
+      const allocatedPorts = await getFreePorts(
+        configuredPorts.filter(port => !port).length,
+        explicitPorts
+      );
+      let allocatedIndex = 0;
+      const [port, targetPort, functionsPort] = configuredPorts.map(configured =>
+        String(configured || allocatedPorts[allocatedIndex++])
+      );
+      if (new Set([port, targetPort, functionsPort]).size !== 3) {
+        throw new Error("Netlify dev ports must be distinct");
       }
-      await rm(projectDir, { recursive: true, force: true });
-    }
-  };
+      const baseUrl = `http://localhost:${port}`;
+
+      const args = [
+        "dev",
+        "--offline",
+        "--no-open",
+        "--command",
+        `python3 -m http.server ${targetPort}`,
+        "--target-port",
+        targetPort,
+        "--functions",
+        "netlify/functions",
+        "--functions-port",
+        functionsPort,
+        "--port",
+        port
+      ];
+
+      let output = "";
+      const child = spawn("netlify", args, {
+        cwd: projectDir,
+        env: {
+          ...process.env,
+          ...options.env
+        },
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+
+      child.stdout.on("data", chunk => {
+        output += chunk.toString();
+      });
+      child.stderr.on("data", chunk => {
+        output += chunk.toString();
+      });
+
+      const exitPromise = new Promise((_, reject) => {
+        child.once("exit", (code, signal) => {
+          reject(new Error(
+            `Netlify dev exited early with code ${code} signal ${signal}\n\n${output}`
+          ));
+        });
+      });
+
+      try {
+        await Promise.race([
+          waitForServer(baseUrl, () => output),
+          exitPromise
+        ]);
+      } catch (error) {
+        await stopChild(child);
+        throw error;
+      }
+
+      return {
+        baseUrl,
+        logs: () => output,
+        async stop() {
+          await stopChild(child);
+          await rm(projectDir, { recursive: true, force: true });
+        }
+      };
+    }, { hasExplicitPorts: explicitPorts.length > 0 });
+  } catch (error) {
+    await rm(projectDir, { recursive: true, force: true });
+    throw error;
+  }
 }

@@ -602,6 +602,94 @@ test("local API carries state across a two-game match and ends after game two", 
   assert.equal(resultByCode.data.secretWord, null);
 });
 
+test("local API serializes competing joins and move submissions", async t => {
+  const server = await startNetlifyDev();
+  t.after(() => server.stop());
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const roomCode = await createRoom(server.baseUrl);
+    for (const player of PLAYERS.slice(0, 2)) {
+      assertOk(assert, await post(server.baseUrl, "joinRoom", {
+        roomCode,
+        playerId: player.playerId,
+        name: player.name
+      }), `concurrent join setup ${player.name} attempt ${attempt}`);
+    }
+
+    const contenders = [
+      { playerId: `join-contender-d-${attempt}`, name: "Dave" },
+      { playerId: `join-contender-e-${attempt}`, name: "Eve" }
+    ];
+    const joinResults = await Promise.all(contenders.map(player =>
+      post(server.baseUrl, "joinRoom", { roomCode, ...player })
+    ));
+    const acceptedJoins = joinResults
+      .map((result, index) => ({ result, player: contenders[index] }))
+      .filter(({ result }) => result.status === 200);
+    const rejectedJoins = joinResults.filter(result => result.status !== 200);
+
+    assert.equal(
+      acceptedJoins.length,
+      1,
+      `exactly one final-slot join should succeed on attempt ${attempt}: ${JSON.stringify(joinResults)}`
+    );
+    assert.equal(rejectedJoins.length, 1);
+    assert.ok(
+      [409, 503].includes(rejectedJoins[0].status),
+      `competing join should report full or contention: ${JSON.stringify(rejectedJoins[0])}`
+    );
+
+    const status = await post(server.baseUrl, "roomStatus", { roomCode });
+    assertOk(assert, status, `roomStatus after concurrent joins attempt ${attempt}`);
+    assert.equal(status.data.currentPlayers, 3);
+    assert.deepEqual(status.data.players.map(player => player.playerNumber), [1, 2, 3]);
+    const admittedContenders = status.data.players.filter(player =>
+      contenders.some(contender => contender.playerId === player.playerId)
+    );
+    assert.equal(admittedContenders.length, 1);
+    assert.equal(admittedContenders[0].playerId, acceptedJoins[0].player.playerId);
+  }
+
+  const attemptSuffixes = ["alpha", "bravo", "charlie"];
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const game = await prepareGame(server.baseUrl, { roundsPerGame: 2 });
+    const before = await getState(server.baseUrl, game.roomCode);
+    const current = playerForNumber(before.game.nextPlayerNumber);
+    assert.ok(current, `expected current player on move attempt ${attempt}`);
+
+    const suffix = attemptSuffixes[attempt - 1];
+    const words = [`parallelone${suffix}`, `paralleltwo${suffix}`];
+    const moveResults = await Promise.all(words.map(word =>
+      post(server.baseUrl, "submitMove", {
+        roomCode: game.roomCode,
+        playerId: current.playerId,
+        word
+      })
+    ));
+    const acceptedMoves = moveResults
+      .map((result, index) => ({ result, word: words[index] }))
+      .filter(({ result }) => result.status === 200);
+    const rejectedMoves = moveResults.filter(result => result.status !== 200);
+
+    assert.equal(
+      acceptedMoves.length,
+      1,
+      `exactly one same-turn move should succeed on attempt ${attempt}: ${JSON.stringify(moveResults)}`
+    );
+    assert.equal(rejectedMoves.length, 1);
+    assert.ok(
+      [409, 503].includes(rejectedMoves[0].status),
+      `competing move should report a conflict: ${JSON.stringify(rejectedMoves[0])}`
+    );
+
+    const after = await getState(server.baseUrl, game.roomCode, current.playerId);
+    assert.equal(after.game.moves.length, 1);
+    assert.equal(after.game.moves[0].playerId, current.playerId);
+    assert.equal(after.game.moves[0].word, acceptedMoves[0].word);
+    assert.notEqual(after.game.nextPlayerNumber, before.game.nextPlayerNumber);
+  }
+});
+
 test("local API returns 410 for an expired active room", async t => {
   const server = await startNetlifyDev({ env: { ROOM_ACTIVE_TTL_HOURS: "0" } });
   t.after(() => server.stop());
