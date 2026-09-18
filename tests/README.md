@@ -9,8 +9,8 @@ below.
 | Command | Coverage | Platform |
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
-| `npm run test:api` | 5 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | 11 browser scenarios producing 17 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:api` | 6 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
+| `npm run test:ui` | 13 browser scenarios producing 20 profile-specific executions across room setup, gameplay, voting, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
@@ -57,9 +57,9 @@ environment that owns the Netlify secrets. Run them with
 the local Blob sandbox. For each workflow, `helpers/netlifyDev.mjs` creates an
 isolated temporary project, reserves ports, starts `netlify dev --offline`, and
 removes the project after the test. The workflows cover validation, room
-lifecycle, gameplay rules, single-game and multi-game completion, score and
-starter continuity, post-match immutability across every mutating room endpoint,
-and expiration through `npm run test:api`.
+lifecycle, lobby edits and membership permissions, gameplay rules, single-game and
+multi-game completion, score and starter continuity, post-match immutability across
+every mutating room endpoint, and expiration through `npm run test:api`.
 
 Playwright's API client is intentionally not used for these API-only workflows.
 They do not need browser state, cookies, or coordination with a UI action, so
@@ -96,6 +96,9 @@ then submits a clue or casts a vote in the desktop/mobile UI and verifies the
 persisted action through `gameState`. `game-results.spec.mjs` exercises immediate
 faker victory, correct and incorrect voting outcomes, role-specific game-over
 messaging, and the completed-match summary and leave action.
+`lobby-membership.spec.mjs` prepares complete lobbies through APIs, then verifies
+host kick controls, roster renumbering, player leave behavior, and local identity
+cleanup through the browser.
 
 ### Opt-in deployed smoke tests
 
@@ -136,15 +139,17 @@ browser scenario is added, removed, or materially changed.
 | ---: | --- | --- | --- | --- |
 | 1 | Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
 | 2 | Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop, Mobile |
-| 3 | Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop |
-| 4 | Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop, Mobile |
-| 5 | Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
-| 6 | Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
-| 7 | Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
-| 8 | Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
-| 9 | Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
-| 10 | Faker wins after an incorrect vote | Casts an incorrect vote and verifies the role-specific losing message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
-| 11 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
+| 3 | Host kicks a player from the lobby | Confirms a kick, verifies host-only controls, and observes roster renumbering | Prepares the lobby and verifies persisted membership | Desktop |
+| 4 | Player leaves the lobby | Confirms leaving, returns to the entry screen, and verifies local identity cleanup | Prepares the lobby and verifies persisted membership | Desktop, Mobile |
+| 5 | Host starts a prepared three-player game | Verifies ready players and starts the game | Joins players, prepares words, and verifies game state | Desktop |
+| 6 | Player submits and locks their words | Enters the required words, confirms the lock, and verifies ready status | None | Desktop, Mobile |
+| 7 | Active player submits a clue | Verifies role information and submits the current turn's clue | Prepares the game and verifies the persisted move | Desktop, Mobile |
+| 8 | Player casts a vote | Selects another player and verifies the selected-vote UI | Prepares active voting and verifies the persisted vote | Desktop, Mobile |
+| 9 | Voting countdown resolves promptly | Verifies the voting alert starts, reaches zero, stops pulsing, and shows the result | Starts voting and relies on the timer-driven state refresh to resolve it | Desktop |
+| 10 | Faker says the secret word | Submits the secret word on the faker's turn and verifies the immediate-win message | Prepares the game, discovers the faker, advances the turn, and verifies the result | Desktop |
+| 11 | Legit players win the vote | Casts a correct vote and verifies the role-specific winning message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
+| 12 | Faker wins after an incorrect vote | Casts an incorrect vote and verifies the role-specific losing message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
+| 13 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
 
 - **Desktop:** Playwright's Desktop Chrome profile.
 - **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.

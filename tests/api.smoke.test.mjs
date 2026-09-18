@@ -200,6 +200,106 @@ test("local API validates creation and enforces join, rejoin, full, and locked r
   assert.equal(lockedRejoin.data.rejoined, true);
 });
 
+test("local API enforces lobby edits, membership permissions, and active-game locks", async t => {
+  const server = await startNetlifyDev();
+  t.after(() => server.stop());
+
+  const roomCode = await createRoom(server.baseUrl);
+  for (const player of PLAYERS) {
+    assertOk(assert, await post(server.baseUrl, "joinRoom", {
+      roomCode,
+      playerId: player.playerId,
+      name: player.name
+    }), `joinRoom ${player.name}`);
+  }
+
+  assertOk(assert, await post(server.baseUrl, "submitWords", {
+    roomCode,
+    playerId: PLAYERS[0].playerId,
+    words: ["first"]
+  }), "submitWords before edit");
+  const edited = await post(server.baseUrl, "updateWords", {
+    roomCode,
+    playerId: PLAYERS[0].playerId,
+    words: ["amber", "aspen"]
+  });
+  assertOk(assert, edited, "updateWords before lock");
+  assert.deepEqual(edited.data.words, ["amber", "aspen"]);
+  assert.equal(edited.data.remaining, 0);
+  assert.equal(edited.data.wordPoolSize, 2);
+
+  assertOk(assert, await post(server.baseUrl, "markWordsDone", {
+    roomCode,
+    playerId: PLAYERS[0].playerId
+  }), "markWordsDone after edit");
+  assertResponse(await post(server.baseUrl, "updateWords", {
+    roomCode,
+    playerId: PLAYERS[0].playerId,
+    words: ["birch", "breeze"]
+  }), 409, "Words are locked", "update locked words");
+
+  assertResponse(await post(server.baseUrl, "kickPlayer", {
+    roomCode,
+    hostPlayerId: PLAYERS[1].playerId,
+    targetPlayerId: PLAYERS[2].playerId
+  }), 403, "Only host can kick players", "non-host kick");
+  assertResponse(await post(server.baseUrl, "kickPlayer", {
+    roomCode,
+    hostPlayerId: PLAYERS[0].playerId,
+    targetPlayerId: PLAYERS[0].playerId
+  }), 400, "Host cannot kick themselves", "host self-kick");
+
+  const kicked = await post(server.baseUrl, "kickPlayer", {
+    roomCode,
+    hostPlayerId: PLAYERS[0].playerId,
+    targetPlayerId: PLAYERS[1].playerId
+  });
+  assertOk(assert, kicked, "host kick");
+  assert.equal(kicked.data.remainingPlayers, 2);
+
+  const afterKick = await post(server.baseUrl, "roomStatus", { roomCode });
+  assertOk(assert, afterKick, "roomStatus after kick");
+  assert.deepEqual(
+    afterKick.data.players.map(player => [player.playerId, player.playerNumber]),
+    [[PLAYERS[0].playerId, 1], [PLAYERS[2].playerId, 2]]
+  );
+  assert.equal(afterKick.data.wordPoolSize, 2);
+
+  const left = await post(server.baseUrl, "leaveRoom", {
+    roomCode,
+    playerId: PLAYERS[2].playerId
+  });
+  assertOk(assert, left, "leaveRoom before game");
+  assert.equal(left.data.remainingPlayers, 1);
+
+  const afterLeave = await post(server.baseUrl, "roomStatus", { roomCode });
+  assertOk(assert, afterLeave, "roomStatus after leave");
+  assert.deepEqual(
+    afterLeave.data.players.map(player => [player.playerId, player.playerNumber]),
+    [[PLAYERS[0].playerId, 1]]
+  );
+
+  const active = await prepareGame(server.baseUrl);
+  assertResponse(await post(server.baseUrl, "kickPlayer", {
+    roomCode: active.roomCode,
+    hostPlayerId: PLAYERS[0].playerId,
+    targetPlayerId: PLAYERS[1].playerId
+  }), 409, "Cannot kick during active game", "active-game kick");
+  assertResponse(await post(server.baseUrl, "leaveRoom", {
+    roomCode: active.roomCode,
+    playerId: PLAYERS[1].playerId
+  }), 409, "Cannot leave during active game", "active-game leave");
+
+  const activeStatus = await post(server.baseUrl, "roomStatus", {
+    roomCode: active.roomCode
+  });
+  assertOk(assert, activeStatus, "roomStatus after active-game rejections");
+  assert.deepEqual(
+    activeStatus.data.players.map(player => [player.playerId, player.playerNumber]),
+    PLAYERS.map((player, index) => [player.playerId, index + 1])
+  );
+});
+
 test("local API enforces turn, duplicate clue, and secret-word rules", async t => {
   const server = await startNetlifyDev({ env: { VOTE_TOTAL_SECONDS: "1", VOTE_FINAL_SECONDS: "1" } });
   t.after(() => server.stop());
