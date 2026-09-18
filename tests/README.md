@@ -10,7 +10,7 @@ below.
 | --- | --- | --- |
 | `npm test` | 10 game-logic tests, 4 room-store adapter tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 6 room lifecycle and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
-| `npm run test:ui` | 14 browser scenarios producing 21 profile-specific executions across room setup, gameplay, voting, recovery, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
+| `npm run test:ui` | 15 browser scenarios producing 22 profile-specific executions across room setup, gameplay, voting, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
 about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
@@ -101,7 +101,9 @@ host kick controls, roster renumbering, player leave behavior, and local identit
 cleanup through the browser. `session-recovery.spec.mjs` refreshes an active player's
 browser, uses the saved identity to rejoin the game, verifies that play can continue,
 and confirms that a fresh browser context cannot inherit that identity from the room
-URL alone.
+URL alone. `russian-language.spec.mjs` creates a Russian room in the browser, submits
+Cyrillic words, prepares supporting players through APIs, starts the game, and verifies
+the Russian-only clue rule and persisted Cyrillic gameplay.
 
 ### Opt-in deployed smoke tests
 
@@ -154,6 +156,7 @@ browser scenario is added, removed, or materially changed.
 | 12 | Faker wins after an incorrect vote | Casts an incorrect vote and verifies the role-specific losing message | Prepares voting, supplies the supporting votes, and verifies resolution | Desktop |
 | 13 | Player reviews and leaves a completed match | Verifies scores, placement, self-row, and leaves from the match summary | Completes the match and verifies persisted scores | Desktop, Mobile |
 | 14 | Player recovers an active game after refresh | Rejoins with the saved identity, verifies restored role and turn state, and submits the current move | Prepares the active game and verifies the persisted move | Desktop |
+| 15 | Russian room reaches active gameplay | Selects Russian, submits Cyrillic words, starts the game, verifies an English clue is rejected, and submits a Cyrillic clue | Prepares two supporting players and verifies room language and the persisted move | Desktop |
 
 - **Desktop:** Playwright's Desktop Chrome profile.
 - **Mobile:** Playwright's emulated Pixel 7 Mobile Chrome profile.
