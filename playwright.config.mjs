@@ -13,7 +13,9 @@ export default defineConfig({
   expect: {
     timeout: 10_000
   },
-  reporter: "list",
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }]]
+    : "list",
   use: {
     baseURL: remoteBaseURL || "http://localhost:4173",
     screenshot: "only-on-failure",

@@ -8,7 +8,7 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, and 4 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, and 5 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 15 browser scenarios producing 22 profile-specific executions across room setup, gameplay, voting, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -53,10 +53,11 @@ tests use Node.js's built-in `node:test` runner and run through
 
 ### Deployment-safety tests
 
-`scripts/deployment-safety.test.cjs` uses Node.js's built-in `node:test` runner
-and a fake GitHub API client. It verifies that only the current tested `main` tip
-can deploy, lookup failures stop deployment, and the workflow is bound to the
-environment that owns the Netlify secrets. Run them with
+`scripts/deployment-safety.test.cjs` uses Node.js's built-in `node:test` runner,
+a fake GitHub API client, and workflow/configuration contract checks. It verifies
+that only the current tested `main` tip can deploy, lookup failures stop deployment,
+the workflow is bound to the environment that owns the Netlify secrets, and hosted
+browser runs retain the intended Playwright report. Run them with
 `npm run test:deployment`; `npm test` combines them with the logic tests.
 
 ### Local API integration tests
@@ -209,6 +210,12 @@ deploy. Mixed pushes always follow the normal workflow. On eligible pushes to
 production Netlify project, and records the production deployment in GitHub. Pull
 requests never receive deployment secrets or deploy. See the
 [deployment guide](../docs/deployment.md).
+
+Hosted Playwright runs keep terminal-list output and also upload an interactive HTML
+report named `playwright-report`. Open the completed GitHub Actions run, download the
+artifact from its **Artifacts** section, unzip it, and open `index.html`. Reports are
+retained for 30 days. Local `npm run test:ui` runs keep terminal output only and do
+not upload or retain an artifact.
 
 ## Git hooks
 

@@ -36,6 +36,14 @@ jobs:
         run: npm run test:api
       - name: Run browser tests
         run: npm run test:ui
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+          if-no-files-found: ignore
       - name: Build production artifact
         run: npm run build:netlify
 

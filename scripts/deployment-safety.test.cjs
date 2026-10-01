@@ -38,6 +38,24 @@ test("uses the production deployment environment", () => {
   );
 });
 
+test("retains a Playwright HTML report without hiding terminal results", () => {
+  const workflow = fs.readFileSync(
+    path.join(__dirname, "..", ".github", "workflows", "test.yml"),
+    "utf8"
+  );
+  const playwrightConfig = fs.readFileSync(
+    path.join(__dirname, "..", "playwright.config.mjs"),
+    "utf8"
+  );
+
+  assert.match(playwrightConfig, /process\.env\.CI[\s\S]*?\[\["list"\], \["html", \{ open: "never" \}\]\]/);
+  assert.match(
+    workflow,
+    /name: Upload Playwright HTML report[\s\S]*?uses: actions\/upload-artifact@v7[\s\S]*?if: \$\{\{ !cancelled\(\) \}\}[\s\S]*?name: playwright-report[\s\S]*?path: playwright-report\/[\s\S]*?retention-days: 30[\s\S]*?if-no-files-found: ignore/,
+    "hosted browser tests should retain a downloadable report for 30 days"
+  );
+});
+
 test("allows the tested tip of main to deploy", async () => {
   const result = await deploymentReadiness(fixture());
   assert.equal(result.ready, true);
