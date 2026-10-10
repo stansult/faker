@@ -4,6 +4,21 @@ Faker deploys to Netlify through a GitHub Actions test gate. GitHub environment
 secrets identify and authorize the production project; Netlify's independent Git
 builds remain disabled so the tested workflow is the only normal deployment path.
 
+## Production endpoints
+
+Production is hosted on Netlify at `https://faker-game.netlify.app/`. The public
+site is `https://play-faker.us`.
+
+Cloudflare DNS for `play-faker.us`:
+
+```text
+@   CNAME   faker-game.netlify.app   DNS only
+www CNAME   faker-game.netlify.app   DNS only
+```
+
+Keep these DNS records unproxied unless Cloudflare proxying is intentionally
+configured and tested with Netlify SSL.
+
 ## Intended flow
 
 Non-documentation pushes and all pull requests to `main` run syntax checks, logic

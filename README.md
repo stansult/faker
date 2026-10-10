@@ -1,254 +1,71 @@
 # Faker
 
-Faker is a browser party word game for 3-20 players. Legit players share a secret word and give one-word clues without revealing it; one faker does not know the word and has to bluff. After the clue rounds, players vote. Legit players win only if every legit player votes out the faker; otherwise the faker wins.
+Faker is a browser party word game for 3–20 players. Most players know the
+secret word and give clues; one faker has to blend in without knowing it.
 
-Live site: https://play-faker.us
+**[Play Faker](https://play-faker.us)**
 
-## Current State
+## How to play
 
-- Single-page frontend in `index.html`, `app.js`, and `styles.css`.
-- Netlify Functions backend in `netlify/functions`.
-- Room state is stored in Netlify Blobs.
-- Debug tools and request logs are available with `?debug=1`.
-- Languages: English and Russian word validation.
-- Match flow: create/join room, submit words, host starts game, players submit moves in turn order, voting resolves the game, scores persist across the match.
-- Host can short-start game 1 with current players if at least 3 players are ready.
-- Match-ended rooms are read-only result pages by room code.
-- Active non-ended rooms expire after 24 hours without meaningful updates and return `410 Room expired`.
+1. One player creates a room, chooses the number of players, games, rounds, and
+   language, then shares the room code or invite link.
+2. Everyone joins and privately submits the requested number of words. These
+   become the secret-word pool for the match.
+3. At the start of each game, one player is randomly assigned as the faker.
+   Everyone else sees the same secret word; the faker does not.
+4. Players take turns giving a unique one-word clue. Legit players must hint at
+   the secret word without saying it outright, while the faker tries to sound
+   convincing.
+5. Voting begins after the configured rounds. It can also begin early once all
+   but one player request it.
+6. Each player votes for the person they think is the faker.
 
-## Architecture
+The legit players win only if **every legit player votes for the faker**. A
+wrong vote or abstention gives the faker the win. The faker also wins
+immediately by correctly submitting the secret word as a clue.
 
-Frontend:
-- `index.html` defines the lobby, room, game, voting, overlay, and debug views.
-- `app.js` owns client state, localStorage identity, polling, rendering, validation, and all API calls.
-- `styles.css` owns layout and responsive table behavior.
-- `validationConstants.js` is generated for browser use.
-- `uiErrors.js` contains shared client-only error strings.
+Each winning legit player earns one point when the legit side wins; the faker
+earns one point when the faker wins. After the selected number of games, the
+final standings rank everyone by total score.
 
-Backend:
-- `netlify/functions/*.js` are ES modules.
-- `netlify/functions/package.json` sets `"type": "module"`.
-- `shared/validationConstants.cjs` is the source for shared validation and timing constants. It is CommonJS because Netlify bundling previously had issues requiring a shared ESM constants file.
-- `netlify/functions/roomExpiry.js` enforces active-room expiry.
-- `netlify/functions/_vote.js` contains shared voting helpers and voting timer configuration.
-- `netlify/functions/_roomStore.js` centralizes room-store access: Netlify Dev uses its local
-  sandbox, while deployed Functions use Netlify's strongly consistent API path.
+## Features
 
-Storage:
-- Netlify Blobs store room records in `faker-rooms`.
-- Deployed room reads use strong consistency because each player action depends on the
-  immediately preceding write. Local development retains Netlify's sandboxed store.
-- Room writes update `updatedAt`; polling/status reads do not.
-- Expiry is an access rule, not physical deletion. Cleanup can be added separately later.
+- No account or installation required
+- Configurable matches for 3–20 players
+- English and Russian word validation
+- Shareable room codes and invite links
+- Desktop and mobile browser support
+- Session recovery after refreshing or reopening the game
+- Persistent scores and final match standings
 
-## Key Rules
+## Run locally
 
-- Room codes are 6 characters.
-- Names are capped at 24 characters.
-- Submitted words and moves are capped at 50 characters.
-- Active non-ended rooms expire after 24 hours from `updatedAt || createdAt`.
-- Rooms without timestamps are treated as expired unless `matchEnded` is true.
-- Match-ended rooms remain readable by room code.
-- Mutating endpoints reject match-ended rooms.
-- Local saved room identity and draft words expire after the same 24-hour active room TTL.
-- Leaving a match-ended room only clears local active identity; it does not mutate backend results.
-
-## API Surface
-
-Main room endpoints:
-- `createRoom`
-- `joinRoom`
-- `roomStatus`
-- `leaveRoom`
-- `kickPlayer`
-
-Word setup:
-- `submitWords`
-- `updateWords`
-- `markWordsDone`
-
-Gameplay:
-- `startGame`
-- `getRole`
-- `gameState`
-- `submitMove`
-
-Voting:
-- `triggerVote`
-- `castVote`
-
-Debug/helper:
-- `claimPlayer`
-
-All endpoints are under:
-
-```text
-/.netlify/functions/<name>
-```
-
-## Local Dev
-
-Install dependencies:
+Install dependencies and start the site with its local Netlify Functions:
 
 ```bash
 npm install
-```
-
-Run the site and Netlify Functions locally:
-
-```bash
 npm run dev
 ```
 
-Open:
-
-```text
-http://localhost:8888
-```
-
-For other devices on the same Wi-Fi:
-
-```bash
-npm run dev:lan
-```
-
-It prints:
-
-```text
-http://<your-mac-ip>:8888
-```
-
-For mobile HTTPS testing through Cloudflare Tunnel:
-
-```bash
-npm run dev:live
-```
-
-Open:
-
-```text
-https://dev.play-faker.us
-```
-
-This assumes a named Cloudflare tunnel `faker-dev` mapped to `dev.play-faker.us`:
-
-```bash
-cloudflared tunnel route dns faker-dev dev.play-faker.us
-```
-
-Or a Cloudflare DNS CNAME:
-
-```text
-dev -> <tunnel-id>.cfargotunnel.com
-```
-
-Use a different local tunnel name with:
-
-```bash
-FAKER_TUNNEL_NAME=your-tunnel npm run dev:live
-```
-
-## Dev Overrides
-
-Local dev uses longer voting timers by default:
-
-- `VOTE_TOTAL_SECONDS=300`
-- `VOTE_FINAL_SECONDS=10`
-
-Production defaults from `shared/validationConstants.cjs` are:
-
-- `VOTE_TOTAL_SECONDS=30`
-- `VOTE_FINAL_SECONDS=5`
-
-Override room expiry locally:
-
-```bash
-ROOM_ACTIVE_TTL_HOURS=0.01 npm run dev
-```
-
-`0.01` hours is about 36 seconds.
-
-## Build Constants
-
-Generate browser constants:
-
-```bash
-npm run build:constants
-```
-
-This writes `validationConstants.js` from `shared/validationConstants.cjs`, applying environment overrides for values that should differ in dev, such as voting timers.
-
-## Build Version
-
-The footer badge fetches `build.txt` and displays:
-
-```text
-v1.0 • build <timestamp> <short-sha>
-```
-
-`scripts/update_build.sh` updates `build.txt` and refreshes cache-buster query strings in `index.html` for changed frontend assets.
-
-The pre-commit hook runs this update and stages its generated changes.
-
-## Production Deployment
-
-Production is hosted on Netlify:
-
-```text
-https://faker-game.netlify.app/
-```
-
-The public domain is:
-
-```text
-https://play-faker.us
-```
-
-Cloudflare DNS for `play-faker.us`:
-
-```text
-@   CNAME   faker-game.netlify.app   DNS only
-www CNAME   faker-game.netlify.app   DNS only
-```
-
-Keep these DNS records unproxied unless Cloudflare proxying is intentionally configured and tested with Netlify SSL.
-
-Production deploys through a test-gated GitHub Actions workflow. Eligible pushes
-to `main` deploy only after the complete hosted test suite passes; Markdown-only
-pushes do not run CI or deploy. See the [deployment guide](docs/deployment.md).
-
-## Itch.io Build
-
-Generate a static itch.io build that points to the production backend:
-
-```bash
-npm run build:itch
-```
-
-This creates `./itch/` with frontend-only files and rewrites API calls to:
-
-```text
-https://play-faker.us/.netlify/functions/
-```
-
-`itch/` is generated output and is gitignored.
+Then open `http://localhost:8888`.
 
 ## Testing
 
-The project has fast logic tests, local offline API workflows, and Playwright UI
-coverage for desktop and mobile layouts. Local Git hooks run the fast suite before
-commits and API workflows before pushes; Markdown-only changes use the documented
-lightweight exception. See the [testing guide](tests/README.md).
+The project has fast logic and tooling tests, local API workflows, and
+Playwright browser coverage for desktop and mobile layouts.
 
-## Generated / Local Files
+```bash
+npm test
+npm run test:api
+npm run test:ui
+```
 
-Gitignored:
+See the [testing guide](tests/README.md) for the suite design, coverage, local
+commands, Git hooks, and CI behavior.
 
-- `.netlify/`
-- `node_modules/`
-- `screenshots/`
-- `notes/`
-- `itch/`
-- `dist/`
+## Technical documentation
 
-`notes/` contains local handoff/testing notes and is not intended for public repo documentation.
+- [Development guide](docs/development.md) — architecture, APIs, local
+  environments, build behavior, and technical room rules
+- [Testing guide](tests/README.md) — test strategy, coverage, and commands
+- [Deployment guide](docs/deployment.md) — test-gated Netlify production flow
