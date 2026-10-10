@@ -135,7 +135,7 @@ p {
 .shell {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 28px 20px 24px;
 }
 
 .header {
@@ -1196,9 +1196,9 @@ body.role-faker .room-table .self-col {
 }
 
 .build {
-  position: fixed;
-  left: 12px;
-  bottom: 10px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom));
   font-size: 11px;
   color: #8a7a67;
   opacity: 0.7;
