@@ -5,6 +5,10 @@ secret word and give clues; one faker has to blend in without knowing it.
 
 **[Play Faker](https://play-faker.us)**
 
+## Three players. Three screens. One game.
+
+![Three players in the same Faker game using narrow desktop Chrome, desktop Safari, and mobile Chrome. Two legit players see the secret word while the faker does not.](docs/images/faker-three-screens.jpg)
+
 ## How to play
 
 1. One player creates a room, chooses the number of players, games, rounds, and
