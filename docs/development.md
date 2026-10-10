@@ -180,12 +180,17 @@ that should differ in development, such as voting timers.
 The footer badge fetches `build.txt` and displays:
 
 ```text
-v1.0 • build <timestamp> <short-sha>
+v1.0 • build <UTC timestamp> <deployed-short-sha>
 ```
 
-`scripts/update_build.sh` updates `build.txt` and refreshes cache-buster query
-strings in `index.html` for changed frontend assets. The pre-commit hook runs
-this update and stages its generated changes.
+`build.txt` is ignored generated output. During deployment,
+`scripts/write_build_info.sh` requires the workflow's exact `github.sha` and
+writes the UTC timestamp and short commit SHA before the production artifact is
+built. Local development shows the `(local)` fallback when the file is absent.
+
+The pre-commit hook separately runs `scripts/update_cache_busters.sh` and stages
+updated query strings in `index.html` when frontend assets change. Cache busting
+does not determine the footer's deployed commit identity.
 
 ## Production artifact
 

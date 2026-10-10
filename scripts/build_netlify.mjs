@@ -3,7 +3,8 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
-  rmSync
+  rmSync,
+  writeFileSync
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
@@ -14,7 +15,6 @@ const SHARED_DIR = join(OUTPUT_ROOT, "shared");
 
 const STATIC_FILES = [
   "app.js",
-  "build.txt",
   "favicon.svg",
   "index.html",
   "styles.css",
@@ -40,13 +40,21 @@ for (const file of STATIC_FILES) {
   cpSync(source, join(SITE_DIR, basename(file)));
 }
 
+const buildInfo = resolve("build.txt");
+if (existsSync(buildInfo)) {
+  cpSync(buildInfo, join(SITE_DIR, "build.txt"));
+} else {
+  writeFileSync(join(SITE_DIR, "build.txt"), "local\n", "utf8");
+}
+
 for (const entry of functionFiles) {
   cpSync(resolve("netlify/functions", entry.name), join(FUNCTIONS_DIR, entry.name));
 }
 cpSync(resolve("shared/validationConstants.cjs"), join(SHARED_DIR, "validationConstants.cjs"));
 
+const expectedStatic = [...STATIC_FILES, "build.txt"].sort();
 const copiedStatic = readdirSync(SITE_DIR).sort();
-if (JSON.stringify(copiedStatic) !== JSON.stringify([...STATIC_FILES].sort())) {
+if (JSON.stringify(copiedStatic) !== JSON.stringify(expectedStatic)) {
   throw new Error(`Unexpected static artifact contents: ${copiedStatic.join(", ")}`);
 }
 

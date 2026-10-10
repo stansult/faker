@@ -8,7 +8,7 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, and 5 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, 4 build-metadata tests, and 5 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 16 browser scenarios producing 24 profile-specific executions across room setup, gameplay, voting, constrained layouts, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -59,6 +59,15 @@ that only the current tested `main` tip can deploy, lookup failures stop deploym
 the workflow is bound to the environment that owns the Netlify secrets, and hosted
 browser runs retain the intended Playwright report. Run them with
 `npm run test:deployment`; `npm test` combines them with the logic tests.
+
+### Build-metadata tests
+
+`scripts/build-info.test.cjs` executes the build-info writer in an isolated
+temporary directory and verifies that it requires an explicit commit, emits its
+validated short SHA with a UTC timestamp, rejects invalid commit identities, and
+leaves metadata ownership with the deployment workflow rather than the pre-commit
+hook. These Node.js tests run through
+`npm run test:deployment` as part of `npm test`.
 
 ### Local API integration tests
 
@@ -210,9 +219,10 @@ npm run check:syntax
 tests on pushes and pull requests to `main`, then verifies the allowlisted Netlify
 artifact can be built. Markdown-only pushes are ignored, so they neither run CI nor
 deploy. Mixed pushes always follow the normal workflow. On eligible pushes to
-`main`, the deploy job runs only after the test job passes, publishes to the
-production Netlify project, and records the production deployment in GitHub. Pull
-requests never receive deployment secrets or deploy. See the
+`main`, the deploy job runs only after the test job passes, generates metadata for
+the exact tested commit, publishes to the production Netlify project, verifies the
+live metadata and footer, and then records the production deployment in GitHub.
+Pull requests never receive deployment secrets or deploy. See the
 [deployment guide](../docs/deployment.md).
 
 Hosted Playwright runs keep terminal-list output and also upload an interactive HTML
@@ -232,10 +242,11 @@ git config core.hooksPath .githooks
 For Markdown-only changes, pre-commit runs `git diff --cached --check` and pre-push
 performs no tests. A change is Markdown-only only when the detected file list is
 non-empty and every path ends in `.md`; uncertainty and mixed changes fail closed
-to the normal test path. For all other changes, pre-commit updates build metadata,
-runs syntax checks, and runs all logic and deployment-safety tests through
-`npm test`; pre-push runs `npm run test:api`. The Playwright suite remains an
-explicit command.
+to the normal test path. For all other changes, pre-commit refreshes frontend
+cache-buster query strings when needed, runs syntax checks, and runs all logic and
+deployment-safety tests through `npm test`; pre-push runs `npm run test:api`.
+Deployment metadata is generated only by the hosted deployment workflow. The
+Playwright suite remains an explicit command.
 
 ## Structure
 
@@ -249,6 +260,8 @@ explicit command.
 - `helpers/uiServer.mjs` adapts that server lifecycle for Playwright.
 - `helpers/playwrightGame.mjs` prepares reusable multiplayer game state for hybrid tests.
 - `ui/` contains browser tests configured by `../playwright.config.mjs`.
+- `post-deploy/` contains the read-only production build verification configured
+  by `../playwright.deploy.config.mjs`.
 - `../scripts/change-scope.cjs` is the shared fail-closed classifier used by Git hooks.
 
 The API client rejects non-local hosts by default. Production verification should
@@ -258,8 +271,17 @@ these state-mutating workflows.
 ## Approved remote validation
 
 Release validation can target an explicitly approved HTTPS deploy.
-These commands mutate the target by creating test rooms, so neither is part of the
-default test commands:
+The deployment workflow automatically runs the read-only build verification after
+publishing. To run that check manually against an approved deployment:
+
+```bash
+PRODUCTION_URL=https://approved-deploy.example \
+DEPLOY_SHA=<full-deployed-commit-sha> \
+npm run verify:deploy
+```
+
+The following commands mutate the target by creating test rooms, so neither is
+part of the default test commands:
 
 ```bash
 ALLOW_NON_LOCAL_TEST_API=1 \

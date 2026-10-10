@@ -41,7 +41,10 @@ function createHookFixture(t) {
     path.join(__dirname, "change-scope.cjs"),
     path.join(directory, "scripts", "change-scope.cjs")
   );
-  fs.writeFileSync(path.join(directory, "scripts", "update_build.sh"), "#!/bin/sh\nexit 0\n");
+  fs.writeFileSync(
+    path.join(directory, "scripts", "update_cache_busters.sh"),
+    "#!/bin/sh\nexit 0\n"
+  );
 
   const npmLog = path.join(directory, "npm.log");
   fs.writeFileSync(

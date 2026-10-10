@@ -26,8 +26,11 @@ and deployment-safety tests, local API workflows, Playwright UI tests, and the
 production artifact build. Markdown-only pushes are ignored and do not deploy;
 mixed pushes always use the full gate. Pull requests never deploy. On an eligible
 `main` run, the deploy job waits for every test, confirms the tested commit is still
-the branch tip, rebuilds the allowlisted artifact from that commit, publishes
-through the pinned Netlify CLI, and records the production deployment in GitHub.
+the branch tip, generates build metadata from that exact commit, rebuilds the
+allowlisted artifact, and publishes through the pinned Netlify CLI. A dedicated
+Playwright check then verifies that the live `build.txt` and visible footer show
+the deployed commit SHA and a UTC timestamp before the workflow records a successful
+production deployment in GitHub.
 
 The production artifact is built in `dist/netlify-deploy/`:
 
@@ -43,6 +46,17 @@ npm run build:netlify
 
 Generated artifacts are ignored by Git.
 
+`scripts/write_build_info.sh` requires `COMMIT_REF`; the workflow supplies
+`${{ github.sha }}` rather than deriving a commit during pre-commit. This ensures
+the footer identifies the deployed commit instead of its parent. Run the read-only
+live verification explicitly with:
+
+```bash
+PRODUCTION_URL=https://play-faker.us \
+DEPLOY_SHA=<full-deployed-commit-sha> \
+npm run verify:deploy
+```
+
 Room Functions use `netlify/functions/_roomStore.js` for storage access. Netlify Dev
 uses its sandboxed Blob endpoint. Deployed Functions use the runtime-provided site ID
 and token through Netlify's strongly consistent API path. This prevents a successful
@@ -54,11 +68,13 @@ approval immediately before they are performed.
 
 ## Recovery
 
-GitHub Actions is the production deployment owner. A failed test or deploy must
-leave the last successful production deployment live. Recovery options include
-rerunning a failed workflow after correction or restoring a previously verified
-production deploy. Manual production uploads should not be mixed with workflow-owned
-deployment records except during an explicitly documented recovery.
+GitHub Actions is the production deployment owner. A failed test or pre-publish
+step leaves the last successful production deployment live. If post-publish
+verification fails, the new deploy may already be live but is not recorded as a
+successful GitHub deployment; investigate it and either rerun verification after
+correction or restore a previously verified production deploy. Manual production
+uploads should not be mixed with workflow-owned deployment records except during
+an explicitly documented recovery.
 
 The deploy job uses `NETLIFY_AUTH_TOKEN` only in secret validation and the publish
 step. It uses `NETLIFY_SITE_ID` only to select the existing site. Workflow source

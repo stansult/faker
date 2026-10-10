@@ -8,3 +8,4 @@ itch/
 dist/
 playwright-report/
 test-results/
+build.txt

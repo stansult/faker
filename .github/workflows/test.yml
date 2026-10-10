@@ -44,6 +44,10 @@ jobs:
           path: playwright-report/
           retention-days: 30
           if-no-files-found: ignore
+      - name: Generate build metadata
+        run: bash scripts/write_build_info.sh
+        env:
+          COMMIT_REF: ${{ github.sha }}
       - name: Build production artifact
         run: npm run build:netlify
 
@@ -89,6 +93,14 @@ jobs:
       - name: Install pinned Netlify CLI
         if: steps.current.outputs.ready == 'true'
         run: npm install --global netlify-cli@27.7.0
+      - name: Install Chromium for deployment verification
+        if: steps.current.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Generate build metadata
+        if: steps.current.outputs.ready == 'true'
+        run: bash scripts/write_build_info.sh
+        env:
+          COMMIT_REF: ${{ github.sha }}
       - name: Build production artifact
         if: steps.current.outputs.ready == 'true'
         run: npm run build:netlify
@@ -115,6 +127,12 @@ jobs:
           --prod
           --no-build
           --message="GitHub Actions $GITHUB_SHA"
+      - name: Verify live production build metadata
+        if: steps.publish_current.outputs.ready == 'true'
+        run: npm run verify:deploy
+        env:
+          PRODUCTION_URL: https://play-faker.us
+          DEPLOY_SHA: ${{ github.sha }}
       - name: Record successful deployment
         if: steps.publish_current.outputs.ready == 'true'
         uses: actions/github-script@v9
