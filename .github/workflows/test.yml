@@ -126,7 +126,7 @@ jobs:
           --site="$NETLIFY_SITE_ID"
           --prod
           --no-build
-          --message="GitHub Actions $GITHUB_SHA"
+          --message="$(git show -s --format=%s "$GITHUB_SHA")"
       - name: Verify live production build metadata
         if: steps.publish_current.outputs.ready == 'true'
         run: npm run verify:deploy

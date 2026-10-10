@@ -8,7 +8,7 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, 4 build-metadata tests, and 5 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, 4 build-metadata tests, and 6 deployment-safety tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 16 browser scenarios producing 24 profile-specific executions across room setup, gameplay, voting, constrained layouts, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -57,7 +57,9 @@ tests use Node.js's built-in `node:test` runner and run through
 a fake GitHub API client, and workflow/configuration contract checks. It verifies
 that only the current tested `main` tip can deploy, lookup failures stop deployment,
 the workflow is bound to the environment that owns the Netlify secrets, and hosted
-browser runs retain the intended Playwright report. Run them with
+browser runs retain the intended Playwright report. It also verifies that Netlify
+deploy history uses the deployed commit's subject rather than a generic workflow
+message. Run them with
 `npm run test:deployment`; `npm test` combines them with the logic tests.
 
 ### Build-metadata tests

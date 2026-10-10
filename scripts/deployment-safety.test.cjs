@@ -56,6 +56,19 @@ test("retains a Playwright HTML report without hiding terminal results", () => {
   );
 });
 
+test("uses the deployed commit subject as the Netlify deploy message", () => {
+  const workflow = fs.readFileSync(
+    path.join(__dirname, "..", ".github", "workflows", "test.yml"),
+    "utf8"
+  );
+
+  assert.ok(
+    workflow.includes('--message="$(git show -s --format=%s "$GITHUB_SHA")"'),
+    "Netlify deploy history should show the exact deployed commit subject"
+  );
+  assert.doesNotMatch(workflow, /--message="GitHub Actions/);
+});
+
 test("allows the tested tip of main to deploy", async () => {
   const result = await deploymentReadiness(fixture());
   assert.equal(result.ready, true);
