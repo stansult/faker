@@ -23,8 +23,10 @@ configured and tested with Netlify SSL.
 
 Non-documentation pushes and all pull requests to `main` run syntax checks, logic
 and deployment-safety tests, local API workflows, Playwright UI tests, and the
-production artifact build. Markdown-only pushes are ignored and do not deploy;
-mixed pushes always use the full gate. Pull requests never deploy. On an eligible
+production artifact build. Documentation-only pushes are ignored and do not deploy;
+this includes Markdown anywhere in the repository and supported image assets under
+`docs/`. Mixed or unrecognized changes always use the full gate. Pull requests never
+deploy. On an eligible
 `main` run, the deploy job waits for every test, confirms the tested commit is still
 the branch tip, generates build metadata from that exact commit, rebuilds the
 allowlisted artifact, and publishes through the pinned Netlify CLI. A dedicated

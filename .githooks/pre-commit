@@ -4,7 +4,7 @@ set -e
 if git diff --cached --name-only --diff-filter=ACDMRTUXB --no-renames -z |
   node scripts/change-scope.cjs
 then
-  echo "Markdown-only commit: skipping cache-buster updates, syntax checks, and tests."
+  echo "Documentation-only commit: skipping cache-buster updates, syntax checks, and tests."
   git diff --cached --check
   exit 0
 fi

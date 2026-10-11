@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
+      - "docs/**/*.png"
+      - "docs/**/*.jpg"
+      - "docs/**/*.jpeg"
+      - "docs/**/*.webp"
+      - "docs/**/*.gif"
+      - "docs/**/*.svg"
   pull_request:
     branches: [main]
 

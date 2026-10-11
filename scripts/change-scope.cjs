@@ -1,13 +1,27 @@
 const fs = require("node:fs");
 
-function isMarkdownOnly(paths) {
+const DOCUMENTATION_ASSET_EXTENSION = /\.(?:png|jpe?g|webp|gif|svg)$/;
+
+function isDocumentationPath(filePath) {
+  if (typeof filePath !== "string") return false;
+  if (filePath.endsWith(".md")) return true;
+  if (!filePath.startsWith("docs/")) return false;
+
+  const segments = filePath.slice("docs/".length).split("/");
+  if (segments.some(segment => !segment || segment === "." || segment === "..")) {
+    return false;
+  }
+  return DOCUMENTATION_ASSET_EXTENSION.test(filePath);
+}
+
+function isDocumentationOnly(paths) {
   return Array.isArray(paths) &&
     paths.length > 0 &&
-    paths.every(filePath => typeof filePath === "string" && filePath.endsWith(".md"));
+    paths.every(isDocumentationPath);
 }
 
 function shouldRunTests(paths, { uncertain = false } = {}) {
-  return uncertain || !isMarkdownOnly(paths);
+  return uncertain || !isDocumentationOnly(paths);
 }
 
 function shouldRunTestsForPush(refs) {
@@ -20,7 +34,7 @@ if (require.main === module) {
     .toString("utf8")
     .split("\0")
     .filter(Boolean);
-  process.exitCode = isMarkdownOnly(paths) ? 0 : 1;
+  process.exitCode = isDocumentationOnly(paths) ? 0 : 1;
 }
 
-module.exports = { isMarkdownOnly, shouldRunTests, shouldRunTestsForPush };
+module.exports = { isDocumentationOnly, shouldRunTests, shouldRunTestsForPush };

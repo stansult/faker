@@ -22,5 +22,5 @@ done
 if [ "$saw_ref" -eq 0 ] || [ "$run_api" -eq 1 ]; then
   npm run test:api
 else
-  echo "Markdown-only push: skipping API tests."
+  echo "Documentation-only push: skipping API tests."
 fi

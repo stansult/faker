@@ -6,7 +6,7 @@ const { spawnSync } = require("node:child_process");
 const { test } = require("node:test");
 
 const {
-  isMarkdownOnly,
+  isDocumentationOnly,
   shouldRunTests,
   shouldRunTestsForPush
 } = require("./change-scope.cjs");
@@ -73,26 +73,43 @@ function commitFixture(directory, message) {
   return run("git", ["rev-parse", "HEAD"], { cwd: directory }).stdout.trim();
 }
 
-test("recognizes a non-empty Markdown-only change", () => {
-  assert.equal(isMarkdownOnly(["README.md", "docs/deployment.md", "tests/README.md"]), true);
+test("recognizes non-empty documentation-only changes", () => {
+  assert.equal(isDocumentationOnly([
+    "README.md",
+    "docs/deployment.md",
+    "tests/README.md",
+    "docs/images/example.png",
+    "docs/images/example.jpg",
+    "docs/images/example.jpeg",
+    "docs/diagrams/example.svg",
+    "docs/example.webp",
+    "docs/example.gif"
+  ]), true);
 });
 
-test("requires tests for empty, mixed, or non-Markdown changes", () => {
+test("requires tests for empty, mixed, operational, or application-asset changes", () => {
   assert.equal(shouldRunTests([]), true);
   assert.equal(shouldRunTests(["README.md", "app.js"]), true);
   assert.equal(shouldRunTests(["package.json"]), true);
   assert.equal(shouldRunTests([".github/workflows/test.yml"]), true);
   assert.equal(shouldRunTests(["README.MD"]), true);
+  assert.equal(shouldRunTests(["docs/run.sh"]), true);
+  assert.equal(shouldRunTests(["docs/config.yml"]), true);
+  assert.equal(shouldRunTests(["docs/data.json"]), true);
+  assert.equal(shouldRunTests(["docs/unknown.asset"]), true);
+  assert.equal(shouldRunTests(["docs/../app.jpg"]), true);
+  assert.equal(shouldRunTests(["docs//example.jpg"]), true);
+  assert.equal(shouldRunTests(["images/example.jpg"]), true);
 });
 
 test("requires tests when change detection is uncertain", () => {
   assert.equal(shouldRunTests(["README.md"], { uncertain: true }), true);
 });
 
-test("requires tests when any pushed ref contains a non-Markdown change", () => {
+test("requires tests when any pushed ref contains a non-documentation change", () => {
   assert.equal(shouldRunTestsForPush([
-    { paths: ["README.md"] },
-    { paths: ["docs/deployment.md"] }
+    { paths: ["README.md", "docs/images/example.jpg"] },
+    { paths: ["docs/deployment.md", "docs/example.png"] }
   ]), false);
   assert.equal(shouldRunTestsForPush([
     { paths: ["README.md"] },
@@ -101,14 +118,20 @@ test("requires tests when any pushed ref contains a non-Markdown change", () => 
   assert.equal(shouldRunTestsForPush([]), true);
 });
 
-test("CLI accepts NUL-delimited Markdown paths and fails closed otherwise", () => {
+test("CLI accepts NUL-delimited documentation paths and fails closed otherwise", () => {
   const cli = path.join(__dirname, "change-scope.cjs");
-  const markdown = spawnSync(process.execPath, [cli], {
-    input: "README.md\0docs/testing.md\0"
+  const documentation = spawnSync(process.execPath, [cli], {
+    input: "README.md\0docs/testing.md\0docs/images/example.jpg\0"
   });
-  assert.equal(markdown.status, 0);
+  assert.equal(documentation.status, 0);
 
-  for (const input of ["", "README.md\0app.js\0", "deleted.js\0renamed.md\0"]) {
+  for (const input of [
+    "",
+    "README.md\0app.js\0",
+    "docs/run.sh\0",
+    "images/example.jpg\0",
+    "deleted.js\0renamed.md\0"
+  ]) {
     const result = spawnSync(process.execPath, [cli], { input });
     assert.equal(result.status, 1, `expected tests for ${JSON.stringify(input)}`);
   }
@@ -123,19 +146,26 @@ test("hooks disable rename detection so removed source paths remain visible", ()
   }
 });
 
-test("push workflow ignores Markdown-only changes", () => {
+test("push workflow ignores only supported documentation changes", () => {
   const workflow = fs.readFileSync(
     path.join(__dirname, "..", ".github", "workflows", "test.yml"),
     "utf8"
   );
-  assert.match(
-    workflow,
-    /push:\n\s+branches: \[main\]\n\s+paths-ignore:\n\s+- "\*\*\/\*\.md"/,
-    "pushes should skip CI only when every changed file is Markdown"
-  );
+  for (const pattern of [
+    "**/*.md",
+    "docs/**/*.png",
+    "docs/**/*.jpg",
+    "docs/**/*.jpeg",
+    "docs/**/*.webp",
+    "docs/**/*.gif",
+    "docs/**/*.svg"
+  ]) {
+    assert.match(workflow, new RegExp(`- "${pattern.replaceAll("*", "\\*").replace(".", "\\.")}"`));
+  }
+  assert.doesNotMatch(workflow, /- "docs\/\*\*"/);
 });
 
-test("pre-commit hook skips tests only for a Markdown-only staged change", t => {
+test("pre-commit hook skips tests only for a documentation-only staged change", t => {
   const { directory, env, npmLog } = createHookFixture(t);
   fs.writeFileSync(path.join(directory, "README.md"), "initial\n");
   commitFixture(directory, "initial");
@@ -143,7 +173,14 @@ test("pre-commit hook skips tests only for a Markdown-only staged change", t => 
   fs.appendFileSync(path.join(directory, "README.md"), "documentation\n");
   run("git", ["add", "README.md"], { cwd: directory });
   const markdown = run("sh", [".githooks/pre-commit"], { cwd: directory, env });
-  assert.match(markdown.stdout, /Markdown-only commit/);
+  assert.match(markdown.stdout, /Documentation-only commit/);
+  assert.equal(fs.existsSync(npmLog), false);
+
+  fs.mkdirSync(path.join(directory, "docs", "images"), { recursive: true });
+  fs.writeFileSync(path.join(directory, "docs", "images", "example.jpg"), "image fixture\n");
+  run("git", ["add", "docs/images/example.jpg"], { cwd: directory });
+  const image = run("sh", [".githooks/pre-commit"], { cwd: directory, env });
+  assert.match(image.stdout, /Documentation-only commit/);
   assert.equal(fs.existsSync(npmLog), false);
 
   fs.writeFileSync(path.join(directory, "app.js"), "console.log('test');\n");
@@ -155,11 +192,13 @@ test("pre-commit hook skips tests only for a Markdown-only staged change", t => 
   ]);
 });
 
-test("pre-push hook checks all pushed refs and skips only Markdown-only ranges", t => {
+test("pre-push hook checks all pushed refs and skips only documentation-only ranges", t => {
   const { directory, env, npmLog } = createHookFixture(t);
   fs.writeFileSync(path.join(directory, "README.md"), "initial\n");
   const initial = commitFixture(directory, "initial");
   fs.appendFileSync(path.join(directory, "README.md"), "documentation\n");
+  fs.mkdirSync(path.join(directory, "docs", "images"), { recursive: true });
+  fs.writeFileSync(path.join(directory, "docs", "images", "example.jpg"), "image fixture\n");
   const documentation = commitFixture(directory, "documentation");
   fs.writeFileSync(path.join(directory, "app.js"), "console.log('test');\n");
   const executable = commitFixture(directory, "executable");
@@ -169,7 +208,7 @@ test("pre-push hook checks all pushed refs and skips only Markdown-only ranges",
     env,
     input: `refs/heads/main ${documentation} refs/heads/main ${initial}\n`
   });
-  assert.match(docsPush.stdout, /Markdown-only push/);
+  assert.match(docsPush.stdout, /Documentation-only push/);
   assert.equal(fs.existsSync(npmLog), false);
 
   run("sh", [".githooks/pre-push"], {

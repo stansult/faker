@@ -44,11 +44,12 @@ included in `npm run test:logic`.
 
 ### Change-scope tests
 
-`scripts/change-scope.test.cjs` verifies the conservative Markdown-only classifier,
-its NUL-delimited command-line interface, the hook configuration, and the hosted
-workflow contract. Temporary Git repositories execute both hooks to prove that
-documentation changes skip tests while mixed and multi-ref changes do not. These
-tests use Node.js's built-in `node:test` runner and run through
+`scripts/change-scope.test.cjs` verifies the conservative documentation-only
+classifier, its NUL-delimited command-line interface, the hook configuration, and
+the hosted workflow contract. Temporary Git repositories execute both hooks to
+prove that Markdown and supported images under `docs/` skip tests while mixed,
+operational, application-asset, unknown, and multi-ref changes do not. These tests
+use Node.js's built-in `node:test` runner and run through
 `npm run test:deployment` as part of the fast tooling suite.
 
 ### Deployment-safety tests
@@ -219,11 +220,14 @@ npm run check:syntax
 
 `.github/workflows/test.yml` runs syntax, logic, deployment-safety, API, and UI
 tests on pushes and pull requests to `main`, then verifies the allowlisted Netlify
-artifact can be built. Markdown-only pushes are ignored, so they neither run CI nor
-deploy. Mixed pushes always follow the normal workflow. On eligible pushes to
-`main`, the deploy job runs only after the test job passes, generates metadata for
-the exact tested commit, publishes to the production Netlify project, verifies the
-live metadata and footer, and then records the production deployment in GitHub.
+artifact can be built. Documentation-only pushes are ignored, so they neither run
+CI nor deploy. This exception covers Markdown files and `.png`, `.jpg`, `.jpeg`,
+`.webp`, `.gif`, and `.svg` assets under `docs/`; other files under `docs/` fail
+closed to the normal workflow. Mixed pushes always follow that workflow. On
+eligible pushes to `main`, the deploy job runs only after the test job passes,
+generates metadata for the exact tested commit, publishes to the production Netlify
+project, verifies the live metadata and footer, and then records the production
+deployment in GitHub.
 Pull requests never receive deployment secrets or deploy. See the
 [deployment guide](../docs/deployment.md).
 
@@ -241,12 +245,13 @@ Git uses the tracked hooks in `.githooks` through:
 git config core.hooksPath .githooks
 ```
 
-For Markdown-only changes, pre-commit runs `git diff --cached --check` and pre-push
-performs no tests. A change is Markdown-only only when the detected file list is
-non-empty and every path ends in `.md`; uncertainty and mixed changes fail closed
-to the normal test path. For all other changes, pre-commit refreshes frontend
-cache-buster query strings when needed, runs syntax checks, and runs all logic and
-deployment-safety tests through `npm test`; pre-push runs `npm run test:api`.
+For documentation-only changes, pre-commit runs `git diff --cached --check` and
+pre-push performs no tests. A change qualifies only when the detected file list is
+non-empty and every path is either Markdown or a supported image under `docs/`;
+uncertainty, operational files under `docs/`, application images, and mixed changes
+fail closed to the normal test path. For all other changes, pre-commit refreshes
+frontend cache-buster query strings when needed, runs syntax checks, and runs all
+logic and deployment-safety tests through `npm test`; pre-push runs `npm run test:api`.
 Deployment metadata is generated only by the hosted deployment workflow. The
 Playwright suite remains an explicit command.
 
