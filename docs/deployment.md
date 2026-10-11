@@ -40,6 +40,10 @@ The production artifact is built in `dist/netlify-deploy/`:
 - `netlify/functions/` contains the function sources.
 - `shared/` preserves the shared constants path required while bundling functions.
 
+The build generates the browser's production `validationConstants.js` directly
+inside `site/` from `shared/validationConstants.cjs`; it does not depend on or
+modify a working-tree copy.
+
 Build it locally with:
 
 ```bash

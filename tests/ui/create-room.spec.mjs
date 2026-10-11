@@ -4,6 +4,10 @@ test("host creates a room and reaches the lobby", { tag: "@mobile" }, async ({ p
   await page.goto("/");
 
   await expect(page).toHaveTitle("Faker — Lobby");
+  await expect.poll(() => page.evaluate(() => ({
+    total: window.VALIDATION_CONSTANTS?.VOTE_TOTAL_SECONDS,
+    final: window.VALIDATION_CONSTANTS?.VOTE_FINAL_SECONDS
+  }))).toEqual({ total: 10, final: 1 });
   await page.locator("#playerName").fill("Alice");
   await page.locator("#btnCreateRoom").click();
 

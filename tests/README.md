@@ -8,7 +8,7 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 10 game-logic tests, 4 room-store adapter tests, 2 local-server harness tests, 9 change-scope tests, 4 build-metadata tests, and 6 deployment-safety tests | Node.js built-in assertions and test runners |
+| `npm test` | 41 fast tests: 10 game-logic, 4 room-store adapter, 2 local-server harness, 9 change-scope, 4 build-metadata, 6 deployment-safety, and 6 generation/packaging tests | Node.js built-in assertions and test runners |
 | `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 16 browser scenarios producing 24 profile-specific executions across room setup, gameplay, voting, constrained layouts, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
@@ -72,12 +72,33 @@ leaves metadata ownership with the deployment workflow rather than the pre-commi
 hook. These Node.js tests run through
 `npm run test:deployment` as part of `npm test`.
 
+### Generation and production-artifact tests
+
+`scripts/validation-constants.test.cjs` verifies production defaults and explicit
+development/test timer overrides. `scripts/netlify-build.test.cjs` builds from a
+fresh-checkout fixture with no working-tree `validationConstants.js`, verifies that
+the generated production copy exists only in the artifact, and enforces the ignored
+file and package-script contract. `scripts/cache-busters.test.cjs` verifies that a
+shared constants change refreshes and stages the browser asset cache keys. These
+five generation tests use Node.js's built-in runner through
+`npm run test:deployment`.
+
+### Itch packaging test
+
+`scripts/itch-build.test.cjs` builds from isolated fixture files and inspects
+the resulting archive. It verifies that `index.html` and every required asset
+are at the ZIP root, API calls and timers target production, and temporary
+staging is not left behind. This Node.js test runs through
+`npm run test:deployment` as part of `npm test` and uses the standard `unzip`
+command to inspect the archive.
+
 ### Local API integration tests
 
 `api.smoke.test.mjs` sends real HTTP requests through local Netlify Functions and
 the local Blob sandbox. For each workflow, `helpers/netlifyDev.mjs` creates an
-isolated temporary project, reserves ports, starts `netlify dev --offline`, and
-removes the project after the test. The workflows cover validation, room
+isolated temporary project, reserves ports, generates browser constants matching
+that server's configured timers, starts `netlify dev --offline`, and removes the
+project after the test. The workflows cover validation, room
 lifecycle, lobby edits and membership permissions, gameplay rules, single-game and
 multi-game completion, score and starter continuity, post-match immutability across
 every mutating room endpoint, expiration, and repeated concurrent final-slot joins and
@@ -97,7 +118,9 @@ otherwise expensive browser setup faster while the user action remains in the UI
 
 Playwright launches Chromium against the real app served by one shared local
 Netlify process from `helpers/uiServer.mjs`. Tests run serially so they can share
-that server without sharing browser state. Every scenario runs in Desktop Chrome;
+that server without sharing browser state. The create-room coverage also verifies
+that the browser loaded the server's test-specific voting timers. Every scenario
+runs in Desktop Chrome;
 tests tagged `@mobile` also run with the Pixel 7 profile. Run the suite with
 `npm run test:ui`.
 
@@ -169,7 +192,7 @@ browser scenario is added, removed, or materially changed.
 
 | # | Scenario | Browser action | API role | Profiles |
 | ---: | --- | --- | --- | --- |
-| 1 | Host creates a room and reaches the lobby | Enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
+| 1 | Host creates a room and reaches the lobby | Verifies test-specific browser constants, enters the host name and room settings, creates the room, and verifies the lobby | None | Desktop, Mobile |
 | 2 | Player joins a prepared three-player room | Enters a name and room code, joins, and verifies the lobby | Creates the room and two supporting players, then verifies room state | Desktop, Mobile |
 | 3 | Host kicks a player from the lobby | Confirms a kick, verifies host-only controls, and observes roster renumbering | Prepares the lobby and verifies persisted membership | Desktop |
 | 4 | Player leaves the lobby | Confirms leaving, returns to the entry screen, and verifies local identity cleanup | Prepares the lobby and verifies persisted membership | Desktop, Mobile |
@@ -270,6 +293,8 @@ Playwright suite remains an explicit command.
 - `post-deploy/` contains the read-only production build verification configured
   by `../playwright.deploy.config.mjs`.
 - `../scripts/change-scope.cjs` is the shared fail-closed classifier used by Git hooks.
+- `../scripts/*-build.test.cjs`, `../scripts/validation-constants.test.cjs`, and
+  `../scripts/cache-busters.test.cjs` verify generated configuration and deployable artifacts.
 
 The API client rejects non-local hosts by default. Production verification should
 use a separately designed, explicitly approved smoke test rather than repointing

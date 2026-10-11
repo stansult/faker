@@ -4,6 +4,7 @@ import http from "node:http";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { writeValidationConstants } from "../../scripts/build_constants.mjs";
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -113,7 +114,6 @@ export async function startNetlifyDev(options = {}) {
     "app.js",
     "styles.css",
     "uiErrors.js",
-    "validationConstants.js",
     "build.txt",
     "netlify",
     "shared",
@@ -129,6 +129,10 @@ export async function startNetlifyDev(options = {}) {
       // Some optional files may not exist in every checkout.
     }
   }
+  writeValidationConstants(
+    join(projectDir, "validationConstants.js"),
+    { ...process.env, ...(options.env || {}) }
+  );
 
   const configuredPorts = [
     options.port || process.env.FAKER_TEST_PORT || null,

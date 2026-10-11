@@ -7,6 +7,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { writeValidationConstants } from "./build_constants.mjs";
 
 const OUTPUT_ROOT = resolve("dist/netlify-deploy");
 const SITE_DIR = join(OUTPUT_ROOT, "site");
@@ -18,9 +19,9 @@ const STATIC_FILES = [
   "favicon.svg",
   "index.html",
   "styles.css",
-  "uiErrors.js",
-  "validationConstants.js"
+  "uiErrors.js"
 ];
+const GENERATED_STATIC_FILES = ["validationConstants.js"];
 
 const functionFiles = readdirSync(resolve("netlify/functions"), { withFileTypes: true });
 for (const entry of functionFiles) {
@@ -39,6 +40,7 @@ for (const file of STATIC_FILES) {
   if (!existsSync(source)) throw new Error(`Missing production file: ${file}`);
   cpSync(source, join(SITE_DIR, basename(file)));
 }
+writeValidationConstants(join(SITE_DIR, "validationConstants.js"), {});
 
 const buildInfo = resolve("build.txt");
 if (existsSync(buildInfo)) {
@@ -52,7 +54,7 @@ for (const entry of functionFiles) {
 }
 cpSync(resolve("shared/validationConstants.cjs"), join(SHARED_DIR, "validationConstants.cjs"));
 
-const expectedStatic = [...STATIC_FILES, "build.txt"].sort();
+const expectedStatic = [...STATIC_FILES, ...GENERATED_STATIC_FILES, "build.txt"].sort();
 const copiedStatic = readdirSync(SITE_DIR).sort();
 if (JSON.stringify(copiedStatic) !== JSON.stringify(expectedStatic)) {
   throw new Error(`Unexpected static artifact contents: ${copiedStatic.join(", ")}`);

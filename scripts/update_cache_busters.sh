@@ -20,7 +20,12 @@ try:
 except subprocess.CalledProcessError:
     changed = []
 
-if not any(path in ("styles.css", "app.js") for path in changed):
+if not any(path in (
+    "styles.css",
+    "app.js",
+    "uiErrors.js",
+    "shared/validationConstants.cjs"
+) for path in changed):
     sys.exit(0)
 
 def replace_version(text, asset):

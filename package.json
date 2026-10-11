@@ -4,7 +4,7 @@
   "scripts": {
     "build:constants": "node scripts/build_constants.mjs",
     "build:itch": "node scripts/build_itch.mjs",
-    "build:netlify": "npm run build:constants && node scripts/build_netlify.mjs",
+    "build:netlify": "node scripts/build_netlify.mjs",
     "check:syntax": "node --check app.js && node --check playwright.config.mjs && node --check playwright.deploy.config.mjs && for f in netlify/functions/*.js scripts/*.cjs scripts/*.mjs tests/*.mjs tests/helpers/*.mjs tests/ui/*.mjs tests/post-deploy/*.mjs; do node --check \"$f\"; done",
     "test": "npm run test:logic && npm run test:deployment",
     "test:api": "node tests/run.mjs tests/*.smoke.test.mjs",

@@ -14,7 +14,7 @@ Frontend:
 - `app.js` owns client state, localStorage identity, polling, rendering,
   validation, and API calls.
 - `styles.css` owns layout and responsive table behavior.
-- `validationConstants.js` is generated for browser use.
+- `validationConstants.js` is ignored generated output for browser use.
 - `uiErrors.js` contains shared client-only error strings.
 - Debug tools and request logs are available with `?debug=1`.
 
@@ -171,9 +171,16 @@ ROOM_ACTIVE_TTL_HOURS=0.01 npm run dev
 npm run build:constants
 ```
 
-This writes `validationConstants.js` from
+This writes the ignored local `validationConstants.js` from
 `shared/validationConstants.cjs`, applying environment overrides for values
-that should differ in development, such as voting timers.
+that should differ in development, such as voting timers. The supported
+`npm run dev`, `npm run dev:lan`, and `npm run dev:live` entry points generate
+it automatically.
+
+Production and Itch builds generate their own production copy directly inside
+the output artifact. Playwright and local API workflows generate an isolated
+copy for each temporary Netlify project using that server's configured timers.
+None of those paths requires or modifies the working-tree file.
 
 ## Build version
 
@@ -189,8 +196,9 @@ writes the UTC timestamp and short commit SHA before the production artifact is
 built. Local development shows the `(local)` fallback when the file is absent.
 
 The pre-commit hook separately runs `scripts/update_cache_busters.sh` and stages
-updated query strings in `index.html` when frontend assets change. Cache busting
-does not determine the footer's deployed commit identity.
+updated query strings in `index.html` when `app.js`, `styles.css`, `uiErrors.js`,
+or the shared validation constants change. Cache busting does not determine the
+footer's deployed commit identity.
 
 ## Production artifact
 
@@ -205,19 +213,22 @@ production workflow.
 
 ## Itch.io build
 
-Generate a static itch.io build that points to the production backend:
+Generate an upload-ready itch.io ZIP that points to the production backend:
 
 ```bash
 npm run build:itch
 ```
 
-This creates `./itch/` with frontend-only files and rewrites API calls to:
+This creates `./dist/faker-itch.zip` with `index.html` at the archive root and
+rewrites API calls to:
 
 ```text
 https://play-faker.us/.netlify/functions/
 ```
 
-`itch/` is generated output and is gitignored.
+The command uses temporary staging and removes it after packaging. `dist/` is
+generated output and is gitignored. Packaging requires the standard `zip`
+command available in the local environment.
 
 ## Generated and local files
 
@@ -227,7 +238,7 @@ These paths are gitignored:
 - `node_modules/`
 - `screenshots/`
 - `notes/`
-- `itch/`
+- `validationConstants.js`
 - `dist/`
 
 `notes/` contains local handoff and testing notes; it is not public repository
