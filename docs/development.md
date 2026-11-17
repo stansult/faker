@@ -36,8 +36,93 @@ Storage:
 - Deployed room reads use strong consistency because each player action depends
   on the immediately preceding write. Netlify Dev uses its local sandbox.
 - Room writes update `updatedAt`; polling and status reads do not.
-- Expiry is an access rule, not physical deletion. Cleanup can be added
-  separately later.
+- Expiry is an access rule, not physical deletion. Scheduled abandoned-room
+  cleanup is a separate maintenance task, described below.
+
+## Abandoned-room cleanup
+
+`cleanupRooms` is a scheduled Netlify Function. Its daily heartbeat runs at
+04:00 UTC; the persisted due date determines whether it actually scans rooms.
+No scan is performed on a not-due invocation. The initial invocation is due
+immediately, with a monthly starting cadence.
+
+The cleanup policy is separate from the 24-hour play expiry:
+
+- Only non-ended rooms with more than seven days of inactivity are eligible.
+- Activity uses `updatedAt`, falling back to `createdAt` when absent.
+- Completed matches are never deleted, including old results without timestamps.
+- Malformed JSON, invalid room keys, mismatched room codes, unknown match status,
+  and missing, invalid, future, or conflicting timestamps are skipped and counted.
+- The room is reread immediately before deletion. Missing ETags, a different
+  ETag, changed content, or changed eligibility cause it to be skipped.
+
+The installed Blob SDK does not provide conditional deletion. Rereading reduces
+but does not eliminate a race with an in-flight write or administrative edit.
+Ordinary gameplay is already rejected for these rooms by the 24-hour expiry.
+This is a conservative safeguard, not an atomic deletion guarantee.
+
+### Adaptive cadence and measurements
+
+Intervals are elapsed UTC durations, not calendar boundaries: weekly is seven
+days, monthly is 30 days, and quarterly is 90 days. The next date is calculated
+from successful scan completion.
+
+| Complete scan outcome | Next cadence |
+| --- | --- |
+| More than 1,000,000 eligible bytes | Weekly; reset low-volume streaks |
+| Two consecutive weekly scans at or below that threshold | Monthly; start a fresh empty-scan streak |
+| Two consecutive empty monthly scans | Quarterly |
+| Quarterly scan with any eligible rooms, at or below the threshold | Monthly |
+| Empty quarterly scan | Remain quarterly |
+
+All other outcomes retain the current cadence. Completed-result storage does not
+accelerate cleanup. Changed candidates skipped before deletion do not count as
+eligible data. Bytes are UTF-8 JSON payload bytes, not provider billing totals.
+
+Maintenance state lives under `room-cleanup-v1` in the separate
+`faker-maintenance` Blob store. It holds cadence, streaks, due date, aggregate
+statistics, and any unfinished scan's processed room keys. Conditional writes
+acquire a five-minute lease to avoid overlapping deletion runs. An expired lease
+can be recovered; invalid maintenance state fails closed.
+
+Scans use SDK pagination and a 20-second cooperative time budget, leaving room
+under Netlify's scheduled-function limit for a checkpoint. An unfinished scan
+restarts listing on the next daily invocation, skips already processed keys, and
+uses its original eligibility cutoff. Failed reads or deletes remain retryable.
+Neither partial scans nor failures advance the cadence or empty-scan streak.
+The budget is checked between storage calls; a slow individual call or a hard
+platform timeout can still interrupt a run. A lost checkpoint can cause some
+records or counts to be revisited, but completed results remain protected.
+
+Aggregate logs contain scanned/eligible/deleted counts and bytes, retained,
+completed, invalid, changed, missing and failed counts, cadence, and next due date.
+They do not include room keys, player names, words, or credentials. The remaining
+measured bytes describe only records scanned, not an atomic storage-wide total.
+
+### Dry-run and local invocation
+
+Deletion is disabled unless `ROOM_CLEANUP_DELETE_ENABLED` is exactly `1`.
+Without it, due invocations scan and log candidates but change neither rooms nor
+maintenance state. With no saved due date, this means daily dry-run previews
+until deletion is explicitly activated; previews do not establish cadence streaks.
+
+For a local dry-run:
+
+```bash
+npm run dev
+# In another terminal, while that server is running:
+netlify functions:invoke cleanupRooms
+```
+
+To exercise deletion locally, start a separate sandbox with
+`ROOM_CLEANUP_DELETE_ENABLED=1 npm run dev`, then invoke the same function.
+Local Netlify does not execute cron schedules automatically. In local HTTP tests,
+Netlify replaces a scheduled function's response with explanatory text; the
+structured summary is in the function logs, not its HTTP body.
+
+Production activation and verification require separate explicit approval; see
+the [deployment guide](deployment.md). Retention and cadence are Faker product
+policies, not a shared cross-project engineering workflow.
 
 ## Technical room rules
 

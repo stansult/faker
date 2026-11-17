@@ -4,6 +4,9 @@ enabled = true
 [functions]
 directory = "netlify/functions"
 
+[functions."cleanupRooms"]
+schedule = "0 4 * * *"
+
 [dev]
 publish = "."
 functions = "netlify/functions"

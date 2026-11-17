@@ -29,6 +29,16 @@ test("builds a production artifact without a generated working-tree file", t => 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.equal(fs.existsSync(path.join(directory, "validationConstants.js")), false);
 
+  const cleanupSource = fs.readFileSync(path.join(
+    directory, "dist/netlify-deploy/netlify/functions/cleanupRooms.js"
+  ), "utf8");
+  assert.match(cleanupSource, /export const handler = createCleanupHandler\(\)/);
+  assert.ok(fs.existsSync(path.join(
+    directory, "dist/netlify-deploy/netlify/functions/_roomCleanup.js"
+  )));
+  const config = fs.readFileSync(path.join(repository, "netlify.toml"), "utf8");
+  assert.match(config, /\[functions\."cleanupRooms"\]\s+schedule = "0 4 \* \* \*"/);
+
   const generated = fs.readFileSync(
     path.join(directory, "dist", "netlify-deploy", "site", "validationConstants.js"),
     "utf8"

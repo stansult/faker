@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { getRoomStore } from "../netlify/functions/_roomStore.js";
+import { getRoomStore, getMaintenanceStore } from "../netlify/functions/_roomStore.js";
 import { test } from "./helpers/testHarness.mjs";
 
 function eventFor(url, overrides = {}) {
@@ -65,6 +65,20 @@ test("room store fails closed when deployed credentials are incomplete", () => {
     /Missing deployed Netlify Blobs credentials/
   );
   assert.throws(() => getRoomStore({}), /Missing Netlify Blobs context/);
+});
+
+test("maintenance state uses a separate store with the same sandbox and credential boundary", () => {
+  for (const url of ["http://127.0.0.1:9999", "https://edge.example"]) {
+    const calls = [];
+    getMaintenanceStore(eventFor(url), {
+      connectLambda() {},
+      getStore(value) { calls.push(value); return {}; }
+    });
+    assert.deepEqual(calls, [url.startsWith("http:") ? "faker-maintenance" : {
+      name: "faker-maintenance", siteID: "site-id", token: "runtime-token", consistency: "strong"
+    }]);
+  }
+  assert.throws(() => getMaintenanceStore({}), /Missing Netlify Blobs context/);
 });
 
 test("every room function uses the centralized room store adapter", async () => {

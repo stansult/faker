@@ -72,6 +72,34 @@ returned or logged. See [issue #16](https://github.com/stansult/faker/issues/16)
 Account, credential, billing, and production configuration changes require explicit
 approval immediately before they are performed.
 
+## Scheduled cleanup activation
+
+The deployment includes `cleanupRooms`, scheduled in `netlify.toml` at 04:00 UTC
+daily. Netlify runs scheduled functions only on published deploys, not
+automatically on previews or local development. The daily invocation reads a due
+date; room scanning follows the adaptive policy in the
+[development guide](development.md#abandoned-room-cleanup).
+
+1. Publish through the normal tested workflow only after deployment approval.
+   With no opt-in, the function performs dry-run scans and never deletes rooms.
+2. With approval, use the Netlify Functions dashboard's **Run now** action and
+   inspect the aggregate summary. Review eligible, invalid, and failed counts.
+   Do not enable deletion while the scan is incomplete or there are unexplained
+   failures or skipped records.
+3. Obtain separate explicit approval to set `ROOM_CLEANUP_DELETE_ENABLED=1` in the
+   production Function environment, applying the environment change according
+   to Netlify's deployment requirements.
+4. Invoke the activated function only with approval, inspect the deletion summary,
+   and confirm that completed results remain readable and the due date was saved.
+
+Removing the opt-in stops future deletes; it cannot restore deleted rooms. A run
+already in progress retains its initial mode. Keep maintenance state in the
+`faker-maintenance` store; do not reset it casually to force a run. Production
+triggers are Netlify's scheduler and dashboard invocation, not a public HTTP
+cleanup endpoint. Never point local cleanup tests at production.
+
+Reference: [Netlify scheduled functions](https://docs.netlify.com/build/functions/scheduled-functions/).
+
 ## Recovery
 
 GitHub Actions is the production deployment owner. A failed test or pre-publish

@@ -8,8 +8,8 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 41 fast tests: 10 game-logic, 4 room-store adapter, 2 local-server harness, 9 change-scope, 4 build-metadata, 6 deployment-safety, and 6 generation/packaging tests | Node.js built-in assertions and test runners |
-| `npm run test:api` | 7 room lifecycle, concurrency, and complete gameplay workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
+| `npm test` | 66 fast tests: 10 game-logic, 5 room-store adapter, 2 local-server harness, 21 cleanup-policy/handler, 3 cleanup-fixture, 9 change-scope, 4 build-metadata, 6 deployment-safety, and 6 generation/packaging tests | Node.js built-in assertions and test runners |
+| `npm run test:api` | 8 room lifecycle, concurrency, gameplay, and scheduled-cleanup workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 16 browser scenarios producing 24 profile-specific executions across room setup, gameplay, voting, constrained layouts, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
@@ -33,6 +33,30 @@ Netlify dependencies. It verifies local sandbox selection, strongly consistent
 deployed access, and fail-closed credential handling. It also scans every room
 Function to ensure all storage access goes through the central adapter. These
 tests use the same lightweight runner and are included in `npm run test:logic`.
+
+### Cleanup policy and fixture tests
+
+`roomCleanup.test.mjs` verifies seven-day eligibility, completed-result preservation,
+timestamp safeguards, exact byte thresholds, all cadence transitions, dry-run,
+leases, interruption/resume, retryable failures, changed/missing ETags, aggregate
+log privacy, handler opt-in, and schedule configuration. It uses an injected clock
+and the `memoryBlobStore.mjs` fixture rather than sleeps or production storage.
+`memoryBlobStore.test.mjs` independently checks that fixture's detached reads,
+pagination, actual deletion, ETags, and conditional-write rejection behavior.
+These tests run through `npm run test:logic` and therefore `npm test`.
+
+`cleanup.smoke.test.mjs` separately invokes the real scheduled Function in an
+isolated local Netlify sandbox with deletion enabled only there. It creates a
+fresh room, verifies the actual SDK listing/read path retains it, and verifies
+that the maintenance lease/checkpoint persist a due date so the next invocation
+does not scan. Scheduled HTTP responses contain Netlify's explanatory text;
+the integration test reads the structured summary from captured function logs.
+Old-room deletion is covered by policy and independently tested storage fixtures,
+not by aging production data. This workflow runs through `npm run test:api`.
+
+During implementation, controlled faults in completed-result preservation,
+quarterly transition, and fixture deletion were each detected by their respective
+assertions, then restored before the passing run. No fault remains in the code.
 
 ### Local-server harness tests
 
