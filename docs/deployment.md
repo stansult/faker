@@ -4,6 +4,18 @@ Faker deploys to Netlify through a GitHub Actions test gate. GitHub environment
 secrets identify and authorize the production project; Netlify's independent Git
 builds remain disabled so the tested workflow is the only normal deployment path.
 
+## Netlify account ownership
+
+The active production target is the legacy-account project `faker-game-legacy`
+(site ID `16b3daa3-6675-46b3-9f49-0afe6373c1b8`). The protected GitHub
+environment `netlify-production` deploys to this project, whose public Netlify
+hostname remains `faker-game.netlify.app`.
+
+The former project in the credit-based Netlify account is retained only as a
+rollback option; its independent Git builds are stopped and it is not a normal
+deployment target. Changing either account, the deployment target, credentials,
+or DNS requires explicit approval.
+
 ## Production endpoints
 
 Production is hosted on Netlify at `https://faker-game.netlify.app/`. The public
