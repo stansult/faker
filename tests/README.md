@@ -8,12 +8,12 @@ below.
 
 | Command | Coverage | Platform |
 | --- | --- | --- |
-| `npm test` | 66 fast tests: 10 game-logic, 5 room-store adapter, 2 local-server harness, 21 cleanup-policy/handler, 3 cleanup-fixture, 9 change-scope, 4 build-metadata, 6 deployment-safety, and 6 generation/packaging tests | Node.js built-in assertions and test runners |
+| `npm test` | 67 fast tests: 10 game-logic, 5 room-store adapter, 2 local-server harness, 21 cleanup-policy/handler, 3 cleanup-fixture, 9 change-scope, 4 build-metadata, 6 deployment-safety, 6 generation/packaging, and 1 local-development configuration test | Node.js built-in assertions and test runners |
 | `npm run test:api` | 8 room lifecycle, concurrency, gameplay, and scheduled-cleanup workflows | Local `netlify dev --offline`, Netlify Functions and Blobs |
 | `npm run test:ui` | 16 browser scenarios producing 24 profile-specific executions across room setup, gameplay, voting, constrained layouts, recovery, language handling, and match results | Playwright Chromium: Desktop Chrome and emulated Pixel 7 |
 
 Local runtime varies with Netlify cold startup. The API suite commonly takes
-about 30–90 seconds; the two-project UI suite commonly takes about 70–90 seconds,
+about 30–90 seconds; the two-project UI suite commonly takes about 90–120 seconds,
 including one shared Netlify startup.
 
 ## How each test type works
@@ -65,6 +65,16 @@ selected port is taken between allocation and process binding. Only recognized b
 collisions on automatic ports are retried; explicit ports and unrelated startup
 failures remain immediately visible. These tests use the lightweight runner and are
 included in `npm run test:logic`.
+
+### Local-development configuration test
+
+`scripts/local-dev.test.cjs` verifies that all supported development entry
+points use the same explicit static, Functions, and proxy ports, disable browser
+launching, and select Netlify's offline local Blob sandbox. It also prevents a
+conflicting `[dev]` block from being reintroduced in `netlify.toml`. This
+Node.js contract test runs through `npm run test:deployment` as part of
+`npm test`; the API and UI suites independently exercise the isolated local
+server and Function routes.
 
 ### Change-scope tests
 
@@ -238,9 +248,11 @@ browser scenario is added, removed, or materially changed.
 
 ## Setup and commands
 
-Install project dependencies and the Playwright Chromium binary:
+Use Node.js 22 (the hosted CI baseline), Python 3, and Netlify CLI 27.7.0.
+Install the CLI, project dependencies, and Playwright Chromium binary:
 
 ```bash
+npm install --global netlify-cli@27.7.0
 npm install
 npx playwright install chromium
 ```
@@ -317,6 +329,8 @@ Playwright suite remains an explicit command.
 - `post-deploy/` contains the read-only production build verification configured
   by `../playwright.deploy.config.mjs`.
 - `../scripts/change-scope.cjs` is the shared fail-closed classifier used by Git hooks.
+- `../scripts/local-dev.test.cjs` protects the supported offline
+  development-server contract.
 - `../scripts/*-build.test.cjs`, `../scripts/validation-constants.test.cjs`, and
   `../scripts/cache-busters.test.cjs` verify generated configuration and deployable artifacts.
 

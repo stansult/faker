@@ -173,6 +173,11 @@ Debug/helper:
 
 - `claimPlayer`
 
+Maintenance:
+
+- `cleanupRooms` is invoked by Netlify's schedule or its dashboard, not as a
+  public production HTTP endpoint.
+
 All endpoints are under:
 
 ```text
@@ -181,9 +186,11 @@ All endpoints are under:
 
 ## Local development
 
-Install dependencies:
+Use Node.js 22 (the hosted CI baseline), Python 3, and Netlify CLI 27.7.0.
+Install the CLI and project dependencies:
 
 ```bash
+npm install --global netlify-cli@27.7.0
 npm install
 ```
 
@@ -194,6 +201,12 @@ npm run dev
 ```
 
 Open `http://localhost:8888`.
+
+The supported development commands explicitly run `netlify dev --offline`.
+They serve static files through Python on port 3999, Functions on port 9999,
+and the combined Netlify proxy on port 8888. Rooms use the local Blob sandbox;
+an ignored local `.netlify/` site link does not select a deployed site's
+storage for these commands.
 
 ### Other devices on the same network
 

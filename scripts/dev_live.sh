@@ -13,7 +13,7 @@ else
   echo "LAN test: http://${IP}:8888"
 fi
 
-netlify dev --command "python3 -m http.server 3999" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888 &
+netlify dev --offline --no-open --command "python3 -m http.server 3999" --target-port 3999 --functions netlify/functions --functions-port 9999 --port 8888 &
 DEV_PID=$!
 
 cleanup() {

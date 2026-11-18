@@ -44,14 +44,17 @@ final standings rank everyone by total score.
 
 ## Run locally
 
-Install dependencies and start the site with its local Netlify Functions:
+Install Node.js 22, Python 3, and the Netlify CLI, then install dependencies and
+start the site with its local Netlify Functions:
 
 ```bash
+npm install --global netlify-cli@27.7.0
 npm install
 npm run dev
 ```
 
-Then open `http://localhost:8888`.
+Then open `http://localhost:8888`. The development server uses Netlify's
+offline local Blob sandbox and does not connect to production storage.
 
 ## Testing
 
