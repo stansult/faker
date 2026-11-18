@@ -104,6 +104,13 @@ date; room scanning follows the adaptive policy in the
 4. Invoke the activated function only with approval, inspect the deletion summary,
    and confirm that completed results remain readable and the due date was saved.
 
+On the legacy account's current plan, function-only variable scopes are not
+available. Use **All scopes** with a value of `1` only in the **Production**
+deploy context; leave other contexts unset. This non-secret flag is read only
+by cleanup. Do not upgrade the plan to obtain narrower scopes. Verify the saved
+value in the dashboard or CLI before starting the test-gated redeployment;
+a CLI command completing without an error is not sufficient proof it persisted.
+
 Removing the opt-in stops future deletes; it cannot restore deleted rooms. A run
 already in progress retains its initial mode. Keep maintenance state in the
 `faker-maintenance` store; do not reset it casually to force a run. Production
