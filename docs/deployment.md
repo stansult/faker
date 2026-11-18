@@ -1,6 +1,7 @@
 # Test-Gated Netlify Deployment
 
-Faker deploys to Netlify through a GitHub Actions test gate. GitHub environment
+Faker deploys to Netlify through the **Test and deploy** GitHub Actions workflow.
+It gates production deployment on passing tests. GitHub environment
 secrets identify and authorize the production project. That project is not
 Git-connected, so the tested workflow is the only normal deployment path.
 
